@@ -5,7 +5,7 @@ const Risk = {
     critical: "critical"
 } as const;
 
-type Risk = typeof Risk[keyof typeof Risk]
+export type Risk = typeof Risk[keyof typeof Risk]
 
 export interface Barangay {
     name: string,

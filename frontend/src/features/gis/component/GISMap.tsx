@@ -43,6 +43,8 @@ const BarangayLayers = ({data, onFeatureClick}: GISMapProps) => {
 			map.off('mouseenter', 'barangay-fill', handleMouseEnter);
 			map.off('mouseleave', 'barangay-fill', handleMouseLeave);
 
+			if (!map.style) return;
+
 			if (map.getLayer('barangay-fill')) map.removeLayer('barangay-fill');
 			if (map.getLayer('barangay-line')) map.removeLayer('barangay-line');
 			if (map.getSource('barangays')) map.removeSource('barangays');
