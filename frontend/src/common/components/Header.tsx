@@ -1,20 +1,22 @@
-import { Droplet } from 'lucide-react'
 import { ButtonGroup } from '../ui/button-group'
 import { Button } from '../ui/button'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+
+
 
 const Title = ({title}: {title: string}) => {
     return (
         <div className='flex items-center gap-1'>
-            <Droplet />
-            <h1>{title}</h1>
+            <h1 className='font-semibold tracking-wide text-black/75'>{title}</h1>
         </div>
     )
 }
 
 const Avatar = ({name}: {name: string}) => {
+    const navigate = useNavigate();
+
     return (
-        <div className='flex gap-2 items-center'>
+        <div onClick={() => navigate('/me')} className='flex gap-2 items-center cursor-pointer hover:bg-secondary px-2 rounded-md transition'>
             <div className='p-0.5 bg-blue-600 aspect-square w-6 flex items-center justify-center rounded-full'>
                 <h5 className='uppercase font-bold text-white text-xs'>{name[0]}</h5>
             </div>
@@ -24,6 +26,7 @@ const Avatar = ({name}: {name: string}) => {
 }
 
 const Header = () => {
+
 
     const dummyUser = {
         first_name: "Ahlan-nour",

@@ -38,8 +38,8 @@ const Dashboard = () => {
 	]
 
 	const PasonancaDamLevel: PasonancaDamType = {
-		currentLevel: 10,
-		criticalLevel: 40,
+		currentLevel: 74.24,
+		criticalLevel: 76.60,
 		rateOfChange: 2
 	}
 

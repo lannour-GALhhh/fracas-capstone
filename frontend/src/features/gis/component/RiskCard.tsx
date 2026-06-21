@@ -4,6 +4,7 @@ import { cn } from '@/common/utils/utils';
 import type { RiskCardType } from '../types/RiskType';
 import capitalize from '@/common/utils/capitalize';
 import { Button } from '@/common/ui/button';
+import { Separator } from '@/common/ui/separator';
 
 
 const RiskCard = ({
@@ -33,6 +34,7 @@ const RiskCard = ({
             )} />
             <div className='flex flex-1 flex-col gap-1 items-start'>
                 <h5 className='font-semibold text-md'>{capitalize(risk)}</h5>
+                <Separator></Separator>
                 {isExpanded ?
                     <div className='flex flex-col gap-1 w-full mt-4'>
                         <h5 className='font-semibold'>Affected Barangays:</h5>

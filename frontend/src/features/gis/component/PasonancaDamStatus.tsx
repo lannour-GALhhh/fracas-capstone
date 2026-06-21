@@ -3,6 +3,7 @@ import { Card } from '@/common/ui/card'
 import { Progress, ProgressLabel } from '@/common/ui/progress'
 import { Label } from '@/common/ui/label'
 import type { PasonancaDamType } from '../types/PasonancaDamType'
+import { Separator } from '@/common/ui/separator'
 
 const PasonancaDamStatus = ({
     currentLevel,
@@ -22,22 +23,33 @@ const PasonancaDamStatus = ({
         <Card className='col-span-2 cursor-pointer px-4' onClick={handleExpanded}>
             <h5 className='font-semibold text-black/50'>PASONANCA DAM STATUS</h5>
             <Progress value={percentage*100}>
-                <ProgressLabel className='font-bold'>Current Level: {percentage*100}% Capacity</ProgressLabel>
+                <ProgressLabel className='font-bold'>Current Level: {(percentage*100).toFixed(2)}% Capacity</ProgressLabel>
             </Progress>
 
 
+
             {isExpanded &&
-                <div className='grid grid-cols-2 grid-flow-col-dense'>
-                    <div className='flex flex-col gap-1'>
-                        <Label>Current Dam Level</Label>
-                        <h4 className='text-xl font-semibold'>{currentLevel}/{criticalLevel} Meters</h4>
+                <>
+                    <Separator></Separator>
+                    <div className='grid grid-cols-2 grid-flow-col-dense'>
+                        
+                        <div className='flex flex-col gap-1'>
+                            <Label>Current Dam Level</Label>
+                            <div className='flex gap-2 items-end'>
+                                <h4 className='text-xl font-semibold'>{currentLevel}/{criticalLevel}</h4>
+                                <h5 className='text-sm font-semibold text-black/25'>Meters</h5>
+                            </div>
+                        </div>
+                        
+                        <div className='flex flex-col gap-1'>
+                            <Label>Rate of Change</Label>
+                            <div className='flex gap-2 items-end'>
+                                <h4 className='text-xl font-semibold'>{rateOfChange}</h4>
+                                <h5 className='text-sm font-semibold text-black/25'>Since 6 am</h5>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div className='flex flex-col gap-1'>
-                        <Label>Rate of Change</Label>
-                        <h4 className='text-xl font-semibold'>{rateOfChange}</h4>
-                    </div>
-                </div>
+                </>
             }
         </Card>
     )
