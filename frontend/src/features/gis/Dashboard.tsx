@@ -19,8 +19,8 @@ const Dashboard = () => {
 		{
 			risk: "critical",
 			barangays: [
-				{name: "Tumaga", link: ""},
-				{name: "Mercedes", link: ""},
+				{ name: "Tumaga", link: "" },
+				{ name: "Mercedes", link: "" },
 			]
 		},
 		{
@@ -43,50 +43,51 @@ const Dashboard = () => {
 		rateOfChange: 2
 	}
 
-	const riskList = Risks.map(({risk, barangays}, index) => 
-		<RiskCard 
+	const riskList = Risks.map(({ risk, barangays }, index) =>
+		<RiskCard
 			key={index}
 			risk={risk}
 			barangays={barangays}
-			/>
+		/>
 	);
 
 	const handleFeatureClick = useCallback((id: string, properties: Record<string, unknown>): void => {
 		setPanelVisible(e => !e)
 	}, [])
 
-	useEffect(() => {
-		const getInfo = async () => {
-			const data = await apiClient.get('/api/barangays/')
+	// useEffect(() => {
+	// 	const getInfo = async () => {
+	// 		const data = await apiClient.get('/api/barangays/')
 
-			setBarangays(data.data)
-		}	
+	// 		setBarangays(data.data)
+	// 	}	
 
-		getInfo();
-	}, [])
+	// 	getInfo();
+	// }, [])
 
-	useEffect(() => {
-		console.log(barangays)
-	}, [barangays])
+	// useEffect(() => {
+	// 	console.log(barangays)
+	// }, [barangays])
 
-  	return (
-    	<>
+	return (
+		<>
 			{isPanelVisible &&
 				<BarangayPanel />
 			}
 			<Legend />
 			<div className='absolute top-4 right-4 grid grid-cols-2 gap-2 z-2 w-1/4'>
 				{riskList}
-				<PasonancaDamStatus 
-					criticalLevel={PasonancaDamLevel.criticalLevel} 
-					currentLevel={PasonancaDamLevel.currentLevel} 
+				<PasonancaDamStatus
+					criticalLevel={PasonancaDamLevel.criticalLevel}
+					currentLevel={PasonancaDamLevel.currentLevel}
 					rateOfChange={PasonancaDamLevel.rateOfChange} />
 			</div>
-			{
-				barangays && <GISMap data={barangays} onFeatureClick={handleFeatureClick} />
-			}
-    	</>
-  	)
+			{/* {
+				barangays && 
+			} */}
+			<GISMap onFeatureClick={handleFeatureClick} />
+		</>
+	)
 }
 
 export default Dashboard
