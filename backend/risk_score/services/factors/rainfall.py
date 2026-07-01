@@ -1,12 +1,12 @@
-"""Rainfall hazard: current + short-term forecast intensity (PAGASA-normalized).
+"""Rainfall hazard: peak short-term intensity blended with saturation.
 
-Leans cautious for early warning — uses the peak expected intensity across
-now + the next 4 hours. Multi-hour accumulation (soil saturation) is a
-Phase-1 addition and will fold in here.
+Leans cautious for early warning — takes the greater of raw intensity hazard
+and an intensity+accumulation blend, so either torrential rain now or a
+saturated multi-hour total raises the score.
 """
 
 from risk_score.constants import FACTOR_RAINFALL
-from risk_score.services.normalization import normalize_rainfall
+from risk_score.services.normalization import clamp, normalize_accumulation, normalize_rainfall
 
 from .base import FactorInput, FactorResult
 
@@ -27,14 +27,18 @@ class RainfallFactor:
         ]
         peak_forecast = max(forecasts)
         peak_intensity = max(r.current_rainfall_strength, peak_forecast)
-        value = normalize_rainfall(peak_intensity)
+
+        intensity = normalize_rainfall(peak_intensity)
+        saturation = normalize_accumulation(r.accumulated_24hr)
+        value = clamp(max(intensity, 0.5 * intensity + 0.5 * saturation))
 
         return FactorResult(
             self.key,
             value,
             detail={
-                "current_mm_hr": r.current_rainfall_strength,
-                "peak_forecast_mm_hr": peak_forecast,
                 "peak_intensity_mm_hr": peak_intensity,
+                "accumulated_24hr_mm": r.accumulated_24hr,
+                "intensity_hazard": round(intensity, 4),
+                "saturation_hazard": round(saturation, 4),
             },
         )

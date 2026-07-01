@@ -1,0 +1,4 @@
+barangay,occurred_at,severity,water_depth_m,source,notes
+Tumaga,2024-07-15T14:00,major,1.2,EXAMPLE - replace with real record,Sample row for format reference
+Guiwan,2024-08-02T06:00,moderate,0.6,EXAMPLE - replace with real record,Sample row for format reference
+Tetuan,2023-12-28T22:00,minor,0.3,EXAMPLE - replace with real record,Sample row for format reference

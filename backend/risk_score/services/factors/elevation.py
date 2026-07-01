@@ -1,12 +1,12 @@
-"""Static vulnerability from terrain elevation.
+"""Static vulnerability: terrain elevation, refined by hazard-map susceptibility.
 
-Lower-lying barangays are more flood-prone, so vulnerability is the inverse
-of where a barangay's mean elevation sits within the city's elevation range.
-Richer static factors (susceptibility rating, distance to river) are Phase 1.
+Lower-lying barangays are more flood-prone (inverse of elevation percentile).
+When a flood-susceptibility rating is available it's blended in equally;
+otherwise elevation alone is used.
 """
 
 from risk_score.constants import FACTOR_VULNERABILITY
-from risk_score.services.normalization import normalize_position
+from risk_score.services.normalization import clamp, normalize_position
 
 from .base import FactorInput, FactorResult
 
@@ -15,15 +15,27 @@ class ElevationVulnerabilityFactor:
     key = FACTOR_VULNERABILITY
 
     def evaluate(self, data: FactorInput) -> FactorResult:
-        height = data.barangay.land_height_mean
+        barangay = data.barangay
+        height = barangay.land_height_mean
         bounds = data.context.elevation_bounds
         if height is None or bounds is None:
             return FactorResult(self.key, 0.0, available=False, detail={"reason": "no elevation data"})
 
         low, high = bounds
-        vulnerability = 1.0 - normalize_position(height, low, high)
+        elevation_vuln = 1.0 - normalize_position(height, low, high)
+
+        susceptibility = barangay.flood_susceptibility
+        if susceptibility is not None:
+            value = clamp(0.5 * elevation_vuln + 0.5 * susceptibility)
+        else:
+            value = elevation_vuln
+
         return FactorResult(
             self.key,
-            vulnerability,
-            detail={"land_height_mean": height, "elevation_low": low, "elevation_high": high},
+            value,
+            detail={
+                "land_height_mean": height,
+                "elevation_vulnerability": round(elevation_vuln, 4),
+                "flood_susceptibility": susceptibility,
+            },
         )

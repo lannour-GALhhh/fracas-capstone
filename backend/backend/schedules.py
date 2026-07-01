@@ -7,11 +7,10 @@ pipeline lands, add its entries here so scheduling stays in one place.
 from celery.schedules import crontab
 
 BEAT_SCHEDULE = {
-    "scoring-pipeline-hourly": {
-        # Chains: fetch rainfall -> compute risk scores (so compute runs on
-        # fresh data). Open-Meteo and the ZCWD dam page both refresh hourly;
-        # run a few minutes past the hour so upstream data is settled.
+    "scoring-pipeline-15min": {
+        # Chains: ingest dam + fetch rainfall -> compute risk scores (so compute
+        # runs on fresh data). Runs every 15 minutes for near-real-time warning.
         "task": "risk_score.tasks.run_scoring_pipeline",
-        "schedule": crontab(minute=5),
+        "schedule": crontab(minute="*/15"),
     },
 }

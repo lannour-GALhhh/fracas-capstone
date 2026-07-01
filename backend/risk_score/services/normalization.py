@@ -31,6 +31,16 @@ def normalize_rainfall(mm_per_hr: float) -> float:
     return clamp(piecewise_linear(max(0.0, mm_per_hr), _RAINFALL_CURVE))
 
 
+# Accumulated rainfall (mm over ~24h) as a saturation proxy: heavy 24h totals
+# (>=200mm) drive flooding even at moderate instantaneous intensity.
+_ACCUMULATION_CURVE = [(0.0, 0.0), (50.0, 0.33), (100.0, 0.66), (200.0, 1.0)]
+
+
+def normalize_accumulation(mm: float) -> float:
+    """Map accumulated rainfall (mm) to a 0-1 saturation hazard."""
+    return clamp(piecewise_linear(max(0.0, mm), _ACCUMULATION_CURVE))
+
+
 def normalize_position(value: float, low: float, high: float) -> float:
     """Where `value` sits in [low, high] as 0-1. Degenerate range -> 0."""
     if high <= low:

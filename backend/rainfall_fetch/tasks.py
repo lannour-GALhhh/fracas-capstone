@@ -14,8 +14,15 @@ def rainfall_url(latitude: float, longitude: float) -> str:
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
-        f"&current=precipitation&hourly=precipitation&forecast_days=1"
+        f"&current=precipitation&hourly=precipitation"
+        f"&past_days=1&forecast_days=1"
     )
+
+
+def _accumulate(precipitation, index, hours):
+    """Sum the `hours` hourly buckets ending at (and including) `index`."""
+    start = max(0, index - hours + 1)
+    return round(sum(precipitation[start:index + 1]), 2)
 
 def parse_rainfall_data(data, barangay_name=None):
     current_rainfall = data['current']['precipitation']
@@ -28,15 +35,18 @@ def parse_rainfall_data(data, barangay_name=None):
     if index is None:
         logger.warning(f"Current hour not found in hourly forecast for {barangay_name}. Defaulting to 0")
         return {key: 0 for key in [
-            'current_rainfall_strength', 
-            'forecast_strength_1hr', 
-            'forecast_strength_2hr', 
-            'forecast_strength_3hr', 
-            'forecast_strength_4hr'
+            'current_rainfall_strength',
+            'forecast_strength_1hr',
+            'forecast_strength_2hr',
+            'forecast_strength_3hr',
+            'forecast_strength_4hr',
+            'accumulated_6hr',
+            'accumulated_12hr',
+            'accumulated_24hr',
             ]}
 
     # 1 hand function to get the precipitation based on hour represented as index, which is 1, 2, 3, 4
-    forecast = lambda x: precipitation[index + x] if index + x < len(precipitation) else 0 
+    forecast = lambda x: precipitation[index + x] if index + x < len(precipitation) else 0
 
     return {
         'current_rainfall_strength': current_rainfall,
@@ -44,6 +54,9 @@ def parse_rainfall_data(data, barangay_name=None):
         'forecast_strength_2hr': forecast(2),
         'forecast_strength_3hr': forecast(3),
         'forecast_strength_4hr': forecast(4),
+        'accumulated_6hr': _accumulate(precipitation, index, 6),
+        'accumulated_12hr': _accumulate(precipitation, index, 12),
+        'accumulated_24hr': _accumulate(precipitation, index, 24),
     }
 
 @shared_task

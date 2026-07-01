@@ -12,6 +12,14 @@ class Barangay(models.Model):
     land_height_min = models.FloatField(blank=True, null=True)
     land_height_max = models.FloatField(blank=True, null=True)
 
+    # --- static flood-vulnerability profile ---
+    # Downstream of the Pasonanca diversion dam (Tumaga corridor): these
+    # barangays weight the dam factor heavily. Set via the flag_downstream cmd.
+    is_downstream = models.BooleanField(default=False, db_index=True)
+    # 0-1 flood susceptibility from a hazard map (Project NOAH / HazardHunterPH).
+    flood_susceptibility = models.FloatField(null=True, blank=True)
+    distance_to_river_km = models.FloatField(null=True, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=['province_code', 'name'])

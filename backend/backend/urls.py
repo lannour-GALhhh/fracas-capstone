@@ -30,4 +30,7 @@ urlpatterns = [
 
     # LOCAL APPS
     path('api/', include('barangays.urls')),
+    path('api/', include('risk_score.urls')),
+    path('api/', include('dam_level.urls')),
+    path('api/', include('flood_events.urls')),
 ]

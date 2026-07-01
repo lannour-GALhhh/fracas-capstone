@@ -11,6 +11,12 @@ class Rainfall(models.Model):
     forecast_strength_3hr = models.FloatField(default=0)
     forecast_strength_4hr = models.FloatField(default=0)
 
+    # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
+    # Reflects soil saturation, a stronger flood driver than instantaneous rate.
+    accumulated_6hr = models.FloatField(default=0)
+    accumulated_12hr = models.FloatField(default=0)
+    accumulated_24hr = models.FloatField(default=0)
+
     rate_of_change = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
 
     recorded_at = models.DateTimeField(db_index=True)

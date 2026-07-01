@@ -27,3 +27,38 @@ def store(computed_at: datetime, entries: list[dict]) -> dict:
 
 def read() -> dict | None:
     return cache.get(SNAPSHOT_KEY)
+
+
+def latest() -> dict:
+    """Cached snapshot, or one rebuilt from the newest RiskScore per barangay.
+
+    The fallback keeps the API serving right after a deploy/cache flush, before
+    the next compute cycle repopulates Redis.
+    """
+    cached = read()
+    if cached is not None:
+        return cached
+
+    from risk_score.models import RiskScore
+
+    rows = (
+        RiskScore.objects.order_by("barangay_id", "-computed_at")
+        .distinct("barangay_id")
+        .select_related("barangay")
+    )
+    entries = [
+        {
+            "id": r.barangay_id,
+            "name": r.barangay.name,
+            "score": round(r.score, 2),
+            "category": r.category,
+            "is_degraded": r.is_degraded,
+        }
+        for r in rows
+    ]
+    computed_at = max((r.computed_at for r in rows), default=None)
+    return {
+        "computed_at": computed_at.isoformat() if computed_at else None,
+        "count": len(entries),
+        "barangays": entries,
+    }
