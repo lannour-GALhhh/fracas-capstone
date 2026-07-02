@@ -6,6 +6,10 @@ from .dam import Dam
 
 
 class DamReading(models.Model):
+    class Source(models.TextChoices):
+        SCRAPER = "scraper", "Scraper"
+        MANUAL = "manual", "Manual (operator)"
+
     dam = models.ForeignKey(Dam, on_delete=models.CASCADE, related_name="readings")
 
     water_level = models.FloatField(help_text="Metres.")
@@ -14,6 +18,10 @@ class DamReading(models.Model):
         null=True, blank=True, help_text="Metres per hour vs the previous reading."
     )
     is_spilling = models.BooleanField(default=False)
+    source = models.CharField(
+        max_length=10, choices=Source.choices, default=Source.SCRAPER,
+        help_text="Where this reading came from (scraper, or manual operator entry).",
+    )
 
     recorded_at = models.DateTimeField(db_index=True, help_text="Reading time reported by the source.")
     fetched_at = models.DateTimeField(auto_now_add=True)

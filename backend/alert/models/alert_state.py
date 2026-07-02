@@ -19,6 +19,11 @@ class AlertState(models.Model):
     )
     entered_at = models.DateTimeField(auto_now_add=True)
     last_notified_at = models.DateTimeField(null=True, blank=True)
+    is_suppressed = models.BooleanField(
+        default=False,
+        help_text="Operator override: mute automated alerts for this barangay "
+        "(e.g. a known false positive). State still tracks the level.",
+    )
 
     def __str__(self):
         return f"{self.barangay}: {self.level}"

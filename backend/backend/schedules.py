@@ -13,4 +13,9 @@ BEAT_SCHEDULE = {
         "task": "risk_score.tasks.run_scoring_pipeline",
         "schedule": crontab(minute="*/15"),
     },
+    "cleanup-old-data-daily": {
+        # Prune old rainfall / risk-score rows past their retention window.
+        "task": "monitoring.tasks.cleanup_old_data",
+        "schedule": crontab(hour=3, minute=0),
+    },
 }

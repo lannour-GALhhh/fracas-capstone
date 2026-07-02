@@ -2,3 +2,7 @@
 .env
 /tests
 /docs
+
+# Python bytecode
+__pycache__/
+*.py[cod]

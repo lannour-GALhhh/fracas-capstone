@@ -6,6 +6,8 @@ from celery import shared_task
 from django.utils import timezone
 
 from barangays.models import Barangay
+from monitoring.constants import SOURCE_RAINFALL
+from monitoring.services.recorder import record_failure, record_success
 from .models import Rainfall
 
 logger = logging.getLogger(__name__)
@@ -96,3 +98,7 @@ def fetch_rainfall_information():
     if readings:
         Rainfall.objects.bulk_create(readings)
         logger.info(f"Stored {len(readings)} rainfall readings.")
+        record_success(SOURCE_RAINFALL)
+    else:
+        logger.error("No rainfall readings stored this cycle.")
+        record_failure(SOURCE_RAINFALL, "no readings stored")

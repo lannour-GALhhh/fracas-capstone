@@ -35,4 +35,5 @@ urlpatterns = [
     path('api/', include('flood_events.urls')),
     path('api/', include('users.urls')),
     path('api/', include('alert.urls')),
+    path('api/', include('monitoring.urls')),
 ]

@@ -56,6 +56,11 @@ def _process(state: AlertState, score: RiskScore) -> bool:
         state.level = score.category
         state.entered_at = now
 
+    # Operator suppression mutes automated dispatch but still tracks the level,
+    # so an all-clear/re-alert resumes correctly once un-suppressed.
+    if state.is_suppressed:
+        notify = all_clear = False
+
     if notify:
         key = f"{score.barangay_id}:{score.computed_at.isoformat()}"
         dispatch(score.barangay, score.category, score.score, key, all_clear=all_clear)

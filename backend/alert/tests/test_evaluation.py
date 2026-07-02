@@ -41,6 +41,16 @@ class AlertStateMachineTests(TestCase):
         make_score(self.barangay, RiskCategory.CRITICAL, when=timezone.now())
         self.assertEqual(evaluate()["notified"], 1)
 
+    def test_suppressed_barangay_is_not_notified(self):
+        AlertState.objects.create(barangay=self.barangay, is_suppressed=True)
+        make_score(self.barangay, RiskCategory.CRITICAL, when=timezone.now())
+        self.assertEqual(evaluate()["notified"], 0)
+        self.dispatch.assert_not_called()
+        # Level is still tracked so alerts resume correctly once un-suppressed.
+        self.assertEqual(
+            AlertState.objects.get(barangay=self.barangay).level, RiskCategory.CRITICAL
+        )
+
     def test_all_clear_notifies_and_lowers_level(self):
         make_score(self.barangay, RiskCategory.CRITICAL, when=timezone.now() - timedelta(minutes=1))
         evaluate()

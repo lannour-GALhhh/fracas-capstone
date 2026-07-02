@@ -20,6 +20,9 @@ app.conf.beat_schedule = BEAT_SCHEDULE
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
+# Connect task-outcome metrics signals (logs success/failure/retry).
+from backend import task_metrics  # noqa: E402,F401
+
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):

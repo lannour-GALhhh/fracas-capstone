@@ -33,6 +33,12 @@ class IngestDamLevelTests(TestCase):
         self.assertTrue(latest.is_spilling)
 
     @patch("dam_level.tasks.get_provider")
+    def test_scraped_reading_is_tagged_scraper_source(self, mock_get):
+        self._mock(mock_get, 74.5, self.t0)
+        tasks.ingest_dam_level()
+        self.assertEqual(DamReading.objects.first().source, DamReading.Source.SCRAPER)
+
+    @patch("dam_level.tasks.get_provider")
     def test_duplicate_timestamp_skipped(self, mock_get):
         self._mock(mock_get, 74.2, self.t0)
         tasks.ingest_dam_level()

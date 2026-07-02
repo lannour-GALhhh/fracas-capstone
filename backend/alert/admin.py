@@ -5,8 +5,9 @@ from .models import AlertState, Notification, NotificationLog
 
 @admin.register(AlertState)
 class AlertStateAdmin(admin.ModelAdmin):
-    list_display = ("barangay", "level", "entered_at", "last_notified_at")
-    list_filter = ("level",)
+    list_display = ("barangay", "level", "is_suppressed", "entered_at", "last_notified_at")
+    list_filter = ("level", "is_suppressed")
+    list_editable = ("is_suppressed",)  # operator suppression override
 
 
 @admin.register(Notification)

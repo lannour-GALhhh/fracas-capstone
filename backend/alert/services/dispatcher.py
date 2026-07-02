@@ -43,18 +43,22 @@ def _claim(user, barangay, channel, dedup_key) -> NotificationLog | None:
     return log if created else None
 
 
-def dispatch(barangay, category: str, score: float, dispatch_key: str, *, all_clear: bool = False):
+def _fan_out(
+    barangay, category: str, title: str, body: str, dispatch_key: str,
+    *, respect_quiet_hours: bool = True,
+) -> int:
+    """Send one message to every subscriber across their enabled channels.
+
+    Returns the number of subscribers reached. Idempotent per dispatch_key.
+    """
     from alert.tasks import send_push_task, send_sms_task  # avoid import cycle
 
-    if all_clear:
-        title, body = messages.all_clear_message(barangay.name, category)
-    else:
-        title, body = messages.critical_message(barangay.name, score)
-
+    recipients = 0
     for sub in Subscription.objects.filter(barangay=barangay).select_related("user"):
+        recipients += 1
         user = sub.user
         prefs = _preferences(user)
-        quiet = _in_quiet_hours(prefs)
+        quiet = respect_quiet_hours and _in_quiet_hours(prefs)
 
         if prefs.inapp_enabled and _claim(user, barangay, Channel.INAPP, dispatch_key):
             Notification.objects.create(
@@ -73,3 +77,21 @@ def dispatch(barangay, category: str, score: float, dispatch_key: str, *, all_cl
                 key = f"{dispatch_key}:{device.id}"
                 if _claim(user, barangay, Channel.PUSH, key):
                     send_push_task.delay(user.id, key, device.token, title, body)
+    return recipients
+
+
+def dispatch(barangay, category: str, score: float, dispatch_key: str, *, all_clear: bool = False):
+    if all_clear:
+        title, body = messages.all_clear_message(barangay.name, category)
+    else:
+        title, body = messages.critical_message(barangay.name, score)
+    return _fan_out(barangay, category, title, body, dispatch_key)
+
+
+def broadcast(barangay, title: str, body: str, dispatch_key: str, *, category: str = "critical") -> int:
+    """Operator-initiated custom alert to a barangay's subscribers.
+
+    Ignores quiet hours — an operator broadcast is a deliberate, typically
+    urgent override — but still honors each user's per-channel opt-in.
+    """
+    return _fan_out(barangay, category, title, body, dispatch_key, respect_quiet_hours=False)

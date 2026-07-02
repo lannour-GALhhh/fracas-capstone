@@ -25,7 +25,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=False)
+# cast=bool is required — without it a "False" env string is truthy.
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
@@ -38,6 +39,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'user': config('THROTTLE_USER', default='2000/hour'),
+        'anon': config('THROTTLE_ANON', default='200/hour'),
+    },
 }
 
 SIMPLE_JWT = {
@@ -75,6 +84,7 @@ INSTALLED_APPS = [
     'risk_score',
     'users',
     'flood_events',
+    'monitoring',
 ]
 
 MIDDLEWARE = [
@@ -187,15 +197,37 @@ CELERY_BROKER_URL = config("CELERY_BROKER_URL")
 # When true, tasks run inline (used by the test suite so .delay() executes eagerly).
 CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)
 
+LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+
 LOGGING = {
     "version": 1,
-    "handlers": {
-        "console": {"class": "logging.StreamHandler"},
-    },
-    "loggers": {
-        "rainfall_fetch": {
-            "handlers": ["console"],
-            "level": "DEBUG",  # must be DEBUG to see logger.debug()
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
         },
     },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    },
+    # Root handles all app loggers; noisy/overridden ones are tuned below.
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "celery.metrics": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
 }
+
+# --- Production security posture (only when DEBUG is off) ---
+# Kept out of the way in development; enforced automatically in production.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+    SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
+    # The JWT refresh cookie must only travel over HTTPS in production.
+    SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True
