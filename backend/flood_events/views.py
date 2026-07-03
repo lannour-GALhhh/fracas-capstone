@@ -3,7 +3,7 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 from .models import FloodEvent
-from .serializers import FloodEventSerializer
+from .serializers import FloodEventDetailSerializer, FloodEventSerializer
 
 
 class FloodEventListView(ListAPIView):
@@ -16,5 +16,6 @@ class FloodEventListView(ListAPIView):
 
 
 class FloodEventDetailView(RetrieveAPIView):
-    queryset = FloodEvent.objects.select_related("barangay")
-    serializer_class = FloodEventSerializer
+    # The detail serializer joins the response timeline + derives telemetry.
+    queryset = FloodEvent.objects.select_related("barangay").prefetch_related("timeline")
+    serializer_class = FloodEventDetailSerializer

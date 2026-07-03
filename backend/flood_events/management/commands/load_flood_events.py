@@ -1,12 +1,16 @@
 """Import recorded flood events from a CSV (validation ground truth).
 
 CSV columns (header required):
-    barangay      barangay name (or use `code` for the PSGC code)
-    occurred_at   ISO datetime, e.g. 2024-07-15T14:00  (date-only -> local noon)
-    severity      minor | moderate | major   (default moderate)
-    water_depth_m optional float
-    source        optional text
-    notes         optional text
+    barangay         barangay name (or use `code` for the PSGC code)
+    occurred_at      ISO datetime, e.g. 2024-07-15T14:00  (date-only -> local noon)
+    severity         minor | moderate | major   (default moderate)
+    water_depth_m    optional float
+    source           optional text
+    notes            optional text
+    ended_at         optional ISO datetime (recession time -> duration)
+    summary          optional narrative text
+    people_affected  optional int
+    people_evacuated optional int
 
     python manage.py load_flood_events path/to/flood_events.csv
 
@@ -61,8 +65,12 @@ class Command(BaseCommand):
             FloodEvent.objects.create(
                 barangay=barangay,
                 occurred_at=occurred_at,
+                ended_at=parse_occurred_at(row.get("ended_at", "")),
                 severity=severity,
                 water_depth_m=_float_or_none(row.get("water_depth_m")),
+                summary=(row.get("summary") or "").strip(),
+                people_affected=_int_or_none(row.get("people_affected")),
+                people_evacuated=_int_or_none(row.get("people_evacuated")),
                 source=(row.get("source") or "").strip(),
                 notes=(row.get("notes") or "").strip(),
             )
@@ -84,5 +92,12 @@ class Command(BaseCommand):
 def _float_or_none(raw):
     try:
         return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _int_or_none(raw):
+    try:
+        return int(raw)
     except (TypeError, ValueError):
         return None
