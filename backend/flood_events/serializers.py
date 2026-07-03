@@ -59,3 +59,58 @@ class FloodEventDetailSerializer(serializers.ModelSerializer):
 
     def get_telemetry(self, event) -> dict:
         return build_event_telemetry(event)
+
+
+class FloodEventWriteSerializer(serializers.ModelSerializer):
+    """Operator create/update, with the response timeline written inline.
+
+    Timeline uses replace-all semantics: the entries in the payload become the
+    event's full timeline (simplest predictable behaviour for the form UI).
+    """
+
+    timeline = FloodEventTimelineEntrySerializer(many=True, required=False)
+
+    class Meta:
+        model = FloodEvent
+        fields = [
+            "id",
+            "barangay",
+            "occurred_at",
+            "ended_at",
+            "severity",
+            "water_depth_m",
+            "summary",
+            "people_affected",
+            "people_evacuated",
+            "source",
+            "notes",
+            "timeline",
+        ]
+
+    def validate(self, attrs):
+        occurred_at = attrs.get("occurred_at", getattr(self.instance, "occurred_at", None))
+        ended_at = attrs.get("ended_at", getattr(self.instance, "ended_at", None))
+        if occurred_at and ended_at and ended_at < occurred_at:
+            raise serializers.ValidationError({"ended_at": "Must be at or after occurred_at."})
+        return attrs
+
+    def _write_timeline(self, event, entries):
+        event.timeline.all().delete()
+        FloodEventTimelineEntry.objects.bulk_create(
+            [FloodEventTimelineEntry(flood_event=event, **entry) for entry in entries]
+        )
+
+    def create(self, validated_data):
+        entries = validated_data.pop("timeline", [])
+        event = FloodEvent.objects.create(**validated_data)
+        self._write_timeline(event, entries)
+        return event
+
+    def update(self, instance, validated_data):
+        entries = validated_data.pop("timeline", None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        instance.save()
+        if entries is not None:
+            self._write_timeline(instance, entries)
+        return instance
