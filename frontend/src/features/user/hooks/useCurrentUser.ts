@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { changePassword, getCurrentUser, updateCurrentUser } from '../api/userApi'
 import type { CurrentUser } from '../types'
+import { accountChangesKey } from './useAccountChanges'
 
 /** Query key for the signed-in user's profile. */
 export const currentUserKey = ['currentUser'] as const
@@ -13,19 +14,25 @@ export const useCurrentUser = () =>
         staleTime: 5 * 60 * 1000,
     })
 
-/** Edit name/email; primes the cache with the server's echo. */
+/** Edit profile fields; primes the cache and refreshes the account-change log. */
 export const useUpdateProfile = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn: updateCurrentUser,
         onSuccess: (user: CurrentUser) => {
             queryClient.setQueryData(currentUserKey, user)
+            queryClient.invalidateQueries({ queryKey: accountChangesKey })
         },
     })
 }
 
-/** Change the account password. */
-export const useChangePassword = () =>
-    useMutation({
+/** Change the account password; the change is recorded in the account-change log. */
+export const useChangePassword = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
         mutationFn: changePassword,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: accountChangesKey })
+        },
     })
+}

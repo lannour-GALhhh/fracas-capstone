@@ -8,10 +8,12 @@ from .views import (
     FloodEventListView,
     FloodEventResolveView,
     FloodEventRestoreView,
+    MyFloodActivityView,
 )
 
 urlpatterns = [
     path("flood-events/auto-detect-config/", AutoDetectConfigView.as_view(), name="auto-detect-config"),
+    path("flood-events/my-activity/", MyFloodActivityView.as_view(), name="flood-event-my-activity"),
     path("flood-events/", FloodEventListView.as_view(), name="flood-event-list"),
     path("flood-events/<int:pk>/", FloodEventDetailView.as_view(), name="flood-event-detail"),
     path("flood-events/<int:pk>/changes/", FloodEventChangesView.as_view(), name="flood-event-changes"),

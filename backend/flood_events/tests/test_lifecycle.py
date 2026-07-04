@@ -138,6 +138,42 @@ class ChangeAuditTests(APITestCase):
         self.assertEqual(severity_change["new_value"], "major")
 
 
+class MyFloodActivityApiTests(APITestCase):
+    def setUp(self):
+        self.barangay = make_barangay()
+        self.operator = get_user_model().objects.create_user(
+            "operator", password="pw", is_operator=True
+        )
+        self.other = get_user_model().objects.create_user(
+            "other", password="pw", is_operator=True
+        )
+        self.resident = get_user_model().objects.create_user("resident", password="pw")
+        self.event = FloodEvent.objects.create(
+            barangay=self.barangay, occurred_at=timezone.now(), severity="minor"
+        )
+        self.url = reverse("flood-event-my-activity")
+
+    def _change(self, editor, action):
+        return FloodEventChange.objects.create(
+            flood_event=self.event, editor=editor, action=action
+        )
+
+    def test_resident_is_forbidden(self):
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_lists_only_callers_changes_newest_first(self):
+        self._change(self.other, FloodEventChange.Action.CONFIRMED)
+        older = self._change(self.operator, FloodEventChange.Action.CONFIRMED)
+        newer = self._change(self.operator, FloodEventChange.Action.RESOLVED)
+        self.client.force_authenticate(self.operator)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([row["id"] for row in resp.data["results"]], [newer.id, older.id])
+        self.assertEqual(resp.data["results"][0]["barangay_name"], self.barangay.name)
+        self.assertEqual(resp.data["results"][0]["flood_event"], self.event.id)
+
+
 class AutoDetectTests(APITestCase):
     def setUp(self):
         self.barangay = make_barangay()

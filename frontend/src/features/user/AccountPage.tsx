@@ -4,6 +4,8 @@ import { Separator } from '@/common/ui/separator'
 import ProfileDetailsCard from './components/ProfileDetailsCard'
 import EditProfileDialog from './components/EditProfileDialog'
 import ChangePasswordDialog from './components/ChangePasswordDialog'
+import OperatorActivity from './components/OperatorActivity'
+import AccountChangeLog from './components/AccountChangeLog'
 import { useCurrentUser } from './hooks/useCurrentUser'
 
 const AccountPage = () => {
@@ -23,19 +25,31 @@ const AccountPage = () => {
 				<UserInformationCard
 					first_name={user.first_name || user.username}
 					last_name={user.last_name}
-					role={user.role}
 					is_active={user.is_active}
 				/>
 				<Separator />
 
-				<ProfileDetailsCard email={user.email || '—'} phone_number={user.phone_number || '—'} />
+				<ProfileDetailsCard
+					email={user.email || '—'}
+					phone_number={user.phone_number || '—'}
+					address={user.address}
+				/>
 				<Separator />
 
 				<EditProfileDialog user={user} />
 				<ChangePasswordDialog />
 			</Card>
-			<div>
-				<CardTitle>Profile Details</CardTitle>
+			<div className='ml-2 flex flex-1 flex-col gap-2 overflow-y-auto'>
+				<Card className='p-4'>
+					<CardTitle>My Activity</CardTitle>
+					<Separator />
+					<OperatorActivity />
+				</Card>
+				<Card className='p-4'>
+					<CardTitle>Account History</CardTitle>
+					<Separator />
+					<AccountChangeLog />
+				</Card>
 			</div>
 		</div>
 	)

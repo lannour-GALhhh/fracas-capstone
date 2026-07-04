@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from users.models import Device, Subscription
+from users.models import AccountChange, Device, Subscription
 
 
 def make_barangay(name="Tumaga", code="T1"):
@@ -85,3 +85,77 @@ class CurrentUserApiTests(APITestCase):
         self.assertEqual(resp.status_code, 204)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("n3w-passphrase"))
+
+    def test_me_updates_phone_and_address(self):
+        resp = self.client.patch(
+            reverse("user-me"),
+            {
+                "phone_number": "+639170000001",
+                "address": {
+                    "unit": "Purok 5",
+                    "barangay": "Tetuan",
+                    "barangay_code": "097332075",
+                    "city": "City of Zamboanga",
+                    "city_code": "097332000",
+                    "province": "Zamboanga Del Sur",
+                    "province_code": "097300000",
+                    "zip_code": "7000",
+                },
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.phone_number, "+639170000001")
+        self.assertEqual(self.user.address["barangay"], "Tetuan")
+        self.assertEqual(self.user.address["city_code"], "097332000")
+        # Country defaults to Philippines when omitted.
+        self.assertEqual(self.user.address["country"], "Philippines")
+
+    def test_address_edit_writes_one_account_change(self):
+        self.client.patch(
+            reverse("user-me"),
+            {"address": {"unit": "Purok 5", "barangay": "Tetuan"}},
+            format="json",
+        )
+        change = AccountChange.objects.get(user=self.user, field="address")
+        self.assertEqual(change.old_value, "")
+        self.assertIn("Tetuan", change.new_value)
+
+    def test_profile_edit_writes_account_change(self):
+        self.client.patch(reverse("user-me"), {"first_name": "Renamed"})
+        change = AccountChange.objects.get(user=self.user, field="first_name")
+        self.assertEqual(change.action, AccountChange.Action.UPDATED)
+        self.assertEqual(change.old_value, "Ops")
+        self.assertEqual(change.new_value, "Renamed")
+        self.assertEqual(change.actor, self.user)
+
+    def test_set_password_logs_change(self):
+        self.client.post(
+            reverse("user-set-password"),
+            {"current_password": "pw", "new_password": "n3w-passphrase"},
+        )
+        self.assertTrue(
+            AccountChange.objects.filter(
+                user=self.user, action=AccountChange.Action.PASSWORD_CHANGED
+            ).exists()
+        )
+
+
+class AccountChangeApiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("me", password="pw")
+        self.other = get_user_model().objects.create_user("other", password="pw")
+        self.url = reverse("account-changes")
+
+    def test_requires_auth(self):
+        self.assertEqual(self.client.get(self.url).status_code, 401)
+
+    def test_lists_only_own_changes_newest_first(self):
+        AccountChange.objects.create(user=self.other, field="email")
+        older = AccountChange.objects.create(user=self.user, field="first_name")
+        newer = AccountChange.objects.create(user=self.user, field="last_name")
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([row["id"] for row in resp.data["results"]], [newer.id, older.id])

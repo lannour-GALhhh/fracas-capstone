@@ -1,19 +1,15 @@
-import type { Role } from '@/common/types/Role'
 import { Card } from '@/common/ui/card'
-import RoleBadge from './RoleBadge'
 import UserActiveBadge from './UserActiveBadge'
 
 interface UserInformationProps {
     first_name: string,
     last_name: string,
-    role: Role,
     is_active: boolean
 }
 
 const UserInformationCard = ({
     first_name,
     last_name,
-    role,
     is_active
 }: UserInformationProps) => {
     return (
@@ -24,7 +20,6 @@ const UserInformationCard = ({
 
             <Card className='flex items-center w-full'>
                 <h2 className='text-xl font-semibold'>{first_name} {last_name}</h2>
-                {/* <RoleBadge role={role} /> */}
                 <UserActiveBadge isActive={is_active} />
             </Card>
         </div>

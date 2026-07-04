@@ -34,6 +34,8 @@ export interface AlertEventFilters {
     barangay?: number
     source?: AlertEventSource
     kind?: AlertEventKind
+    /** `'me'` scopes the log to the requesting operator's own broadcasts. */
+    triggered_by?: 'me'
     page?: number
 }
 

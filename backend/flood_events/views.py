@@ -23,6 +23,7 @@ from .serializers import (
     FloodEventDetailSerializer,
     FloodEventSerializer,
     FloodEventWriteSerializer,
+    MyFloodActivitySerializer,
 )
 from .services import changes
 
@@ -83,6 +84,22 @@ class FloodEventChangesView(ListAPIView):
         return FloodEventChange.objects.filter(
             flood_event_id=self.kwargs["pk"]
         ).select_related("editor")
+
+
+class MyFloodActivityView(ListAPIView):
+    """The signed-in operator's own flood-event actions, newest first.
+
+    Powers the account page's activity feed. Scoped to `request.user`, so an
+    operator only ever sees the changes they made.
+    """
+
+    permission_classes = [IsOperator]
+    serializer_class = MyFloodActivitySerializer
+
+    def get_queryset(self):
+        return FloodEventChange.objects.filter(
+            editor=self.request.user
+        ).select_related("flood_event", "flood_event__barangay")
 
 
 class _EventActionView(APIView):

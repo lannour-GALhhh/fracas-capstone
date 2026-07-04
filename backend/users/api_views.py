@@ -9,15 +9,25 @@ from rest_framework.viewsets import GenericViewSet
 
 from alert.senders import SendError
 
-from .models import Device, NotificationPreference, Subscription, User
+from .models import AccountChange, Device, NotificationPreference, Subscription, User
 from .permissions import IsOperator
 from .serializers import (
+    AccountChangeSerializer,
     DeviceSerializer,
     NotificationPreferenceSerializer,
     OperatorSerializer,
     SubscriptionSerializer,
 )
 from .services.otp import OTPError, generate_and_send, verify
+
+
+class AccountChangeListView(ListAPIView):
+    """The signed-in user's own account-change history, newest first."""
+
+    serializer_class = AccountChangeSerializer
+
+    def get_queryset(self):
+        return AccountChange.objects.filter(user=self.request.user).select_related("actor")
 
 
 class OperatorListView(ListAPIView):

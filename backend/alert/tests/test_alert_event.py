@@ -107,3 +107,29 @@ class AlertEventApiTests(APITestCase):
         self._auth(is_operator=True)
         resp = self.client.get(self.url, {"kind": EventKind.ALL_CLEAR})
         self.assertEqual(resp.data["count"], 0)
+
+    def test_filter_triggered_by_me_scopes_to_caller(self):
+        me = get_user_model().objects.create_user("me", password="pw", is_operator=True)
+        other = get_user_model().objects.create_user("other", password="pw", is_operator=True)
+        mine = AlertEvent.objects.create(
+            barangay=self.barangay,
+            level=RiskCategory.CRITICAL,
+            kind=EventKind.BROADCAST,
+            source=EventSource.OPERATOR,
+            recipients=1,
+            triggered_by=me,
+            dispatch_key="mine",
+        )
+        AlertEvent.objects.create(
+            barangay=self.barangay,
+            level=RiskCategory.CRITICAL,
+            kind=EventKind.BROADCAST,
+            source=EventSource.OPERATOR,
+            recipients=1,
+            triggered_by=other,
+            dispatch_key="theirs",
+        )
+        self.client.force_authenticate(me)
+        resp = self.client.get(self.url, {"triggered_by": "me"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([row["id"] for row in resp.data["results"]], [mine.id])

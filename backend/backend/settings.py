@@ -64,6 +64,7 @@ DJOSER = {
     "SERIALIZERS": {
         "current_user": "users.serializers.CurrentUserSerializer",
         "user": "users.serializers.CurrentUserSerializer",
+        "set_password": "users.serializers.LoggingSetPasswordSerializer",
     },
 }
 

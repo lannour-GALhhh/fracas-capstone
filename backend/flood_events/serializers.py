@@ -78,6 +78,22 @@ class FloodEventChangeSerializer(serializers.ModelSerializer):
         return display_name(change.editor)
 
 
+class MyFloodActivitySerializer(serializers.ModelSerializer):
+    """One flood-event action by the signed-in operator, for the account feed.
+
+    Unlike the per-event `FloodEventChangeSerializer`, this carries the target
+    event's id and barangay name so a row reads standalone (e.g. "Confirmed
+    Rio Hondo").
+    """
+
+    barangay_name = serializers.CharField(source="flood_event.barangay.name", read_only=True)
+
+    class Meta:
+        model = FloodEventChange
+        fields = ["id", "flood_event", "barangay_name", "action", "changed_at"]
+        read_only_fields = fields
+
+
 class FloodEventDetailSerializer(serializers.ModelSerializer):
     """Full report: stored operator fields + response timeline + derived telemetry."""
 

@@ -71,9 +71,10 @@ class BroadcastView(APIView):
 class AlertEventListView(mixins.ListModelMixin, GenericViewSet):
     """Operator audit log: system-wide history of alert transitions.
 
-    Read-only and filterable by `barangay`, `source`, and `kind`. Distinct from
-    the per-user `NotificationViewSet` feed — this is every episode, including
-    zero-recipient and suppressed ones.
+    Read-only and filterable by `barangay`, `source`, and `kind`, plus
+    `triggered_by=me` to scope the log to the requesting operator's own
+    broadcasts. Distinct from the per-user `NotificationViewSet` feed — this is
+    every episode, including zero-recipient and suppressed ones.
     """
 
     permission_classes = [IsOperator]
@@ -86,4 +87,6 @@ class AlertEventListView(mixins.ListModelMixin, GenericViewSet):
             value = params.get(field)
             if value:
                 qs = qs.filter(**{field: value})
+        if params.get("triggered_by") == "me":
+            qs = qs.filter(triggered_by=self.request.user)
         return qs

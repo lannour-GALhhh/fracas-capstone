@@ -12,6 +12,11 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     phone_verified = models.BooleanField(default=False)
 
+    # Personal home address as a self-contained blob (unit, PSGC barangay/city/
+    # province + codes, country, zip). Deliberately NOT linked to the operational
+    # `Barangay` table — this is the user's residence, sourced from the PSGC API.
+    address = models.JSONField(default=dict, blank=True)
+
     is_operator = models.BooleanField(
         default=False,
         help_text=(
