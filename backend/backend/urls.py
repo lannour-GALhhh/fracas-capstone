@@ -36,4 +36,5 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/', include('alert.urls')),
     path('api/', include('monitoring.urls')),
+    path('api/', include('evacuation.urls')),
 ]
