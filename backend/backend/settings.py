@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'users',
     'flood_events',
     'monitoring',
+    'evacuation',
 ]
 
 MIDDLEWARE = [
@@ -163,18 +164,13 @@ CACHES = {
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
+# Lenient policy: residents register from the mobile app with a low-friction
+# password. We keep only a short minimum length and drop the numeric/common/
+# similarity validators (this also loosens operator password changes).
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'OPTIONS': {'min_length': 6},
     },
 ]
 

@@ -121,12 +121,6 @@ const BroadcastForm = () => {
                         <Button type='submit' size='sm' disabled={broadcast.isPending} className='cursor-pointer'>
                             {broadcast.isPending ? 'Sending…' : 'Send broadcast'}
                         </Button>
-                        {broadcast.isSuccess && (
-                            <FieldDescription className='text-emerald-600'>
-                                Sent to {broadcast.data.recipients}{' '}
-                                {broadcast.data.recipients === 1 ? 'subscriber' : 'subscribers'}.
-                            </FieldDescription>
-                        )}
                         {broadcast.isError && (
                             <FieldDescription className='text-destructive'>
                                 Failed to send. Try again.

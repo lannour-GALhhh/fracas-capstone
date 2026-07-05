@@ -19,3 +19,18 @@ class BarangayListSerializer(GeoFeatureModelSerializer):
         # `feature.properties.id` undefined → `NaN` in the detail request URL.
         id_field = False
         fields = ["id", "name", "code", "area_square_km", "subscriber_count"]
+
+
+class BarangayPublicSerializer(GeoFeatureModelSerializer):
+    """Boundary geometry + id/name only — no subscriber count or other detail.
+
+    Served AllowAny so the mobile app can resolve a resident's barangay by
+    point-in-polygon during pre-auth registration. Deliberately omits
+    `subscriber_count` (the one semi-private field) so nothing sensitive is
+    exposed anonymously; barangay boundaries themselves are public gov data."""
+
+    class Meta:
+        model = Barangay
+        geo_field = "boundary"
+        id_field = False
+        fields = ["id", "name"]

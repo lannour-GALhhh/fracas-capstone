@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
     confirmFloodEvent,
     resolveFloodEvent,
@@ -22,7 +23,15 @@ export const useConfirmFloodEvent = () => {
     const invalidate = useEventInvalidator()
     return useMutation({
         mutationFn: (id: number) => confirmFloodEvent(id),
-        onSuccess: invalidate,
+        onSuccess: (event) => {
+            invalidate(event)
+            toast.success('Flood event confirmed')
+        },
+        onError: () => {
+            toast.error('Couldn’t confirm the flood event', {
+                description: 'Please try again.',
+            })
+        },
     })
 }
 
@@ -32,7 +41,15 @@ export const useResolveFloodEvent = () => {
     return useMutation({
         mutationFn: ({ id, endedAt }: { id: number; endedAt: string }) =>
             resolveFloodEvent(id, endedAt),
-        onSuccess: invalidate,
+        onSuccess: (event) => {
+            invalidate(event)
+            toast.success('Flood event resolved')
+        },
+        onError: () => {
+            toast.error('Couldn’t resolve the flood event', {
+                description: 'Please try again.',
+            })
+        },
     })
 }
 
@@ -41,6 +58,14 @@ export const useRestoreFloodEvent = () => {
     const invalidate = useEventInvalidator()
     return useMutation({
         mutationFn: (id: number) => restoreFloodEvent(id),
-        onSuccess: invalidate,
+        onSuccess: (event) => {
+            invalidate(event)
+            toast.success('Flood event restored')
+        },
+        onError: () => {
+            toast.error('Couldn’t restore the flood event', {
+                description: 'It may have already been purged. Please refresh.',
+            })
+        },
     })
 }

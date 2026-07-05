@@ -12,6 +12,10 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     phone_verified = models.BooleanField(default=False)
 
+    # When the resident accepted the privacy policy + terms of use during the
+    # phone-first mobile registration (phase 2). Null for accounts created another way.
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+
     # Personal home address as a self-contained blob (unit, PSGC barangay/city/
     # province + codes, country, zip). Deliberately NOT linked to the operational
     # `Barangay` table — this is the user's residence, sourced from the PSGC API.
