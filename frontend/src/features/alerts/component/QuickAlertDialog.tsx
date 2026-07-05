@@ -45,11 +45,14 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
     }
 
     const onSubmit = handleSubmit(() => {
-        broadcast.mutate({
-            barangay: barangayId,
-            title: title.trim() || undefined,
-            message: message.trim(),
-        })
+        broadcast.mutate(
+            {
+                barangay: barangayId,
+                title: title.trim() || undefined,
+                message: message.trim(),
+            },
+            { onSuccess: () => setOpen(false) },
+        )
     })
 
     return (
@@ -99,12 +102,6 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
                             <FieldError errors={fieldError('message')} />
                         </Field>
 
-                        {broadcast.isSuccess && (
-                            <FieldDescription className='text-emerald-600'>
-                                Sent to {broadcast.data.recipients}{' '}
-                                {broadcast.data.recipients === 1 ? 'subscriber' : 'subscribers'}.
-                            </FieldDescription>
-                        )}
                         {broadcast.isError && (
                             <FieldDescription className='text-destructive'>
                                 Failed to send. Try again.

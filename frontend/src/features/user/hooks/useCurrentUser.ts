@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { changePassword, getCurrentUser, updateCurrentUser } from '../api/userApi'
 import type { CurrentUser } from '../types'
 import { accountChangesKey } from './useAccountChanges'
@@ -22,6 +23,7 @@ export const useUpdateProfile = () => {
         onSuccess: (user: CurrentUser) => {
             queryClient.setQueryData(currentUserKey, user)
             queryClient.invalidateQueries({ queryKey: accountChangesKey })
+            toast.success('Profile updated')
         },
     })
 }
@@ -33,6 +35,7 @@ export const useChangePassword = () => {
         mutationFn: changePassword,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: accountChangesKey })
+            toast.success('Password changed')
         },
     })
 }
