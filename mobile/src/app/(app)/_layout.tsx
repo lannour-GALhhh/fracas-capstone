@@ -70,8 +70,10 @@ function SignedInTabs() {
                     tabBarIcon: ({ focused }) => <TabBarIcon glyph="👤" focused={focused} />,
                 }}
             />
-            {/* Reached from Account; not a tab of its own. */}
+            {/* Reached from Account; not tabs of their own. */}
             <Tabs.Screen name="notification-settings" options={{ href: null }} />
+            <Tabs.Screen name="edit-profile" options={{ href: null }} />
+            <Tabs.Screen name="change-password" options={{ href: null }} />
         </Tabs>
     )
 }

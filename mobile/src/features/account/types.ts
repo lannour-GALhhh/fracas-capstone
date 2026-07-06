@@ -25,3 +25,21 @@ export interface CurrentUser {
     is_active: boolean
     role: Role
 }
+
+/**
+ * PATCH /api/auth/users/me/ payload. `username`, `phone_number` and `role` stay
+ * server-controlled: a resident's login username IS their phone, so we don't let
+ * them drift apart from the account here.
+ */
+export interface ProfileUpdate {
+    first_name: string
+    last_name: string
+    email: string
+    address: UserAddress
+}
+
+/** POST /api/auth/users/set_password/ payload. */
+export interface PasswordChange {
+    current_password: string
+    new_password: string
+}
