@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ButtonGroup } from '../ui/button-group'
+import { ButtonGroup, ButtonGroupSeparator } from '../ui/button-group'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -114,26 +114,31 @@ const Header = () => {
     const links = [
         {name: "Dashboard", link: "/"},
         {name: "Flood History", link: "/history"},
-        // Operator-only console; residents never see it.
-        ...(isOperator ? [{name: "Analytics", link: "/analytics"}, {name: "Alerts", link: "/alerts"}] : []),
+        {name: "Analytics", link: "/analytics"}, {name: "Alerts", link: "/alerts"},
     ]
 
-    const linkList = links.map(({name, link}) =>
-        <Button 
-            variant="link"
-            key={link}>
-            <Link to={link}>{name}</Link>
-        </Button>
+    const linkList = links.map(({name, link}, index) =>
+            <>
+                <Button 
+                variant="link"
+                key={link}>
+                <Link to={link}>{name}</Link>
+                </Button>
+                {index !== links.length - 1 &&
+                    
+                    <ButtonGroupSeparator />
+                }
+            </>
     )
 
     return (
-        <div className='flex justify-between p-2'>
+        <header className='absolute inset-x-0 top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-black/5 px-4 backdrop-blur'>
             <Title title="FRACAS" />
-            <ButtonGroup className='bg-white rounded-2xl ml-auto mr-8'>
+            <ButtonGroup className='bg-white rounded-2xl ml-auto mr-8 border'>
                 {linkList}
             </ButtonGroup>
             <UserMenu name={displayName} user={user} />
-        </div>
+        </header>
     )
 }
 

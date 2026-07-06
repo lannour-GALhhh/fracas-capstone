@@ -1,5 +1,4 @@
 import { AlertTriangle, ChevronRight, ChevronsRight, History, Waves, X } from 'lucide-react'
-import { motion, useReducedMotion } from 'framer-motion'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
@@ -24,6 +23,7 @@ import type { BarangayRisk, RiskFactorBreakdown } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
 import ErrorState from '@/common/components/ErrorState'
+import SidePanel from './SidePanel'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
@@ -38,20 +38,6 @@ const FACTOR_LABELS: Record<string, string> = {
 /** Format a nullable number, dropping noise digits. */
 const fmt = (v: number | null | undefined): string =>
     v == null ? '—' : `${Math.round(v * 10) / 10}`
-
-const Shell = ({ children }: { children: React.ReactNode }) => {
-    const reduce = useReducedMotion()
-    return (
-        <motion.div
-            initial={reduce ? { y: '-50%' } : { opacity: 0, x: 24, y: '-50%' }}
-            animate={{ opacity: 1, x: 0, y: '-50%' }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className='absolute top-1/2 right-0 z-3 max-h-[80vh] overflow-y-auto w-1/4 border-l bg-background shadow-xl rounded-xl'
-        >
-            <div className='flex h-full flex-col gap-3 overflow-y-auto p-4'>{children}</div>
-        </motion.div>
-    )
-}
 
 /** A square icon button used for the panel's hide/close affordances. */
 const HeaderButton = ({
@@ -357,7 +343,7 @@ const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
 
     return (
-        <Shell>
+        <SidePanel>
             <div className='flex items-start justify-between'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
                 <div className='flex items-center gap-1'>
@@ -380,7 +366,7 @@ const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
                 />
             )}
             {data && <PanelBody data={data} />}
-        </Shell>
+        </SidePanel>
     )
 }
 

@@ -1,32 +1,33 @@
-import { forwardRef, useImperativeHandle, useState } from 'react'
+import { forwardRef, useImperativeHandle } from 'react'
 import type { Feature, Point } from 'geojson'
 import { Tent } from 'lucide-react'
-import {
-    MapMarker,
-    MarkerContent,
-    MarkerPopup,
-    MapPopup,
-} from '@/common/ui/map'
-import { useMap } from '@/common/ui/map'
+import { MapMarker, MarkerContent, MarkerPopup, useMap } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
 import { useEvacuationCenters, useEvacuationMutations } from './usePoi'
-import CenterPopupForm, { type CenterFormValues } from './CenterPopupForm'
 import type { EvacuationProperties, PoiLayerHandle } from './types'
+import type { PoiEditor } from './usePoiEditor'
 
 interface Props {
     /** Layer toggle. When off, only centers inside the focused barangay show. */
     visible: boolean
-    /** Operator editing enabled (drag to move, add, edit, delete). */
-    editMode: boolean
+    editor: PoiEditor
     focusedBarangayId: number | null
 }
 
-const Pin = ({ tone }: { tone: 'active' | 'inactive' | 'draft' }) => {
+const Pin = ({
+    tone,
+    active,
+}: {
+    tone: 'active' | 'inactive' | 'draft'
+    active?: boolean
+}) => {
     const color =
         tone === 'draft' ? 'bg-amber-500' : tone === 'inactive' ? 'bg-slate-400' : 'bg-emerald-600'
     return (
         <div
-            className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg ${color}`}
+            className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg transition-transform ${color} ${
+                active ? 'scale-125 ring-2 ring-sky-500 ring-offset-2' : ''
+            }`}
         >
             <Tent className='size-4 text-white' />
         </div>
@@ -49,77 +50,25 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 
-const ExistingMarker = ({
-    feature,
-    editMode,
-    onMove,
-    onSave,
-    onDelete,
-    saving,
-}: {
-    feature: EvacFeature
-    editMode: boolean
-    onMove: (lng: number, lat: number) => void
-    onSave: (values: CenterFormValues) => void
-    onDelete: () => void
-    saving: boolean
-}) => {
-    const [lng, lat] = feature.geometry.coordinates
-    const p = feature.properties
-    return (
-        <MapMarker
-            longitude={lng}
-            latitude={lat}
-            draggable={editMode}
-            onClick={(e) => e.stopPropagation()}
-            onDragEnd={({ lng, lat }) => onMove(lng, lat)}
-        >
-            <MarkerContent>
-                <Pin tone={p.is_active ? 'active' : 'inactive'} />
-            </MarkerContent>
-            <MarkerPopup closeButton>
-                {editMode ? (
-                    <CenterPopupForm
-                        initial={{
-                            name: p.name,
-                            capacity: p.capacity != null ? String(p.capacity) : '',
-                            contact: p.contact ?? '',
-                            is_active: p.is_active,
-                        }}
-                        saving={saving}
-                        onSubmit={onSave}
-                        onCancel={() => undefined}
-                        onDelete={onDelete}
-                    />
-                ) : (
-                    <ReadOnlyDetails p={p} />
-                )}
-            </MarkerPopup>
-        </MapMarker>
-    )
-}
-
 const EvacuationLayer = forwardRef<PoiLayerHandle, Props>(function EvacuationLayer(
-    { visible, editMode, focusedBarangayId },
+    { visible, editor, focusedBarangayId },
     ref,
 ) {
     const { map } = useMap()
     const { data } = useEvacuationCenters()
-    const { create, update, remove } = useEvacuationMutations()
-    const [draft, setDraft] = useState<{ lng: number; lat: number } | null>(null)
+    const { update } = useEvacuationMutations()
+    const editMode = editor.editMode
 
-    // Parent (the edit toolbar) drives adds/reset imperatively — no effects.
     useImperativeHandle(
         ref,
         () => ({
             startAdd: () => {
                 if (!map) return
                 const c = map.getCenter()
-                setDraft({ lng: c.lng, lat: c.lat })
+                editor.startCreate('evacuation', { lng: c.lng, lat: c.lat })
             },
-            reset: () => setDraft(null),
         }),
-        [map],
+        [map, editor],
     )
 
     const effectiveVisible = visible || editMode
@@ -128,66 +77,49 @@ const EvacuationLayer = forwardRef<PoiLayerHandle, Props>(function EvacuationLay
         ? features
         : features.filter((f) => f.properties.barangay === focusedBarangayId)
 
+    const activeId = editor.active?.kind === 'evacuation' ? editor.active.id : undefined
+    const drafting = editor.active?.kind === 'evacuation' && editor.active.id === null
+
     return (
         <>
-            {shown.map((f) => (
-                <ExistingMarker
-                    key={f.properties.id}
-                    feature={f}
-                    editMode={editMode}
-                    saving={update.isPending || remove.isPending}
-                    onMove={(lng, lat) =>
-                        update.mutate({ id: f.properties.id, payload: { latitude: lat, longitude: lng } })
-                    }
-                    onSave={(v) =>
-                        update.mutate({
-                            id: f.properties.id,
-                            payload: {
-                                name: v.name.trim(),
-                                capacity: v.capacity === '' ? null : Number(v.capacity),
-                                contact: v.contact.trim(),
-                                is_active: v.is_active,
-                            },
-                        })
-                    }
-                    onDelete={() => remove.mutate(f.properties.id)}
-                />
-            ))}
-
-            {editMode && draft && (
-                <>
+            {shown.map((f) => {
+                const [lng, lat] = f.geometry.coordinates
+                const p = f.properties
+                const isActive = activeId != null && p.id === activeId
+                return (
                     <MapMarker
-                        longitude={draft.lng}
-                        latitude={draft.lat}
-                        draggable
-                        onClick={(e) => e.stopPropagation()}
-                        onDragEnd={({ lng, lat }) => setDraft({ lng, lat })}
+                        key={p.id}
+                        longitude={lng}
+                        latitude={lat}
+                        draggable={editMode}
+                        onClick={() => editMode && editor.selectExisting('evacuation', p.id)}
+                        onDragEnd={({ lng, lat }) =>
+                            update.mutate({ id: p.id, payload: { latitude: lat, longitude: lng } })
+                        }
                     >
                         <MarkerContent>
-                            <Pin tone='draft' />
+                            <Pin tone={p.is_active ? 'active' : 'inactive'} active={isActive} />
                         </MarkerContent>
+                        {!editMode && (
+                            <MarkerPopup closeButton>
+                                <ReadOnlyDetails p={p} />
+                            </MarkerPopup>
+                        )}
                     </MapMarker>
-                    <MapPopup longitude={draft.lng} latitude={draft.lat} closeButton onClose={() => setDraft(null)}>
-                        <CenterPopupForm
-                            initial={{ name: '', capacity: '', contact: '', is_active: true }}
-                            saving={create.isPending}
-                            onCancel={() => setDraft(null)}
-                            onSubmit={(v) =>
-                                create.mutate(
-                                    {
-                                        name: v.name.trim(),
-                                        capacity: v.capacity === '' ? null : Number(v.capacity),
-                                        contact: v.contact.trim(),
-                                        is_active: v.is_active,
-                                        latitude: draft.lat,
-                                        longitude: draft.lng,
-                                    },
-                                    { onSuccess: () => setDraft(null) },
-                                )
-                            }
-                        />
-                    </MapPopup>
-                </>
+                )
+            })}
+
+            {drafting && editor.draft && (
+                <MapMarker
+                    longitude={editor.draft.lng}
+                    latitude={editor.draft.lat}
+                    draggable
+                    onDragEnd={({ lng, lat }) => editor.moveDraft({ lng, lat })}
+                >
+                    <MarkerContent>
+                        <Pin tone='draft' active />
+                    </MarkerContent>
+                </MapMarker>
             )}
         </>
     )

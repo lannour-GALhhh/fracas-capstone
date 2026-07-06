@@ -69,10 +69,9 @@ export interface PoiLog {
     created_at: string
 }
 
-/** Imperative handle a POI layer exposes to its parent (add / reset draft). */
+/** Imperative handle a POI layer exposes to its parent: start placing a new POI. */
 export interface PoiLayerHandle {
     startAdd: () => void
-    reset: () => void
 }
 
 export interface Paginated<T> {

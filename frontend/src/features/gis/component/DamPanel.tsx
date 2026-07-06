@@ -1,5 +1,4 @@
 import { Droplets, X } from 'lucide-react'
-import { motion, useReducedMotion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { Card } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
@@ -7,6 +6,7 @@ import { Badge } from '@/common/ui/badge'
 import { Progress, ProgressLabel } from '@/common/ui/progress'
 import LoadingCard from '@/common/components/LoadingCard'
 import type { DamStatus } from '../types/api'
+import SidePanel from './SidePanel'
 
 /** How close the level sits between normal and critical, as a 0–100%. */
 const criticalRatio = (d: DamStatus): number | null => {
@@ -29,20 +29,6 @@ const StatTile = ({ label, value, unit }: { label: string; value: string; unit?:
     </Card>
 )
 
-const Shell = ({ children }: { children: React.ReactNode }) => {
-    const reduce = useReducedMotion()
-    return (
-        <motion.div
-            initial={reduce ? { y: '-50%' } : { opacity: 0, x: 24, y: '-50%' }}
-            animate={{ opacity: 1, x: 0, y: '-50%' }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className='absolute top-1/2 right-0 z-3 max-h-[80vh] w-1/4 overflow-y-auto rounded-xl border-l bg-background shadow-xl'
-        >
-            <div className='flex h-full flex-col gap-3 overflow-y-auto p-4'>{children}</div>
-        </motion.div>
-    )
-}
-
 interface Props {
     data: DamStatus | undefined
     isLoading: boolean
@@ -53,7 +39,7 @@ const DamPanel = ({ data, isLoading, onClose }: Props) => {
     const ratio = data ? criticalRatio(data) : null
 
     return (
-        <Shell>
+        <SidePanel>
             <div className='flex items-start justify-between'>
                 <h1 className='flex items-center gap-2 text-2xl font-medium'>
                     <Droplets className='size-5 text-blue-600' />
@@ -117,7 +103,7 @@ const DamPanel = ({ data, isLoading, onClose }: Props) => {
                     )}
                 </>
             )}
-        </Shell>
+        </SidePanel>
     )
 }
 

@@ -34,6 +34,8 @@ interface Props {
     onHover: (id: number | null) => void
     /** Pixels reserved on the right for the detail panel (0 when closed). */
     panelWidth: number
+    /** When true, barangay hover/click is inert (e.g. while editing POIs). */
+    disabled?: boolean
 }
 
 /** First symbol (label) layer, so our fills sit under place names, not over them. */
@@ -53,17 +55,28 @@ const fitBox = (
     })
 }
 
-const BarangayChoropleth = ({ data, selectedId, onSelect, onHover, panelWidth }: Props) => {
+const BarangayChoropleth = ({
+    data,
+    selectedId,
+    onSelect,
+    onHover,
+    panelWidth,
+    disabled = false,
+}: Props) => {
     const { map, isLoaded } = useMap()
     const hoveredRef = useRef<number | null>(null)
     const didFitRef = useRef(false)
     // Keep the latest handlers reachable from the stable map listeners.
     const onSelectRef = useRef(onSelect)
     const onHoverRef = useRef(onHover)
+    const disabledRef = useRef(disabled)
     useEffect(() => {
         onSelectRef.current = onSelect
         onHoverRef.current = onHover
     }, [onSelect, onHover])
+    useEffect(() => {
+        disabledRef.current = disabled
+    }, [disabled])
 
     // Create source + layers once the style is ready.
     useEffect(() => {
@@ -133,6 +146,7 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, onHover, panelWidth }:
         )
 
         const handleClick = (e: MapLayerMouseEvent) => {
+            if (disabledRef.current) return
             const hit = map.queryRenderedFeatures(e.point, { layers: [FILL] })[0] as
                 | MapGeoJSONFeature
                 | undefined
@@ -149,6 +163,7 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, onHover, panelWidth }:
             onHoverRef.current(id)
         }
         const handleMove = (e: MapLayerMouseEvent) => {
+            if (disabledRef.current) return
             map.getCanvas().style.cursor = 'pointer'
             setHover(e.features?.[0]?.id != null ? Number(e.features[0].id) : null)
         }
@@ -205,6 +220,17 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, onHover, panelWidth }:
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map, isLoaded, selectedId, panelWidth])
+
+    // Editing turned on mid-hover: drop the highlight and reset the cursor.
+    useEffect(() => {
+        if (!map || !isLoaded || !disabled) return
+        if (hoveredRef.current != null) {
+            map.setFeatureState({ source: SOURCE, id: hoveredRef.current }, { hover: false })
+            hoveredRef.current = null
+            onHoverRef.current(null)
+        }
+        map.getCanvas().style.cursor = ''
+    }, [disabled, map, isLoaded])
 
     return null
 }

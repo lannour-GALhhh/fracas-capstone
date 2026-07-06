@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Check, MapPin, Plus, TriangleAlert } from 'lucide-react'
 import { Map, MapControls } from '@/common/ui/map'
-import { Card } from '@/common/ui/card'
 import { Button } from '@/common/ui/button'
+import { Card } from '@/common/ui/card'
 import { useAuth } from '@/features/auth/context/useAuth'
 import type { DamGeoCollection, RiskFeatureCollection } from '../types/api'
 import { featureBoundsById } from '../utils/bounds'
@@ -14,6 +14,7 @@ import HotspotLayer from '../poi/HotspotLayer'
 import LayersControl from './LayersControl'
 import { type LayerKey, type LayerVisibility } from '../constants/layers'
 import type { PoiLayerHandle } from '../poi/types'
+import type { PoiEditor } from '../poi/usePoiEditor'
 
 interface GISMapProps {
     data: RiskFeatureCollection | null
@@ -23,6 +24,7 @@ interface GISMapProps {
     damGeo: DamGeoCollection | undefined
     selectedDamId: number | null
     onSelectDam: (id: number) => void
+    editor: PoiEditor
 }
 
 /** Centre of a barangay's bounding box, to anchor its pinned tooltip. */
@@ -62,10 +64,11 @@ const GISMap = ({
     damGeo,
     selectedDamId,
     onSelectDam,
+    editor,
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const { isOperator } = useAuth()
-    const [poiEdit, setPoiEdit] = useState(false)
+    const editMode = editor.editMode
     const [layers, setLayers] = useState<LayerVisibility>({
         dam: true,
         evacuation: true,
@@ -75,15 +78,6 @@ const GISMap = ({
 
     const evacRef = useRef<PoiLayerHandle>(null)
     const hotspotRef = useRef<PoiLayerHandle>(null)
-    // Toggling edit off abandons any in-progress drafts.
-    const togglePoiEdit = () =>
-        setPoiEdit((editing) => {
-            if (editing) {
-                evacRef.current?.reset()
-                hotspotRef.current?.reset()
-            }
-            return !editing
-        })
 
     const pinnedCentroid =
         data && selectedId != null ? centroidOf(data, selectedId) : null
@@ -93,9 +87,9 @@ const GISMap = ({
             : null
 
     return (
-        <Card className='relative h-full p-0 overflow-hidden'>
+        <div className='relative h-full w-full overflow-hidden'>
             {/* Top toolbar: layer toggles (everyone) + operator POI editing. */}
-            <div className='absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+            <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
                 <LayersControl layers={layers} onToggle={toggleLayer} />
                 {isOperator && (
                     <>
@@ -103,14 +97,14 @@ const GISMap = ({
                         <div className='relative'>
                             <Button
                                 size='sm'
-                                variant={poiEdit ? 'default' : 'ghost'}
+                                variant={editMode ? 'default' : 'ghost'}
                                 className='cursor-pointer rounded-full'
-                                onClick={togglePoiEdit}
+                                onClick={editor.toggleEdit}
                             >
                                 <MapPin className='size-4' />
-                                {poiEdit ? 'Editing places' : 'Edit points of interest'}
+                                {editMode ? 'Editing places' : 'Edit points of interest'}
                             </Button>
-                            {poiEdit && (
+                            {editMode && (
                                 <Card
                                     size='sm'
                                     className='absolute top-[calc(100%+10px)] left-1/2 z-20 flex w-52 -translate-x-1/2 flex-col gap-0.5 p-1.5'
@@ -126,7 +120,7 @@ const GISMap = ({
                                         onClick={() => hotspotRef.current?.startAdd()}
                                     />
                                     <div className='bg-border my-0.5 h-px' />
-                                    <MenuItem icon={Check} label='Done editing' onClick={togglePoiEdit} />
+                                    <MenuItem icon={Check} label='Done editing' onClick={editor.toggleEdit} />
                                 </Card>
                             )}
                         </div>
@@ -144,9 +138,10 @@ const GISMap = ({
                             onSelect={onSelect}
                             onHover={setHoveredId}
                             panelWidth={panelWidth}
+                            disabled={editMode}
                         />
-                        {/* Pinned tooltip for the selected barangay. */}
-                        {selectedId != null && pinnedCentroid && (
+                        {/* Pinned tooltip for the selected barangay (hidden while editing). */}
+                        {!editMode && selectedId != null && pinnedCentroid && (
                             <BarangayTooltip
                                 data={data}
                                 id={selectedId}
@@ -156,7 +151,7 @@ const GISMap = ({
                             />
                         )}
                         {/* Transient tooltip while hovering a different barangay. */}
-                        {hoveredId != null && hoveredId !== selectedId && hoverCentroid && (
+                        {!editMode && hoveredId != null && hoveredId !== selectedId && hoverCentroid && (
                             <BarangayTooltip
                                 data={data}
                                 id={hoveredId}
@@ -174,17 +169,17 @@ const GISMap = ({
                 <EvacuationLayer
                     ref={evacRef}
                     visible={layers.evacuation}
-                    editMode={poiEdit}
+                    editor={editor}
                     focusedBarangayId={selectedId}
                 />
                 <HotspotLayer
                     ref={hotspotRef}
                     visible={layers.hotspot}
-                    editMode={poiEdit}
+                    editor={editor}
                     focusedBarangayId={selectedId}
                 />
             </Map>
-        </Card>
+        </div>
     )
 }
 

@@ -52,7 +52,7 @@ const HotspotPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete, onCha
 
     return (
         <form
-            className='flex w-64 flex-col gap-2'
+            className='flex w-full flex-col gap-2'
             onSubmit={(e) => {
                 e.preventDefault()
                 if (values.name.trim()) onSubmit(values)

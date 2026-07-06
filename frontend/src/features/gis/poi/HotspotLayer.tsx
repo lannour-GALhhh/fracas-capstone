@@ -1,35 +1,20 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo } from 'react'
 import type { Feature, Point, Polygon } from 'geojson'
 import type { GeoJSONSource } from 'maplibre-gl'
 import { TriangleAlert } from 'lucide-react'
-import {
-    MapMarker,
-    MarkerContent,
-    MarkerPopup,
-    MapPopup,
-    useMap,
-} from '@/common/ui/map'
+import { MapMarker, MarkerContent, MarkerPopup, useMap } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
 import { useHotspots, useHotspotMutations } from './usePoi'
-import HotspotPopupForm from './HotspotPopupForm'
 import { circleRing, SEVERITY_COLOR } from './geo'
 import type { HotspotProperties, HotspotSeverity, PoiLayerHandle } from './types'
+import type { PoiEditor } from './usePoiEditor'
 
 const SOURCE = 'flood-hotspots'
 const FILL = 'flood-hotspots-fill'
 const LINE = 'flood-hotspots-line'
-const DEFAULT_RADIUS = 300
+export const DEFAULT_HOTSPOT_RADIUS = 300
 
 type HotspotFeature = Feature<Point, HotspotProperties>
-
-/** Live preview of the hotspot currently being edited, keyed by id or 'draft'. */
-type Preview = { key: number | 'draft'; radius_m: number; severity: HotspotSeverity }
-
-/** Parse the radius field, falling back to a sane default while it's empty. */
-const parseRadius = (s: string): number => {
-    const n = Number(s)
-    return s === '' || Number.isNaN(n) || n <= 0 ? DEFAULT_RADIUS : n
-}
 
 interface AreaInput {
     lng: number
@@ -98,9 +83,11 @@ const HotspotAreas = ({ areas }: { areas: AreaInput[] }) => {
     return null
 }
 
-const Marker = ({ severity }: { severity: HotspotSeverity }) => (
+const Marker = ({ severity, active }: { severity: HotspotSeverity; active?: boolean }) => (
     <div
-        className='flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg'
+        className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg transition-transform ${
+            active ? 'scale-125 ring-2 ring-sky-500 ring-offset-2' : ''
+        }`}
         style={{ backgroundColor: SEVERITY_COLOR[severity] }}
     >
         <TriangleAlert className='size-4 text-white' />
@@ -128,19 +115,18 @@ const ReadOnlyDetails = ({ p }: { p: HotspotProperties }) => (
 
 interface Props {
     visible: boolean
-    editMode: boolean
+    editor: PoiEditor
     focusedBarangayId: number | null
 }
 
 const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
-    { visible, editMode, focusedBarangayId },
+    { visible, editor, focusedBarangayId },
     ref,
 ) {
     const { map } = useMap()
     const { data } = useHotspots()
-    const { create, update, remove } = useHotspotMutations()
-    const [draft, setDraft] = useState<{ lng: number; lat: number } | null>(null)
-    const [preview, setPreview] = useState<Preview | null>(null)
+    const { update } = useHotspotMutations()
+    const editMode = editor.editMode
 
     useImperativeHandle(
         ref,
@@ -148,15 +134,10 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
             startAdd: () => {
                 if (!map) return
                 const c = map.getCenter()
-                setDraft({ lng: c.lng, lat: c.lat })
-                setPreview(null)
-            },
-            reset: () => {
-                setDraft(null)
-                setPreview(null)
+                editor.startCreate('hotspot', { lng: c.lng, lat: c.lat })
             },
         }),
-        [map],
+        [map, editor],
     )
 
     const effectiveVisible = visible || editMode
@@ -165,21 +146,26 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
         ? features
         : features.filter((f) => f.properties.barangay === focusedBarangayId)
 
+    // Live preview values for whichever hotspot the edit panel currently drives.
+    const activeId = editor.active?.kind === 'hotspot' ? editor.active.id : undefined
+    const preview = editor.active?.kind === 'hotspot' ? editor.preview : null
+    const drafting = editor.active?.kind === 'hotspot' && editor.active.id === null
+
     const areas: AreaInput[] = shown.map((f) => {
-        const isPrev = preview?.key === f.properties.id
+        const isActive = activeId != null && f.properties.id === activeId
         return {
             lng: f.geometry.coordinates[0],
             lat: f.geometry.coordinates[1],
-            radius_m: isPrev ? preview.radius_m : f.properties.radius_m,
-            severity: isPrev ? preview.severity : f.properties.severity,
+            radius_m: isActive && preview ? preview.radius_m : f.properties.radius_m,
+            severity: isActive && preview ? preview.severity : f.properties.severity,
         }
     })
-    const draftSeverity = preview?.key === 'draft' ? preview.severity : 'medium'
-    if (editMode && draft)
+    const draftSeverity = preview?.severity ?? 'medium'
+    if (drafting && editor.draft)
         areas.push({
-            lng: draft.lng,
-            lat: draft.lat,
-            radius_m: preview?.key === 'draft' ? preview.radius_m : DEFAULT_RADIUS,
+            lng: editor.draft.lng,
+            lat: editor.draft.lat,
+            radius_m: preview?.radius_m ?? DEFAULT_HOTSPOT_RADIUS,
             severity: draftSeverity,
         })
 
@@ -190,124 +176,45 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
             {shown.map((f) => {
                 const [lng, lat] = f.geometry.coordinates
                 const p = f.properties
+                const isActive = activeId != null && p.id === activeId
                 return (
                     <MapMarker
                         key={p.id}
                         longitude={lng}
                         latitude={lat}
                         draggable={editMode}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={() => editMode && editor.selectExisting('hotspot', p.id)}
                         onDragEnd={({ lng, lat }) =>
                             update.mutate({ id: p.id, payload: { latitude: lat, longitude: lng } })
                         }
                     >
                         <MarkerContent>
-                            <Marker severity={p.severity} />
+                            <Marker
+                                severity={isActive && preview ? preview.severity : p.severity}
+                                active={isActive}
+                            />
                         </MarkerContent>
-                        <MarkerPopup closeButton className='max-w-72'>
-                            {editMode ? (
-                                <HotspotPopupForm
-                                    initial={{
-                                        name: p.name,
-                                        severity: p.severity,
-                                        radius_m: String(p.radius_m),
-                                        description: p.description ?? '',
-                                        is_active: p.is_active,
-                                    }}
-                                    saving={update.isPending || remove.isPending}
-                                    onCancel={() => setPreview(null)}
-                                    onChange={(v) =>
-                                        setPreview({
-                                            key: p.id,
-                                            radius_m: parseRadius(v.radius_m),
-                                            severity: v.severity,
-                                        })
-                                    }
-                                    onDelete={() => {
-                                        setPreview(null)
-                                        remove.mutate(p.id)
-                                    }}
-                                    onSubmit={(v) => {
-                                        setPreview(null)
-                                        update.mutate({
-                                            id: p.id,
-                                            payload: {
-                                                name: v.name.trim(),
-                                                severity: v.severity,
-                                                radius_m: v.radius_m === '' ? undefined : Number(v.radius_m),
-                                                description: v.description.trim(),
-                                                is_active: v.is_active,
-                                            },
-                                        })
-                                    }}
-                                />
-                            ) : (
+                        {/* Read-only info only when not editing; edit uses the side panel. */}
+                        {!editMode && (
+                            <MarkerPopup closeButton className='max-w-72'>
                                 <ReadOnlyDetails p={p} />
-                            )}
-                        </MarkerPopup>
+                            </MarkerPopup>
+                        )}
                     </MapMarker>
                 )
             })}
 
-            {editMode && draft && (
-                <>
-                    <MapMarker
-                        longitude={draft.lng}
-                        latitude={draft.lat}
-                        draggable
-                        onClick={(e) => e.stopPropagation()}
-                        onDragEnd={({ lng, lat }) => setDraft({ lng, lat })}
-                    >
-                        <MarkerContent>
-                            <Marker severity={draftSeverity} />
-                        </MarkerContent>
-                    </MapMarker>
-                    <MapPopup
-                        longitude={draft.lng}
-                        latitude={draft.lat}
-                        closeButton
-                        className='max-w-72'
-                        onClose={() => {
-                            setDraft(null)
-                            setPreview(null)
-                        }}
-                    >
-                        <HotspotPopupForm
-                            initial={{ name: '', severity: 'medium', radius_m: '300', description: '', is_active: true }}
-                            saving={create.isPending}
-                            onCancel={() => {
-                                setDraft(null)
-                                setPreview(null)
-                            }}
-                            onChange={(v) =>
-                                setPreview({
-                                    key: 'draft',
-                                    radius_m: parseRadius(v.radius_m),
-                                    severity: v.severity,
-                                })
-                            }
-                            onSubmit={(v) =>
-                                create.mutate(
-                                    {
-                                        name: v.name.trim(),
-                                        severity: v.severity,
-                                        radius_m: v.radius_m === '' ? undefined : Number(v.radius_m),
-                                        description: v.description.trim(),
-                                        is_active: v.is_active,
-                                        latitude: draft.lat,
-                                        longitude: draft.lng,
-                                    },
-                                    {
-                                        onSuccess: () => {
-                                            setDraft(null)
-                                            setPreview(null)
-                                        },
-                                    },
-                                )
-                            }
-                        />
-                    </MapPopup>
-                </>
+            {drafting && editor.draft && (
+                <MapMarker
+                    longitude={editor.draft.lng}
+                    latitude={editor.draft.lat}
+                    draggable
+                    onDragEnd={({ lng, lat }) => editor.moveDraft({ lng, lat })}
+                >
+                    <MarkerContent>
+                        <Marker severity={draftSeverity} active />
+                    </MarkerContent>
+                </MapMarker>
             )}
         </>
     )

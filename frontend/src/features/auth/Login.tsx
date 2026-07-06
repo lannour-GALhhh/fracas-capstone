@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom'
 /** Turn a failed sign-in into one plain-language line for the operator. */
 const humanizeLoginError = (err: unknown): string => {
 	if (err instanceof AxiosError) {
-		if (err.response?.status === 401) return 'Incorrect username or password.'
+		if (err.response?.status === 401) return "We couldn't find an account with those credentials, please try again."
 		if (!err.response) return "We couldn't reach the server. Check your connection and try again."
 	}
 	return 'Something went wrong signing you in. Please try again.'

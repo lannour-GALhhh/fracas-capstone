@@ -7,7 +7,7 @@ import { LAYERS } from '../constants/layers'
 const ORDER: RiskCategory[] = ['low', 'medium', 'high', 'critical']
 
 const Legend = () => (
-    <Card size='sm' className='absolute top-4 left-4 z-2 flex w-40 flex-col gap-2 px-2'>
+    <Card size='sm' className='absolute top-20 left-4 z-2 flex w-40 flex-col gap-2 px-2'>
         <div className='flex flex-col gap-1'>
             <h5 className='font-medium'>Hazard</h5>
             {ORDER.map((category) => (

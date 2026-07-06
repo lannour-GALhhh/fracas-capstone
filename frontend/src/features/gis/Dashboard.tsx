@@ -9,6 +9,8 @@ import Legend from './component/Legend'
 import PasonancaDamStatus from './component/PasonancaDamStatus'
 import BarangayPanel from './component/BarangayPanel'
 import DamPanel from './component/DamPanel'
+import PoiEditPanel from './poi/PoiEditPanel'
+import { usePoiEditor } from './poi/usePoiEditor'
 import { useRiskMap } from './hooks/useRiskMap'
 import { useDamStatus } from './hooks/useDamStatus'
 import { useDamGeo } from './hooks/useDamGeo'
@@ -53,12 +55,18 @@ const Dashboard = () => {
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [selectedDamId, setSelectedDamId] = useState<number | null>(null)
     const [panelHidden, setPanelHidden] = useState(false)
+    const editor = usePoiEditor()
     const viewportWidth = useViewportWidth()
-    const panelOpen = selectedId != null || selectedDamId != null
+    // While editing POIs the right rail belongs to the POI editor, so the
+    // barangay/dam panels and the summary cards step aside (without losing the
+    // underlying selection, which returns once editing ends).
+    const editing = editor.active != null
+    const cardsVisible = !editor.editMode && selectedId == null && selectedDamId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
-    const barangayPanelVisible = selectedId != null && !panelHidden
+    const barangayPanelVisible = selectedId != null && !panelHidden && !editor.editMode
+    const damPanelVisible = selectedDamId != null && !editor.editMode
     const panelWidth =
-        barangayPanelVisible || selectedDamId != null ? Math.round(viewportWidth * 0.25) : 0
+        barangayPanelVisible || damPanelVisible || editing ? Math.round(viewportWidth * 0.25) : 0
 
     // Barangay and dam panels are mutually exclusive — selecting one closes the other.
     const handleSelect = useCallback((id: number | null) => {
@@ -75,8 +83,8 @@ const Dashboard = () => {
         <>
             <Legend />
 
-            {!panelOpen && (
-                <div className='absolute top-4 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
+            {cardsVisible && (
+                <div className='absolute top-20 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
                     {isError ? (
                         <ErrorState
                             variant='inline'
@@ -114,7 +122,10 @@ const Dashboard = () => {
                 damGeo={damGeo.data}
                 selectedDamId={selectedDamId}
                 onSelectDam={handleSelectDam}
+                editor={editor}
             />
+
+            <PoiEditPanel editor={editor} />
 
             {barangayPanelVisible && selectedId != null && (
                 <BarangayPanel
@@ -125,18 +136,18 @@ const Dashboard = () => {
             )}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
-            {selectedId != null && panelHidden && (
+            {selectedId != null && panelHidden && !editor.editMode && (
                 <button
                     type='button'
                     onClick={() => setPanelHidden(false)}
-                    className='bg-background hover:bg-muted absolute top-4 right-4 z-3 flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium shadow-md transition-colors'
+                    className='bg-background hover:bg-muted absolute top-20 right-4 z-3 flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium shadow-md transition-colors'
                 >
                     <PanelRightOpen className='size-4' />
                     Show details
                 </button>
             )}
 
-            {selectedDamId != null && (
+            {damPanelVisible && (
                 <DamPanel data={dam.data} isLoading={dam.isLoading} onClose={() => setSelectedDamId(null)} />
             )}
         </>
