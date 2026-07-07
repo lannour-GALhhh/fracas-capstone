@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'monitoring',
     'evacuation',
     'analytics',
+    'poi',
 ]
 
 MIDDLEWARE = [
@@ -198,6 +199,36 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# --- Pluggable media storage backend (report evidence images, etc.) ---------
+# Selected by env so the deployment can choose a bucket without code changes.
+#   MEDIA_STORAGE=local       -> local filesystem (default; dev/tests, offline)
+#   MEDIA_STORAGE=s3          -> S3 / any S3-compatible bucket (django-storages)
+#   MEDIA_STORAGE=cloudinary  -> Cloudinary (django-cloudinary-storage)
+MEDIA_STORAGE = config("MEDIA_STORAGE", default="local")
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+if MEDIA_STORAGE == "s3":
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+    AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+    AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
+    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="")
+    AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="") or None
+    AWS_QUERYSTRING_AUTH = config("AWS_QUERYSTRING_AUTH", default=True, cast=bool)
+elif MEDIA_STORAGE == "cloudinary":
+    STORAGES["default"] = {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"}
+    # These apps are only imported when Cloudinary is actually selected.
+    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+    CLOUDINARY_STORAGE = {
+        "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME", default=""),
+        "API_KEY": config("CLOUDINARY_API_KEY", default=""),
+        "API_SECRET": config("CLOUDINARY_API_SECRET", default=""),
+    }
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

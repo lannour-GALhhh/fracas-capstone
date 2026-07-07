@@ -169,6 +169,53 @@ class AutoDetectConfig(models.Model):
         return obj
 
 
+def report_image_path(instance, filename):
+    """Group evidence images per flood event in the storage bucket."""
+    return f"flood_reports/{instance.report.flood_event_id}/{filename}"
+
+
+class FloodEventReport(models.Model):
+    """Operator-authored evidence report attached to a flood event.
+
+    Captures a narrative, a capture time, the reporting user, and photos stored
+    in the configured media bucket (local / S3 / Cloudinary — see settings). Used
+    as supporting evidence for the historical record.
+    """
+
+    flood_event = models.ForeignKey(
+        FloodEvent, on_delete=models.CASCADE, related_name="reports"
+    )
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="flood_reports",
+    )
+    description = models.TextField(blank=True)
+    occurred_at = models.DateTimeField(help_text="When the evidence was captured.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        indexes = [models.Index(fields=["flood_event", "-occurred_at"])]
+
+    def __str__(self):
+        return f"Report on event #{self.flood_event_id} @ {self.occurred_at:%Y-%m-%d %H:%M}"
+
+
+class FloodEventReportImage(models.Model):
+    report = models.ForeignKey(
+        FloodEventReport, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to=report_image_path)
+    caption = models.CharField(max_length=255, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for report #{self.report_id}"
+
+
 class FloodEventTimelineEntry(models.Model):
     """One dated step in an event's response timeline (alert → dispatch → all-clear)."""
 

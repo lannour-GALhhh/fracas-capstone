@@ -5,6 +5,7 @@ import type {
     FloodEventDetail,
     FloodEventFilters,
     FloodEventInput,
+    FloodEventReport,
     Operator,
     Paginated,
 } from '../types/api'
@@ -77,5 +78,28 @@ export const resolveFloodEvent = async (
 /** Undo a soft-delete within the recovery window. */
 export const restoreFloodEvent = async (id: number): Promise<FloodEventDetail> => {
     const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/restore/`)
+    return data
+}
+
+/** Evidence reports (photos + narrative) for an event. */
+export const getFloodEventReports = async (
+    id: number,
+): Promise<Paginated<FloodEventReport>> => {
+    const { data } = await apiClient.get<Paginated<FloodEventReport>>(
+        `/api/flood-events/${id}/reports/`,
+    )
+    return data
+}
+
+/** Create an evidence report (operator-only). `form` carries description,
+ * occurred_at and one or more `uploaded_images` files (multipart). */
+export const createFloodEventReport = async (
+    id: number,
+    form: FormData,
+): Promise<FloodEventReport> => {
+    const { data } = await apiClient.post<FloodEventReport>(
+        `/api/flood-events/${id}/reports/`,
+        form,
+    )
     return data
 }

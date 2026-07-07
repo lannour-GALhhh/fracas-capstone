@@ -21,9 +21,12 @@ def rainfall(current=0.0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, acc24=0.0):
     )
 
 
-def barangay(height=None, susceptibility=None, downstream=False):
+def barangay(height=None, susceptibility=None, downstream=False, distance_to_river_km=None):
     return SimpleNamespace(
-        land_height_mean=height, flood_susceptibility=susceptibility, is_downstream=downstream
+        land_height_mean=height,
+        flood_susceptibility=susceptibility,
+        is_downstream=downstream,
+        distance_to_river_km=distance_to_river_km,
     )
 
 
@@ -79,10 +82,11 @@ class ElevationFactorTests(SimpleTestCase):
 
 class DamFactorTests(SimpleTestCase):
     def setUp(self):
-        self.dam = SimpleNamespace(normal_level=74.0, critical_level=76.0)
+        self.dam = SimpleNamespace(normal_level=74.0, critical_level=76.0, influence_radius_km=8.0)
         # At critical, spilling, rising fast -> maximal base + rate.
         self.reading = SimpleNamespace(water_level=76.0, rate_of_change=0.5, is_spilling=True)
 
+    # --- fallback path (distance not yet computed): coarse downstream flag ---
     def test_downstream_gets_full_hazard(self):
         ctx = context(dam=self.dam, reading=self.reading)
         result = DamFactor().evaluate(FactorInput(barangay(downstream=True), None, ctx))
@@ -93,7 +97,31 @@ class DamFactorTests(SimpleTestCase):
         down = DamFactor().evaluate(FactorInput(barangay(downstream=True), None, ctx))
         up = DamFactor().evaluate(FactorInput(barangay(downstream=False), None, ctx))
         self.assertLess(up.value, down.value)
-        self.assertAlmostEqual(up.value, 0.15)  # UPSTREAM_ATTENUATION
+        self.assertAlmostEqual(up.value, 0.15)  # FALLBACK_UPSTREAM_SHARE
+
+    # --- distance-decay path: hazard fades to zero past the influence radius ---
+    def test_on_river_gets_full_hazard(self):
+        ctx = context(dam=self.dam, reading=self.reading)
+        result = DamFactor().evaluate(FactorInput(barangay(distance_to_river_km=0.0), None, ctx))
+        self.assertAlmostEqual(result.value, 1.0)
+
+    def test_half_radius_halves_hazard(self):
+        ctx = context(dam=self.dam, reading=self.reading)
+        result = DamFactor().evaluate(FactorInput(barangay(distance_to_river_km=4.0), None, ctx))
+        self.assertAlmostEqual(result.value, 0.5)
+
+    def test_beyond_radius_is_zero(self):
+        ctx = context(dam=self.dam, reading=self.reading)
+        far = DamFactor().evaluate(FactorInput(barangay(distance_to_river_km=12.0), None, ctx))
+        self.assertAlmostEqual(far.value, 0.0)
+
+    def test_distance_overrides_downstream_flag(self):
+        # A "downstream" barangay far from the river still decays to near-zero.
+        ctx = context(dam=self.dam, reading=self.reading)
+        result = DamFactor().evaluate(
+            FactorInput(barangay(downstream=True, distance_to_river_km=8.0), None, ctx)
+        )
+        self.assertAlmostEqual(result.value, 0.0)
 
     def test_no_reading_unavailable(self):
         result = DamFactor().evaluate(FactorInput(barangay(downstream=True), None, context(dam=self.dam)))

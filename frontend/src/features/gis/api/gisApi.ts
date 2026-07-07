@@ -2,6 +2,7 @@ import apiClient from '@/app/apiClient'
 import type {
     BarangayFeatureCollection,
     BarangayRisk,
+    DamGeoCollection,
     DamStatus,
     RiskSnapshot,
 } from '../types/api'
@@ -27,5 +28,11 @@ export const getBarangayRisk = async (id: number): Promise<BarangayRisk> => {
 /** Current Pasonanca dam reading vs thresholds. */
 export const getDamStatus = async (): Promise<DamStatus> => {
     const { data } = await apiClient.get<DamStatus>('/api/dam/status/')
+    return data
+}
+
+/** Dam point + river corridor geometry for the map (static; ~seldom changes). */
+export const getDamGeo = async (): Promise<DamGeoCollection> => {
+    const { data } = await apiClient.get<DamGeoCollection>('/api/dam/geo/')
     return data
 }

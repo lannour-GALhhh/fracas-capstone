@@ -1,4 +1,4 @@
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { AxiosError } from 'axios'
 import { Map, Megaphone, History, Waves } from 'lucide-react'
 import { LoginSchema } from './schemas/LoginSchema'
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom'
 /** Turn a failed sign-in into one plain-language line for the operator. */
 const humanizeLoginError = (err: unknown): string => {
 	if (err instanceof AxiosError) {
-		if (err.response?.status === 401) return 'Incorrect username or password.'
+		if (err.response?.status === 401) return "We couldn't find an account with those credentials, please try again."
 		if (!err.response) return "We couldn't reach the server. Check your connection and try again."
 	}
 	return 'Something went wrong signing you in. Please try again.'
@@ -30,22 +30,22 @@ const Login = () => {
 	const { isAuthenticated, login } = useAuth();
 	const navigate = useNavigate();
 
+	// Controlled fields: a form action resets uncontrolled inputs after it
+	// runs, so we own the values here to keep them on a failed attempt.
+	const [username, setUsername] = useState('');
+	const [password, setPassword] = useState('');
+
 	const initialState: LoginState = {errors: {}};
 
 	const loginAction = async (_: LoginState, formData: FormData): Promise<LoginState> => {
 
 		const raw = Object.fromEntries(formData);
-		// React 19 resets uncontrolled fields after a form action; echo the typed
-		// values back so a failed attempt keeps what the operator entered.
-		const values = { username: String(raw.username ?? '') };
-
 		const parsed = LoginSchema.safeParse(raw);
 
 		if (!parsed.success) {
 			const fieldErrors = parsed.error.flatten().fieldErrors;
 
 			return {
-				values,
 				errors: {
 					username: fieldErrors.username?.[0],
 					password: fieldErrors.password?.[0],
@@ -61,7 +61,7 @@ const Login = () => {
 
 			return initialState;
 		} catch (err) {
-			return { errors: {}, values, formError: humanizeLoginError(err) };
+			return { errors: {}, formError: humanizeLoginError(err) };
 		}
 	}
 
@@ -125,7 +125,8 @@ const Login = () => {
 									name='username'
 									autoComplete='username'
 									autoFocus
-									defaultValue={state.values?.username}
+									value={username}
+									onChange={(e) => setUsername(e.target.value)}
 									aria-invalid={!!state.errors.username}
 								/>
 								{state.errors.username &&
@@ -142,6 +143,8 @@ const Login = () => {
 									type='password'
 									name='password'
 									autoComplete='current-password'
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
 									aria-invalid={!!state.errors.password}
 								/>
 								{state.errors.password &&

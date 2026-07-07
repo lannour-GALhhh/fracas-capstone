@@ -16,11 +16,12 @@ from rest_framework.views import APIView
 
 from users.permissions import IsAdmin, IsOperator
 
-from .models import AutoDetectConfig, FloodEvent, FloodEventChange
+from .models import AutoDetectConfig, FloodEvent, FloodEventChange, FloodEventReport
 from .serializers import (
     AutoDetectConfigSerializer,
     FloodEventChangeSerializer,
     FloodEventDetailSerializer,
+    FloodEventReportSerializer,
     FloodEventSerializer,
     FloodEventWriteSerializer,
     MyFloodActivitySerializer,
@@ -183,3 +184,31 @@ def _parse_dt(raw):
     if dt is not None:
         return dt.date()
     return parse_date(raw)
+
+
+class FloodEventReportsView(_OperatorWriteMixin, ListCreateAPIView):
+    """Evidence reports (photos + narrative) for a flood event.
+
+    Reads: any authenticated user. Create: operator — the reporter is the signed-
+    in user, and the report is recorded on the event's audit trail.
+    """
+
+    serializer_class = FloodEventReportSerializer
+
+    def get_queryset(self):
+        return (
+            FloodEventReport.objects.filter(flood_event_id=self.kwargs["pk"])
+            .select_related("reporter")
+            .prefetch_related("images")
+        )
+
+    def perform_create(self, serializer):
+        event = get_object_or_404(FloodEvent, pk=self.kwargs["pk"])
+        report = serializer.save(flood_event=event, reporter=self.request.user)
+        changes.log_action(
+            event,
+            FloodEventChange.Action.UPDATED,
+            self.request.user,
+            field="report",
+            new_value=f"Added evidence report ({report.images.count()} photo(s))",
+        )

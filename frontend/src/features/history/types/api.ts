@@ -23,6 +23,26 @@ export interface Paginated<T> {
     results: T[]
 }
 
+/** One photo attached to an evidence report. */
+export interface FloodEventReportImage {
+    id: number
+    image: string // absolute URL
+    caption: string
+    uploaded_at: string
+}
+
+/** An operator-authored evidence report (GET/POST /flood-events/:id/reports/). */
+export interface FloodEventReport {
+    id: number
+    flood_event: number
+    reporter: number | null
+    reporter_name: string | null
+    description: string
+    occurred_at: string
+    created_at: string
+    images: FloodEventReportImage[]
+}
+
 /** One row of GET /api/flood-events/ (mirrors FloodEventSerializer). */
 export interface FloodEvent {
     id: number

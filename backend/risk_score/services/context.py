@@ -53,7 +53,8 @@ class ScoringContext:
             b.land_height_mean for b in barangays if b.land_height_mean is not None
         )
 
-        dam = Dam.objects.first()
+        # Scoring needs only levels + influence radius, not the map geometry.
+        dam = Dam.objects.defer("river", "location").first()
         dam_reading = dam.readings.first() if dam else None  # latest (Meta ordering)
         if dam_reading is not None and dam_reading.recorded_at < dam_cutoff:
             dam_reading = None

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
@@ -33,3 +35,17 @@ class DamStatusApiTests(APITestCase):
         self.assertEqual(resp.data["current_level"], 75.0)
         self.assertEqual(resp.data["critical_level"], 76.2)
         self.assertTrue(resp.data["is_spilling"])
+
+    def test_returns_recent_history_trend(self):
+        dam = Dam.objects.create(name="Pasonanca", normal_level=74.2, critical_level=76.2)
+        now = timezone.now()
+        # Two readings inside the 24h window, one stale reading outside it.
+        DamReading.objects.create(dam=dam, water_level=74.5, recorded_at=now - timedelta(hours=2))
+        DamReading.objects.create(dam=dam, water_level=75.0, recorded_at=now)
+        DamReading.objects.create(dam=dam, water_level=73.0, recorded_at=now - timedelta(days=2))
+
+        resp = self.client.get(reverse("dam-status"))
+        history = resp.data["history"]
+        self.assertEqual(len(history), 2)  # stale reading excluded
+        # Oldest → newest so the sparkline reads left-to-right.
+        self.assertEqual([p["water_level"] for p in history], [74.5, 75.0])

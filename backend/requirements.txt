@@ -25,6 +25,11 @@ hiredis==3.4.0
 idna==3.18
 kombu==5.6.2
 numpy==2.4.6
+Pillow>=11.0
+django-storages>=1.14
+boto3>=1.34
+cloudinary>=1.40
+django-cloudinary-storage>=0.3
 oauthlib==3.3.1
 packaging==26.2
 prompt_toolkit==3.0.52

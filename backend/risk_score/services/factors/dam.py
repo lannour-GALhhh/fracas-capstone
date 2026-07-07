@@ -1,8 +1,10 @@
 """Dam hazard: Pasonanca level as a proxy for downstream Tumaga river stage.
 
 Hazard rises as the level climbs from normal toward critical, amplified by a
-fast rate-of-rise and by active spilling. It threatens downstream (Tumaga
-corridor) barangays; upstream barangays feel only an attenuated share.
+fast rate-of-rise and by active spilling. Its reach is *spatial*: a barangay's
+share of that hazard decays with its distance to the river corridor, falling to
+zero past the dam's influence radius. When distance hasn't been computed yet we
+fall back to the coarse downstream flag.
 """
 
 from risk_score.constants import FACTOR_DAM
@@ -12,8 +14,18 @@ from .base import FactorInput, FactorResult
 
 # A rise of this many metres/hour counts as maximal rate hazard.
 RISE_FULL_HAZARD_M_PER_HR = 0.5
-# Share of dam hazard felt by barangays not downstream of the dam.
-UPSTREAM_ATTENUATION = 0.15
+# Fallback shares used only when a barangay's distance-to-river is unknown.
+FALLBACK_DOWNSTREAM_SHARE = 1.0
+FALLBACK_UPSTREAM_SHARE = 0.15
+# Influence radius fallback (km) if the dam predates the geometry fields.
+DEFAULT_INFLUENCE_RADIUS_KM = 8.0
+
+
+def proximity_share(distance_km: float, radius_km: float) -> float:
+    """Linear falloff: 1.0 at the corridor, 0.0 at/beyond the influence radius."""
+    if radius_km <= 0:
+        return 0.0
+    return clamp(1.0 - distance_km / radius_km)
 
 
 class DamFactor:
@@ -34,8 +46,17 @@ class DamFactor:
         base = max(level_ratio, spill)
         hazard = clamp(0.7 * base + 0.3 * rise_hazard)
 
-        if not data.barangay.is_downstream:
-            hazard *= UPSTREAM_ATTENUATION
+        distance_km = getattr(data.barangay, "distance_to_river_km", None)
+        radius_km = getattr(dam, "influence_radius_km", None) or DEFAULT_INFLUENCE_RADIUS_KM
+        if distance_km is not None:
+            share = proximity_share(distance_km, radius_km)
+        else:
+            share = (
+                FALLBACK_DOWNSTREAM_SHARE
+                if data.barangay.is_downstream
+                else FALLBACK_UPSTREAM_SHARE
+            )
+        hazard *= share
 
         return FactorResult(
             self.key,
@@ -46,5 +67,8 @@ class DamFactor:
                 "is_spilling": reading.is_spilling,
                 "rate_of_change": reading.rate_of_change,
                 "is_downstream": data.barangay.is_downstream,
+                "distance_to_river_km": distance_km,
+                "influence_radius_km": radius_km,
+                "proximity_share": round(share, 4),
             },
         )

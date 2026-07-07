@@ -16,6 +16,7 @@ import FloodEventForm from './FloodEventForm'
 import ChangeHistoryModal from './ChangeHistoryModal'
 import DeleteEventDialog from './DeleteEventDialog'
 import ResolveDialog from './ResolveDialog'
+import EvidenceReports from './EvidenceReports'
 import {
     SEVERITY_COLORS,
     SEVERITY_LABELS,
@@ -294,6 +295,8 @@ const FloodEventDetail = () => {
                     <Map center={telemetry.location} zoom={14} theme='light' />
                 </Card>
             </div>
+
+            <EvidenceReports eventId={event.id} />
         </div>
     )
 }

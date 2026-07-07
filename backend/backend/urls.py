@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/', include('monitoring.urls')),
     path('api/', include('evacuation.urls')),
     path('api/', include('analytics.urls')),
+    path('api/', include('poi.urls')),
 ]

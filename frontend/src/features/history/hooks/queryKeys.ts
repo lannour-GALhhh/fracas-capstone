@@ -5,4 +5,5 @@ export const floodEventKeys = {
     list: (filters: FloodEventFilters) => ['floodEvents', 'list', filters] as const,
     detail: (id: number) => ['floodEvents', 'detail', id] as const,
     changes: (id: number) => ['floodEvents', 'changes', id] as const,
+    reports: (id: number) => ['floodEvents', 'reports', id] as const,
 }

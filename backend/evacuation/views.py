@@ -1,18 +1,20 @@
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from rest_framework import viewsets
+"""Evacuation-center API.
+
+Reads are open to any authenticated client (the mobile app downloads the active
+set as one GeoJSON FeatureCollection to compute the nearest center locally).
+Writes are operator-only and edited straight from the GIS console; every write
+is recorded in the unified POI audit log via the shared PoiViewSet base.
+"""
+
+from poi.views import PoiViewSet
 
 from .models import EvacuationCenter
-from .serializers import EvacuationCenterSerializer
+from .serializers import EvacuationCenterSerializer, EvacuationCenterWriteSerializer
 
 
-@method_decorator(
-    cache_page(60 * 15, key_prefix="evacuation_centers"),
-    name="list",
-)
-class EvacuationCenterView(viewsets.ReadOnlyModelViewSet):
-    # Active centers, served as one GeoJSON FeatureCollection for the mobile app to
-    # download once and compute nearest-center client-side. Bounded set → no pagination.
-    queryset = EvacuationCenter.objects.filter(is_active=True).select_related("barangay")
-    serializer_class = EvacuationCenterSerializer
-    pagination_class = None
+class EvacuationCenterViewSet(PoiViewSet):
+    queryset = EvacuationCenter.objects.select_related("barangay")
+    read_serializer_class = EvacuationCenterSerializer
+    write_serializer_class = EvacuationCenterWriteSerializer
+    poi_type = "evacuation"
+    tracked_fields = ["name", "capacity", "contact", "is_active"]

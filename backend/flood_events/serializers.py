@@ -4,6 +4,8 @@ from .models import (
     AutoDetectConfig,
     FloodEvent,
     FloodEventChange,
+    FloodEventReport,
+    FloodEventReportImage,
     FloodEventTimelineEntry,
     SourceType,
 )
@@ -225,3 +227,46 @@ class AutoDetectConfigSerializer(serializers.ModelSerializer):
         model = AutoDetectConfig
         fields = ["enabled", "threshold_category", "updated_at"]
         read_only_fields = ["updated_at"]
+
+
+class FloodEventReportImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FloodEventReportImage
+        fields = ["id", "image", "caption", "uploaded_at"]
+
+
+class FloodEventReportSerializer(serializers.ModelSerializer):
+    """An evidence report with its photos. Accepts multiple `uploaded_images`
+    (multipart) on create; `reporter` and `flood_event` are set by the view."""
+
+    images = FloodEventReportImageSerializer(many=True, read_only=True)
+    reporter_name = serializers.SerializerMethodField()
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = FloodEventReport
+        fields = [
+            "id",
+            "flood_event",
+            "reporter",
+            "reporter_name",
+            "description",
+            "occurred_at",
+            "created_at",
+            "images",
+            "uploaded_images",
+        ]
+        read_only_fields = ["flood_event", "reporter"]
+
+    def get_reporter_name(self, obj):
+        return display_name(obj.reporter)
+
+    def create(self, validated_data):
+        images = validated_data.pop("uploaded_images", [])
+        report = FloodEventReport.objects.create(**validated_data)
+        FloodEventReportImage.objects.bulk_create(
+            [FloodEventReportImage(report=report, image=image) for image in images]
+        )
+        return report
