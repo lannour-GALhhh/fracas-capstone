@@ -2,7 +2,6 @@ import apiClient from '@/app/apiClient'
 import type {
     AnalyticsSummary,
     AnalyticsWindow,
-    DamTimeline,
     Hotspot,
     RainfallTimeline,
     ValidationRunPoint,
@@ -28,11 +27,6 @@ export const getRainfallTimeline = async (
         '/api/analytics/rainfall-timeline/',
         params(days),
     )
-    return data
-}
-
-export const getDamTimeline = async (days: AnalyticsWindow): Promise<DamTimeline> => {
-    const { data } = await apiClient.get<DamTimeline>('/api/analytics/dam-timeline/', params(days))
     return data
 }
 

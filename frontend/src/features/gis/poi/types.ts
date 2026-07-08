@@ -13,43 +13,6 @@ export interface EvacuationProperties {
 
 export type EvacuationCollection = FeatureCollection<Point, EvacuationProperties>
 
-/** Payload for creating/updating an evacuation center. */
-export interface EvacuationWrite {
-    name: string
-    capacity?: number | null
-    contact?: string
-    is_active?: boolean
-    latitude: number
-    longitude: number
-}
-
-export type HotspotSeverity = 'low' | 'medium' | 'high'
-
-/** Properties on each flood-hotspot GeoJSON feature. */
-export interface HotspotProperties {
-    id: number
-    name: string
-    radius_m: number
-    severity: HotspotSeverity
-    description: string
-    is_active: boolean
-    barangay: number | null
-    barangay_name: string | null
-}
-
-export type HotspotCollection = FeatureCollection<Point, HotspotProperties>
-
-/** Payload for creating/updating a flood hotspot. */
-export interface HotspotWrite {
-    name: string
-    radius_m?: number
-    severity?: HotspotSeverity
-    description?: string
-    is_active?: boolean
-    latitude: number
-    longitude: number
-}
-
 export type PoiKind = 'evacuation' | 'hotspot'
 export type PoiAction = 'created' | 'updated' | 'moved' | 'deleted'
 
@@ -67,11 +30,6 @@ export interface PoiLog {
     editor_name: string | null
     editor_username: string | null
     created_at: string
-}
-
-/** Imperative handle a POI layer exposes to its parent: start placing a new POI. */
-export interface PoiLayerHandle {
-    startAdd: () => void
 }
 
 export interface Paginated<T> {

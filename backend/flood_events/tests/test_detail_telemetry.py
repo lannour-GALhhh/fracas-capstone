@@ -7,7 +7,6 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from dam_level.models import Dam, DamReading
 from flood_events.models import FloodEvent, FloodEventTimelineEntry
 from rainfall_fetch.models import Rainfall
 from risk_score.models import RiskScore
@@ -64,8 +63,6 @@ class FloodEventDetailTelemetryTests(APITestCase):
             barangay=self.barangay, current_rainfall_strength=90,
             accumulated_24hr=180, recorded_at=self.at + timedelta(hours=1),
         )
-        dam = Dam.objects.create(name="Pasonanca", normal_level=10, critical_level=20)
-        DamReading.objects.create(dam=dam, water_level=15.5, recorded_at=self.at, is_spilling=True)
         RiskScore.objects.create(
             barangay=self.barangay, score=88.0, category="critical", computed_at=self.at,
         )
@@ -73,8 +70,6 @@ class FloodEventDetailTelemetryTests(APITestCase):
         tel = self._get()["telemetry"]
         self.assertEqual(tel["rainfall"]["peak_intensity"], 90)
         self.assertEqual(tel["rainfall"]["peak_accumulation_24hr"], 180)
-        self.assertEqual(tel["dam"]["peak_level"], 15.5)
-        self.assertTrue(tel["dam"]["is_spilling"])
         self.assertEqual(tel["risk"]["peak_score"], 88.0)
         self.assertEqual(tel["risk"]["category"], "critical")
         self.assertEqual(len(tel["location"]), 2)  # [lon, lat]
@@ -82,7 +77,6 @@ class FloodEventDetailTelemetryTests(APITestCase):
     def test_telemetry_is_none_safe_without_readings(self):
         tel = self._get()["telemetry"]
         self.assertIsNone(tel["rainfall"])
-        self.assertIsNone(tel["dam"])
         self.assertIsNone(tel["risk"])
 
     def test_readings_outside_window_are_ignored(self):

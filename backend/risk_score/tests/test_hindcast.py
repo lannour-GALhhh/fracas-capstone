@@ -38,13 +38,26 @@ def make_barangay(name, code, height):
 
 
 class HindcastScoreTests(TestCase):
-    def test_heavy_rain_scores_and_degrades_without_dam(self):
+    def test_heavy_rain_scores_and_is_not_degraded_with_susceptibility_loaded(self):
+        barangay = make_barangay("Lowland", "L1", height=1.0)
+        when = timezone.now() - timedelta(days=10)
+        susceptibility = {barangay.id: {"level": "high", "value": 0.8, "zone_count": 1}}
+
+        def fetcher(lat, lon, w):
+            return hourly_series(w, value=40.0, spike=50.0)
+
+        result = hindcast_score(barangay, when, susceptibility, fetcher=fetcher)
+        self.assertGreater(result.score, 0)
+        # Susceptibility is static reference data (not a live feed), unlike the
+        # old dam factor — once loaded it's available for every hindcast.
+        self.assertFalse(result.is_degraded)
+
+    def test_no_susceptibility_data_degrades(self):
         barangay = make_barangay("Lowland", "L1", height=1.0)
         when = timezone.now() - timedelta(days=10)
 
         def fetcher(lat, lon, w):
             return hourly_series(w, value=40.0, spike=50.0)
 
-        result = hindcast_score(barangay, when, [0.0, 50.0, 100.0], fetcher=fetcher)
-        self.assertGreater(result.score, 0)
-        self.assertTrue(result.is_degraded)  # dam factor unavailable in hindcast
+        result = hindcast_score(barangay, when, {}, fetcher=fetcher)
+        self.assertTrue(result.is_degraded)

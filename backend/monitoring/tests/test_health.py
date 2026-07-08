@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from monitoring.constants import SOURCE_DAM, SOURCE_RAINFALL, STALE_AFTER
+from monitoring.constants import SOURCE_RAINFALL, STALE_AFTER
 from monitoring.models import IngestionHealth
 from monitoring.services import health
 
@@ -11,8 +11,8 @@ from monitoring.services import health
 class CheckIngestionTests(TestCase):
     def test_missing_source_is_not_fresh(self):
         result = health.check_ingestion()
-        self.assertFalse(result[SOURCE_DAM]["fresh"])
-        self.assertEqual(result[SOURCE_DAM]["status"], "no data")
+        self.assertFalse(result[SOURCE_RAINFALL]["fresh"])
+        self.assertEqual(result[SOURCE_RAINFALL]["status"], "no data")
 
     def test_recent_success_is_fresh(self):
         IngestionHealth.objects.create(

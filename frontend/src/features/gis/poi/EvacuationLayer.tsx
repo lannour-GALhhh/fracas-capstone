@@ -1,33 +1,21 @@
-import { forwardRef, useImperativeHandle } from 'react'
 import type { Feature, Point } from 'geojson'
 import { Tent } from 'lucide-react'
-import { MapMarker, MarkerContent, MarkerPopup, useMap } from '@/common/ui/map'
+import { MapMarker, MarkerContent, MarkerPopup } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
-import { useEvacuationCenters, useEvacuationMutations } from './usePoi'
-import type { EvacuationProperties, PoiLayerHandle } from './types'
-import type { PoiEditor } from './usePoiEditor'
+import { useEvacuationCenters } from './usePoi'
+import type { EvacuationProperties } from './types'
 
 interface Props {
     /** Layer toggle. When off, only centers inside the focused barangay show. */
     visible: boolean
-    editor: PoiEditor
     focusedBarangayId: number | null
 }
 
-const Pin = ({
-    tone,
-    active,
-}: {
-    tone: 'active' | 'inactive' | 'draft'
-    active?: boolean
-}) => {
-    const color =
-        tone === 'draft' ? 'bg-amber-500' : tone === 'inactive' ? 'bg-slate-400' : 'bg-emerald-600'
+const Pin = ({ tone }: { tone: 'active' | 'inactive' }) => {
+    const color = tone === 'inactive' ? 'bg-slate-400' : 'bg-emerald-600'
     return (
         <div
-            className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg transition-transform ${color} ${
-                active ? 'scale-125 ring-2 ring-sky-500 ring-offset-2' : ''
-            }`}
+            className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg ${color}`}
         >
             <Tent className='size-4 text-white' />
         </div>
@@ -50,79 +38,35 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 
-const EvacuationLayer = forwardRef<PoiLayerHandle, Props>(function EvacuationLayer(
-    { visible, editor, focusedBarangayId },
-    ref,
-) {
-    const { map } = useMap()
+/** Read-only evacuation-center markers — the console no longer creates, moves,
+ * or deletes centers (see ENGINE_V2_PLAN Phase 4); `load_evacuation_centers`
+ * stays the authoritative source. */
+const EvacuationLayer = ({ visible, focusedBarangayId }: Props) => {
     const { data } = useEvacuationCenters()
-    const { update } = useEvacuationMutations()
-    const editMode = editor.editMode
 
-    useImperativeHandle(
-        ref,
-        () => ({
-            startAdd: () => {
-                if (!map) return
-                const c = map.getCenter()
-                editor.startCreate('evacuation', { lng: c.lng, lat: c.lat })
-            },
-        }),
-        [map, editor],
-    )
-
-    const effectiveVisible = visible || editMode
     const features = (data?.features ?? []) as EvacFeature[]
-    const shown = effectiveVisible
+    const shown = visible
         ? features
         : features.filter((f) => f.properties.barangay === focusedBarangayId)
-
-    const activeId = editor.active?.kind === 'evacuation' ? editor.active.id : undefined
-    const drafting = editor.active?.kind === 'evacuation' && editor.active.id === null
 
     return (
         <>
             {shown.map((f) => {
                 const [lng, lat] = f.geometry.coordinates
                 const p = f.properties
-                const isActive = activeId != null && p.id === activeId
                 return (
-                    <MapMarker
-                        key={p.id}
-                        longitude={lng}
-                        latitude={lat}
-                        draggable={editMode}
-                        onClick={() => editMode && editor.selectExisting('evacuation', p.id)}
-                        onDragEnd={({ lng, lat }) =>
-                            update.mutate({ id: p.id, payload: { latitude: lat, longitude: lng } })
-                        }
-                    >
+                    <MapMarker key={p.id} longitude={lng} latitude={lat} draggable={false}>
                         <MarkerContent>
-                            <Pin tone={p.is_active ? 'active' : 'inactive'} active={isActive} />
+                            <Pin tone={p.is_active ? 'active' : 'inactive'} />
                         </MarkerContent>
-                        {!editMode && (
-                            <MarkerPopup closeButton>
-                                <ReadOnlyDetails p={p} />
-                            </MarkerPopup>
-                        )}
+                        <MarkerPopup closeButton>
+                            <ReadOnlyDetails p={p} />
+                        </MarkerPopup>
                     </MapMarker>
                 )
             })}
-
-            {drafting && editor.draft && (
-                <MapMarker
-                    longitude={editor.draft.lng}
-                    latitude={editor.draft.lat}
-                    draggable
-                    onDragEnd={({ lng, lat }) => editor.moveDraft({ lng, lat })}
-                >
-                    <MarkerContent>
-                        <Pin tone='draft' active />
-                    </MarkerContent>
-                </MapMarker>
-            )}
         </>
     )
-})
+}
 
 export default EvacuationLayer

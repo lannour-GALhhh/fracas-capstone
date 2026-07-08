@@ -7,13 +7,13 @@ shared across all barangays.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.utils import timezone
 
 from barangays.models import Barangay
-from dam_level.models import Dam, DamReading
-from monitoring.constants import SOURCE_DAM, SOURCE_RAINFALL, STALE_AFTER
+from barangays.services import dominant_susceptibility_by_barangay
+from monitoring.constants import SOURCE_RAINFALL, STALE_AFTER
 from rainfall_fetch.models import Rainfall
 
 
@@ -21,24 +21,23 @@ from rainfall_fetch.models import Rainfall
 class ScoringContext:
     barangays: list[Barangay]
     rainfall_by_barangay: dict[int, Rainfall]
-    sorted_elevations: list[float]  # ascending; for percentile-rank vulnerability
-    dam: Dam | None = None
-    dam_reading: DamReading | None = None
+    susceptibility_by_barangay: dict[int, dict] = field(default_factory=dict)
 
     def rainfall_for(self, barangay: Barangay) -> Rainfall | None:
         return self.rainfall_by_barangay.get(barangay.id)
 
+    def susceptibility_for(self, barangay: Barangay) -> dict | None:
+        return self.susceptibility_by_barangay.get(barangay.id)
+
     @classmethod
     def build(cls) -> "ScoringContext":
-        # defer the heavy boundary geometry — scoring only needs elevation.
+        # defer the heavy boundary geometry — scoring doesn't need it.
         barangays = list(Barangay.objects.defer("boundary"))
 
-        # Stale inputs are dropped (treated as missing) so the engine degrades
-        # the score and redistributes weight, rather than trusting old readings
-        # and emitting a false-low "all calm".
-        now = timezone.now()
-        rainfall_cutoff = now - STALE_AFTER[SOURCE_RAINFALL]
-        dam_cutoff = now - STALE_AFTER[SOURCE_DAM]
+        # Stale rainfall is dropped (treated as missing) so the engine degrades
+        # the score and redistributes weight, rather than trusting an old
+        # reading and emitting a false-low "all calm".
+        cutoff = timezone.now() - STALE_AFTER[SOURCE_RAINFALL]
 
         # Latest reading per barangay in a single query (Postgres DISTINCT ON).
         latest = (
@@ -46,23 +45,11 @@ class ScoringContext:
             .distinct("barangay_id")
         )
         rainfall_by_barangay = {
-            r.barangay_id: r for r in latest if r.recorded_at >= rainfall_cutoff
+            r.barangay_id: r for r in latest if r.recorded_at >= cutoff
         }
-
-        sorted_elevations = sorted(
-            b.land_height_mean for b in barangays if b.land_height_mean is not None
-        )
-
-        # Scoring needs only levels + influence radius, not the map geometry.
-        dam = Dam.objects.defer("river", "location").first()
-        dam_reading = dam.readings.first() if dam else None  # latest (Meta ordering)
-        if dam_reading is not None and dam_reading.recorded_at < dam_cutoff:
-            dam_reading = None
 
         return cls(
             barangays=barangays,
             rainfall_by_barangay=rainfall_by_barangay,
-            sorted_elevations=sorted_elevations,
-            dam=dam,
-            dam_reading=dam_reading,
+            susceptibility_by_barangay=dominant_susceptibility_by_barangay(),
         )

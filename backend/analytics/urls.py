@@ -1,7 +1,6 @@
 from django.urls import path
 
 from .views import (
-    DamTimelineView,
     HotspotsView,
     ModelPerformanceView,
     RainfallTimelineView,
@@ -15,11 +14,6 @@ urlpatterns = [
         "analytics/rainfall-timeline/",
         RainfallTimelineView.as_view(),
         name="analytics-rainfall-timeline",
-    ),
-    path(
-        "analytics/dam-timeline/",
-        DamTimelineView.as_view(),
-        name="analytics-dam-timeline",
     ),
     path(
         "analytics/model-performance/",

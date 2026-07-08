@@ -35,6 +35,3 @@ class Command(BaseCommand):
         if report.recall is not None:
             self.stdout.write(self.style.SUCCESS(f"Detection rate (HIGH/CRITICAL): {report.recall:.0%}"))
             self.stdout.write(f"Mean predicted score: {report.mean_score:.1f}/100")
-        self.stdout.write(
-            self.style.NOTICE("Note: hindcast excludes the dam factor (no historical dam feed).")
-        )

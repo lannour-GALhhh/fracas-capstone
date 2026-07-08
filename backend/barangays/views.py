@@ -10,11 +10,13 @@ from rest_framework.response import Response
 
 # LOCAL
 from .models import (
-    Barangay
+    Barangay,
+    BarangaySusceptibility,
 )
 from .serializers import (
     BarangayListSerializer,
     BarangayPublicSerializer,
+    HazardZoneSerializer,
 )
 
 @method_decorator(cache_page(60 * 15, key_prefix='barangay_list'),
@@ -43,4 +45,16 @@ class BarangayPublicView(viewsets.ReadOnlyModelViewSet):
     queryset = Barangay.objects.all()
     serializer_class = BarangayPublicSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
+
+
+@method_decorator(cache_page(60 * 15, key_prefix='hazard_zone_list'),
+                  name='list',
+                  )
+class HazardZoneListView(viewsets.ReadOnlyModelViewSet):
+    # Bounded (<=505 rows) and served as one GeoJSON FeatureCollection for the
+    # hazard-zone map layer, so it must not be paginated — same rationale as
+    # BarangayListView.
+    queryset = BarangaySusceptibility.objects.select_related("barangay")
+    serializer_class = HazardZoneSerializer
     pagination_class = None

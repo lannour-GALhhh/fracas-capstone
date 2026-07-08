@@ -44,7 +44,7 @@ const PoiLogDialog = ({ open, onOpenChange }: Props) => {
                 <DialogHeader>
                     <DialogTitle>Map edit history</DialogTitle>
                     <DialogDescription>
-                        Every evacuation-center and hotspot edit — when, where and what.
+                        Every evacuation-center edit — when, where and what.
                     </DialogDescription>
                 </DialogHeader>
 

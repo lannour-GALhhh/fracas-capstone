@@ -1,10 +1,9 @@
 """Map points-of-interest shared plumbing.
 
 Holds the **unified POI audit log** (`MapPoiChange`) that records every operator
-edit to a map POI — evacuation centers and flood hotspots alike — as an
-append-only "when / where / what" trail. The concrete POI models live in their
-own apps (`evacuation.EvacuationCenter`) or here (`FloodHotspot`), but they all
-log through this single table so the console can show one activity feed.
+edit to a map POI as an append-only "when / where / what" trail. The concrete
+POI model lives in its own app (`evacuation.EvacuationCenter`), but logs
+through this single table so the console can show one activity feed.
 """
 
 from django.conf import settings
@@ -13,46 +12,10 @@ from django.contrib.gis.db import models
 
 class PoiType(models.TextChoices):
     EVACUATION = "evacuation", "Evacuation center"
+    # Flood hotspots were removed (superseded by the authoritative
+    # BarangaySusceptibility hazard-zone layer); kept here so old audit rows
+    # (MapPoiChange.poi_type="hotspot") remain a valid choice for display.
     HOTSPOT = "hotspot", "Flood hotspot"
-
-
-class HotspotSeverity(models.TextChoices):
-    LOW = "low", "Low"
-    MEDIUM = "medium", "Medium"
-    HIGH = "high", "High"
-
-
-class FloodHotspot(models.Model):
-    """An operator-marked frequent-flooding area (a point with an advisory radius).
-
-    ADVISORY ONLY: it's surfaced on the GIS + mobile map to warn residents that a
-    spot floods often, but it is deliberately **not** an input to the risk-scoring
-    engine — it never changes a barangay's computed hazard score. (That's why it
-    lives here and not as a `risk_score` factor.)
-    """
-
-    name = models.CharField(max_length=255)
-    location = models.PointField(srid=4326)
-    radius_m = models.PositiveIntegerField(default=300, help_text="Advisory radius in metres.")
-    severity = models.CharField(
-        max_length=10, choices=HotspotSeverity.choices, default=HotspotSeverity.MEDIUM
-    )
-    description = models.TextField(blank=True, help_text="Why this area floods (e.g. clogged canal).")
-    barangay = models.ForeignKey(
-        "barangays.Barangay",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="flood_hotspots",
-    )
-    is_active = models.BooleanField(default=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["name"]
-
-    def __str__(self):
-        return f"{self.name} ({self.severity})"
 
 
 class MapPoiChange(models.Model):

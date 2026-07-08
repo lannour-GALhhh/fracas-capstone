@@ -6,14 +6,8 @@ import ErrorState from '@/common/components/ErrorState'
 import GISMap from './component/GISMap'
 import RiskCard from './component/RiskCard'
 import Legend from './component/Legend'
-import PasonancaDamStatus from './component/PasonancaDamStatus'
 import BarangayPanel from './component/BarangayPanel'
-import DamPanel from './component/DamPanel'
-import PoiEditPanel from './poi/PoiEditPanel'
-import { usePoiEditor } from './poi/usePoiEditor'
 import { useRiskMap } from './hooks/useRiskMap'
-import { useDamStatus } from './hooks/useDamStatus'
-import { useDamGeo } from './hooks/useDamGeo'
 
 /** Live viewport width, so panel padding stays correct across resizes. */
 const useViewportWidth = (): number => {
@@ -50,33 +44,17 @@ const FreshnessBar = ({
 
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
-    const dam = useDamStatus()
-    const damGeo = useDamGeo()
     const [selectedId, setSelectedId] = useState<number | null>(null)
-    const [selectedDamId, setSelectedDamId] = useState<number | null>(null)
     const [panelHidden, setPanelHidden] = useState(false)
-    const editor = usePoiEditor()
     const viewportWidth = useViewportWidth()
-    // While editing POIs the right rail belongs to the POI editor, so the
-    // barangay/dam panels and the summary cards step aside (without losing the
-    // underlying selection, which returns once editing ends).
-    const editing = editor.active != null
-    const cardsVisible = !editor.editMode && selectedId == null && selectedDamId == null
+    const cardsVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
-    const barangayPanelVisible = selectedId != null && !panelHidden && !editor.editMode
-    const damPanelVisible = selectedDamId != null && !editor.editMode
-    const panelWidth =
-        barangayPanelVisible || damPanelVisible || editing ? Math.round(viewportWidth * 0.25) : 0
+    const barangayPanelVisible = selectedId != null && !panelHidden
+    const panelWidth = barangayPanelVisible ? Math.round(viewportWidth * 0.25) : 0
 
-    // Barangay and dam panels are mutually exclusive — selecting one closes the other.
     const handleSelect = useCallback((id: number | null) => {
         setSelectedId(id)
-        setSelectedDamId(null)
         setPanelHidden(false) // a fresh selection always shows the panel
-    }, [])
-    const handleSelectDam = useCallback((id: number) => {
-        setSelectedDamId(id)
-        setSelectedId(null)
     }, [])
 
     return (
@@ -99,7 +77,6 @@ const Dashboard = () => {
                             {groups.map((group) => (
                                 <RiskCard key={group.category} group={group} onSelect={handleSelect} />
                             ))}
-                            <PasonancaDamStatus data={dam.data} isLoading={dam.isLoading} />
                         </>
                     )}
                 </div>
@@ -119,13 +96,7 @@ const Dashboard = () => {
                 selectedId={selectedId}
                 onSelect={handleSelect}
                 panelWidth={panelWidth}
-                damGeo={damGeo.data}
-                selectedDamId={selectedDamId}
-                onSelectDam={handleSelectDam}
-                editor={editor}
             />
-
-            <PoiEditPanel editor={editor} />
 
             {barangayPanelVisible && selectedId != null && (
                 <BarangayPanel
@@ -136,7 +107,7 @@ const Dashboard = () => {
             )}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
-            {selectedId != null && panelHidden && !editor.editMode && (
+            {selectedId != null && panelHidden && (
                 <button
                     type='button'
                     onClick={() => setPanelHidden(false)}
@@ -145,10 +116,6 @@ const Dashboard = () => {
                     <PanelRightOpen className='size-4' />
                     Show details
                 </button>
-            )}
-
-            {damPanelVisible && (
-                <DamPanel data={dam.data} isLoading={dam.isLoading} onClose={() => setSelectedDamId(null)} />
             )}
         </>
     )

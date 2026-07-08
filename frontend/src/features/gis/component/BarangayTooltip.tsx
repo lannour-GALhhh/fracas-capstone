@@ -1,10 +1,9 @@
-import { AlertTriangle, Tent, TriangleAlert, Users } from 'lucide-react'
+import { AlertTriangle, Tent, Users } from 'lucide-react'
 import { MapPopup } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
-import { useEvacuationCenters, useHotspots } from '../poi/usePoi'
-import { SEVERITY_COLOR } from '../poi/geo'
-import type { EvacuationProperties, HotspotProperties } from '../poi/types'
+import { useEvacuationCenters } from '../poi/usePoi'
+import type { EvacuationProperties } from '../poi/types'
 import type { BarangayRiskProperties, RiskFeatureCollection } from '../types/api'
 
 interface Props {
@@ -59,56 +58,30 @@ const SectionHeader = ({
     </span>
 )
 
-/** The barangay's evacuation centers + flood hotspots, at a glance. */
+/** The barangay's evacuation centers, at a glance. */
 const PoiSummary = ({ id }: { id: number }) => {
     const { data: evacData } = useEvacuationCenters()
-    const { data: hotspotData } = useHotspots()
 
     const centers = ((evacData?.features ?? []) as { properties: EvacuationProperties }[]).filter(
         (f) => f.properties.barangay === id,
     )
-    const hotspots = ((hotspotData?.features ?? []) as { properties: HotspotProperties }[]).filter(
-        (f) => f.properties.barangay === id,
-    )
 
-    if (centers.length === 0 && hotspots.length === 0) return null
+    if (centers.length === 0) return null
 
     return (
-        <>
-            {centers.length > 0 && (
-                <div className='flex flex-col gap-1 border-t pt-2'>
-                    <SectionHeader icon={Tent} label='Evacuation centers' count={centers.length} />
-                    {centers.map(({ properties: p }) => (
-                        <div key={p.id} className='flex items-center justify-between gap-2 text-xs'>
-                            <span className='truncate'>{p.name}</span>
-                            {p.capacity != null && (
-                                <span className='text-muted-foreground shrink-0'>
-                                    {p.capacity.toLocaleString()} cap
-                                </span>
-                            )}
-                        </div>
-                    ))}
+        <div className='flex flex-col gap-1 border-t pt-2'>
+            <SectionHeader icon={Tent} label='Evacuation centers' count={centers.length} />
+            {centers.map(({ properties: p }) => (
+                <div key={p.id} className='flex items-center justify-between gap-2 text-xs'>
+                    <span className='truncate'>{p.name}</span>
+                    {p.capacity != null && (
+                        <span className='text-muted-foreground shrink-0'>
+                            {p.capacity.toLocaleString()} cap
+                        </span>
+                    )}
                 </div>
-            )}
-
-            {hotspots.length > 0 && (
-                <div className='flex flex-col gap-1 border-t pt-2'>
-                    <SectionHeader icon={TriangleAlert} label='Flood hotspots' count={hotspots.length} />
-                    {hotspots.map(({ properties: p }) => (
-                        <div key={p.id} className='flex items-center justify-between gap-2 text-xs'>
-                            <span className='flex min-w-0 items-center gap-1.5'>
-                                <span
-                                    className='size-2 shrink-0 rounded-full'
-                                    style={{ backgroundColor: SEVERITY_COLOR[p.severity] }}
-                                />
-                                <span className='truncate'>{p.name}</span>
-                            </span>
-                            <span className='text-muted-foreground shrink-0 capitalize'>{p.severity}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </>
+            ))}
+        </div>
     )
 }
 

@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from .models import (
-    Barangay
+    Barangay,
+    BarangaySusceptibility,
 )
 
 class BarangayListSerializer(GeoFeatureModelSerializer):
@@ -34,3 +35,16 @@ class BarangayPublicSerializer(GeoFeatureModelSerializer):
         geo_field = "boundary"
         id_field = False
         fields = ["id", "name"]
+
+
+class HazardZoneSerializer(GeoFeatureModelSerializer):
+    """One flood-susceptibility zone (Barangay x SusceptibilityLevel), simplified
+    for MapLibre. See `barangays.services.dominant_susceptibility_by_barangay` for
+    the worst-case-per-barangay aggregate the risk engine actually scores on —
+    this is the full zone geometry for the map layer."""
+
+    class Meta:
+        model = BarangaySusceptibility
+        geo_field = "geom_simplified"
+        id_field = False
+        fields = ["id", "barangay", "level"]

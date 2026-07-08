@@ -1,4 +1,4 @@
-import { Droplets, Radio, TriangleAlert, Users, Waves } from 'lucide-react'
+import { Radio, TriangleAlert, Users, Waves } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Card } from '@/common/ui/card'
@@ -13,7 +13,7 @@ interface TileProps {
     label: string
     value: string
     sub?: string
-    /** Tints the value + icon for a status reading (e.g. dam near critical). */
+    /** Tints the value + icon for a status reading (e.g. barangays critical now). */
     tone?: 'default' | 'warning' | 'critical'
 }
 
@@ -42,31 +42,24 @@ const Skeleton = () => (
     </Card>
 )
 
-/** Situational KPI strip: windowed flood impact + current dam/model state. */
+/** Situational KPI strip: windowed flood impact + current model state. */
 const KpiRow = ({ days }: { days: AnalyticsWindow }) => {
     const { data, isLoading } = useSummary(days)
 
     if (isLoading || !data) {
         return (
-            <div className='grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5'>
-                {Array.from({ length: 5 }).map((_, i) => (
+            <div className='grid grid-cols-2 gap-3 md:grid-cols-4'>
+                {Array.from({ length: 4 }).map((_, i) => (
                     <Skeleton key={i} />
                 ))}
             </div>
         )
     }
 
-    const dam = data.dam
-    const damTone =
-        dam == null ? 'default' : dam.is_spilling || (dam.pct_to_critical ?? 0) >= 80
-            ? 'critical'
-            : (dam.pct_to_critical ?? 0) >= 50
-              ? 'warning'
-              : 'default'
     const recall = data.validation?.recall
 
     return (
-        <div className='grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5'>
+        <div className='grid grid-cols-2 gap-3 md:grid-cols-4'>
             <StatTile
                 icon={<Waves className='size-5' />}
                 label='Flood events'
@@ -85,21 +78,6 @@ const KpiRow = ({ days }: { days: AnalyticsWindow }) => {
                 tone={data.barangays_critical > 0 ? 'critical' : 'default'}
                 value={nf.format(data.barangays_critical)}
                 sub={`+${nf.format(data.barangays_high)} high`}
-            />
-            <StatTile
-                icon={<Droplets className='size-5' />}
-                label='Dam level'
-                tone={damTone}
-                value={dam ? `${dam.water_level.toFixed(2)} m` : '—'}
-                sub={
-                    dam
-                        ? dam.is_spilling
-                            ? 'spilling'
-                            : dam.pct_to_critical != null
-                              ? `${dam.pct_to_critical.toFixed(0)}% to critical`
-                              : dam.name
-                        : 'no reading'
-                }
             />
             <StatTile
                 icon={<Radio className='size-5' />}

@@ -9,15 +9,13 @@ The thresholds are shared by two consumers:
 
 from datetime import timedelta
 
-SOURCE_DAM = "dam"
 SOURCE_RAINFALL = "rainfall"
-INGESTION_SOURCES = (SOURCE_DAM, SOURCE_RAINFALL)
+INGESTION_SOURCES = (SOURCE_RAINFALL,)
 
 # A reading older than this is treated as stale. Rainfall is re-fetched every
-# 15-min cycle; the ZCWD dam source updates less frequently, so it is lenient.
+# 15-min cycle.
 STALE_AFTER = {
     SOURCE_RAINFALL: timedelta(hours=1),
-    SOURCE_DAM: timedelta(hours=3),
 }
 
 # Retention windows for high-volume time series (pruned by the daily cleanup

@@ -1,13 +1,11 @@
 from .base import FactorInput, FactorResult, RiskFactor
-from .dam import DamFactor
-from .elevation import ElevationVulnerabilityFactor
 from .rainfall import RainfallFactor
+from .susceptibility import SusceptibilityFactor
 
 # Order is cosmetic (breakdown display); weights come from RiskConfig.
 DEFAULT_FACTORS: list[RiskFactor] = [
     RainfallFactor(),
-    DamFactor(),
-    ElevationVulnerabilityFactor(),
+    SusceptibilityFactor(),
 ]
 
 __all__ = [
@@ -15,7 +13,6 @@ __all__ = [
     "FactorResult",
     "RiskFactor",
     "RainfallFactor",
-    "DamFactor",
-    "ElevationVulnerabilityFactor",
+    "SusceptibilityFactor",
     "DEFAULT_FACTORS",
 ]

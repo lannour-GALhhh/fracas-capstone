@@ -4,11 +4,13 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     BarangayListView,
     BarangayPublicView,
+    HazardZoneListView,
 )
 
 router = DefaultRouter()
 
 router.register(r'barangays', BarangayListView, basename="barangay")
+router.register(r'hazard-zones', HazardZoneListView, basename="hazard-zone")
 
 urlpatterns = [
     # Explicit path BEFORE the router so `barangays/public/` isn't swallowed by

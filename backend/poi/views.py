@@ -1,5 +1,5 @@
-"""POI APIs: a reusable operator-editable + audited viewset base, the flood-
-hotspot viewset, and the unified POI audit-log feed."""
+"""POI APIs: a reusable operator-editable + audited viewset base, and the
+unified POI audit-log feed."""
 
 from rest_framework import viewsets
 from rest_framework.generics import ListAPIView
@@ -7,12 +7,8 @@ from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from users.permissions import IsOperator
 
-from .models import FloodHotspot, MapPoiChange
-from .serializers import (
-    FloodHotspotSerializer,
-    FloodHotspotWriteSerializer,
-    MapPoiChangeSerializer,
-)
+from .models import MapPoiChange
+from .serializers import MapPoiChangeSerializer
 from .services import log_poi_change
 
 
@@ -93,14 +89,6 @@ class PoiViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         self._log(instance, "deleted")
         instance.delete()
-
-
-class FloodHotspotViewSet(PoiViewSet):
-    queryset = FloodHotspot.objects.select_related("barangay")
-    read_serializer_class = FloodHotspotSerializer
-    write_serializer_class = FloodHotspotWriteSerializer
-    poi_type = "hotspot"
-    tracked_fields = ["name", "severity", "radius_m", "description", "is_active"]
 
 
 class PoiChangeLogView(ListAPIView):

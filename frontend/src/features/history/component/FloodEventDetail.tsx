@@ -223,11 +223,6 @@ const FloodEventDetail = () => {
                     }
                 />
                 <Stat
-                    label='Peak Dam Level'
-                    value={telemetry.dam != null ? `${telemetry.dam.peak_level} m` : dash}
-                    sub={telemetry.dam?.is_spilling ? 'Spilling' : 'Pasonanca Dam'}
-                />
-                <Stat
                     label='Peak Risk'
                     value={
                         telemetry.risk != null

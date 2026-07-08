@@ -6,6 +6,5 @@ export const analyticsKeys = {
     summary: (days: AnalyticsWindow) => ['analytics', 'summary', days] as const,
     hotspots: (days: AnalyticsWindow) => ['analytics', 'hotspots', days] as const,
     rainfall: (days: AnalyticsWindow) => ['analytics', 'rainfall', days] as const,
-    dam: (days: AnalyticsWindow) => ['analytics', 'dam', days] as const,
     model: () => ['analytics', 'model'] as const,
 }

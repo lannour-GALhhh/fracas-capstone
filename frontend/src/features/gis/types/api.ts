@@ -1,4 +1,4 @@
-import type { FeatureCollection, Polygon, MultiPolygon, Point, MultiLineString } from 'geojson'
+import type { FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 
 /** Danger levels, most-severe first is defined in constants/risk.ts. */
 export type RiskCategory = 'low' | 'medium' | 'high' | 'critical'
@@ -46,46 +46,18 @@ export interface BarangayRisk {
     recorded_at: string | null
 }
 
-/** One point in the dam's recent water-level trend (last ~24h). */
-export interface DamHistoryPoint {
-    recorded_at: string
-    water_level: number
-    /** Metres per hour vs the previous reading (null on the first reading). */
-    rate_of_change: number | null
-    is_spilling: boolean
-}
+/** Flood-susceptibility level, most-severe last — see constants/susceptibility.ts. */
+export type SusceptibilityLevel = 'very_low' | 'low' | 'moderate' | 'high' | 'very_high'
 
-/** GET /api/dam/status/ — latest Pasonanca reading + thresholds + recent trend. */
-export interface DamStatus {
-    has_data: boolean
-    dam?: string
-    normal_level?: number
-    critical_level?: number
-    influence_radius_km?: number
-    /** Dam location as [lng, lat], or null when not mapped. */
-    location?: [number, number] | null
-    current_level?: number
-    rate_of_change?: number | null
-    is_spilling?: boolean
-    turbidity?: number | null
-    recorded_at?: string
-    /** Last ~24h of readings, oldest→newest, for the trend sparkline/chart. */
-    history?: DamHistoryPoint[]
-}
-
-/** One feature from GET /api/dam/geo/ — the dam point or its river corridor. */
-export interface DamGeoProperties {
+/** Properties on each feature from GET /api/barangays/hazard-zones/. */
+export interface HazardZoneProperties {
     id: number
-    name: string
-    kind: 'dam' | 'river'
-    influence_radius_km?: number
+    barangay: number
+    level: SusceptibilityLevel
 }
 
-/** GET /api/dam/geo/ — dam point(s) + river line(s) for the map. */
-export type DamGeoCollection = FeatureCollection<
-    Point | MultiLineString,
-    DamGeoProperties
->
+/** GET /api/barangays/hazard-zones/ — simplified susceptibility zone geometry for the map. */
+export type HazardZoneCollection = FeatureCollection<Polygon | MultiPolygon, HazardZoneProperties>
 
 /** Static properties on each barangay feature from GET /api/barangays/. */
 export interface BarangayBaseProperties {

@@ -1,7 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import {
-    getDamTimeline,
     getHotspots,
     getModelPerformance,
     getRainfallTimeline,
@@ -30,9 +29,6 @@ export const useRainfallTimeline = (days: AnalyticsWindow) =>
         queryFn: () => getRainfallTimeline(days),
         ...shared,
     })
-
-export const useDamTimeline = (days: AnalyticsWindow) =>
-    useQuery({ queryKey: analyticsKeys.dam(days), queryFn: () => getDamTimeline(days), ...shared })
 
 export const useModelPerformance = () =>
     useQuery({ queryKey: analyticsKeys.model(), queryFn: getModelPerformance, ...shared })

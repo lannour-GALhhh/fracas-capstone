@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from barangays.models import Barangay
+from barangays.services import dominant_susceptibility_by_barangay
 from flood_events.models import FloodEvent
 from risk_score.constants import RiskCategory
 
@@ -48,23 +48,15 @@ class ValidationReport:
         return sum(scores) / len(scores) if scores else None
 
 
-def _sorted_elevations() -> list[float]:
-    return sorted(
-        Barangay.objects.filter(land_height_mean__isnull=False).values_list(
-            "land_height_mean", flat=True
-        )
-    )
-
-
 def validate(events=None, *, fetcher=None) -> ValidationReport:
-    elevations = _sorted_elevations()
+    susceptibility = dominant_susceptibility_by_barangay()
     events = events if events is not None else FloodEvent.objects.select_related("barangay")
     fetch_kwargs = {"fetcher": fetcher} if fetcher is not None else {}
 
     outcomes = []
     for event in events:
         try:
-            result = hindcast_score(event.barangay, event.occurred_at, elevations, **fetch_kwargs)
+            result = hindcast_score(event.barangay, event.occurred_at, susceptibility, **fetch_kwargs)
             outcomes.append(
                 EventOutcome(event, round(result.score, 2), result.category.value, result.category in HIT_CATEGORIES)
             )

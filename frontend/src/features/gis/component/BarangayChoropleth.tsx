@@ -100,12 +100,15 @@ const BarangayChoropleth = ({
             beforeId,
         )
 
+        // Thinner than v1: the hazard-zone layer is now the primary hazard
+        // geometry (rendered above this), so the choropleth reads as a lighter
+        // administrative/orientation wash rather than competing for attention.
         map.addLayer(
             {
                 id: FILL,
                 type: 'fill',
                 source: SOURCE,
-                paint: { 'fill-color': fillColorExpression, 'fill-opacity': 0.8 },
+                paint: { 'fill-color': fillColorExpression, 'fill-opacity': 0.35 },
             },
             beforeId,
         )
