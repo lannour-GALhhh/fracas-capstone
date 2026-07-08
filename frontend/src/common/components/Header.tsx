@@ -9,6 +9,7 @@ import { useAuth } from '@/features/auth/context/useAuth'
 import { useCurrentUser } from '@/features/user/hooks/useCurrentUser'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import type { CurrentUser } from '@/features/user/types'
+import type { Role } from '@/common/types/Role'
 
 
 
@@ -101,30 +102,38 @@ const UserMenu = ({ name, user }: { name: string; user?: CurrentUser }) => {
     )
 }
 
+// Rank used to compare the signed-in role against a link's `minRole`.
+const ROLE_RANK: Record<Role, number> = { resident: 0, operator: 1, admin: 2 }
+
+const NAV_LINKS: { name: string; link: string; minRole: Role }[] = [
+    { name: 'Dashboard', link: '/', minRole: 'resident' },
+    { name: 'Flood History', link: '/history', minRole: 'resident' },
+    { name: 'Analytics', link: '/analytics', minRole: 'operator' },
+    { name: 'Alerts', link: '/alerts', minRole: 'operator' },
+    { name: 'Admin', link: '/admin', minRole: 'admin' },
+]
+
 const Header = () => {
 
     const { data: user } = useCurrentUser()
+    const { role } = useAuth()
 
     // Fall back to a neutral label until the profile query resolves.
     const displayName = user
         ? `${user.first_name} ${user.last_name}`.trim() || user.username
         : '…'
 
-    const links = [
-        {name: "Dashboard", link: "/"},
-        {name: "Flood History", link: "/history"},
-        {name: "Analytics", link: "/analytics"}, {name: "Alerts", link: "/alerts"},
-    ]
+    const links = NAV_LINKS.filter((l) => ROLE_RANK[role] >= ROLE_RANK[l.minRole])
 
     const linkList = links.map(({name, link}, index) =>
             <>
-                <Button 
+                <Button
                 variant="link"
                 key={link}>
                 <Link to={link}>{name}</Link>
                 </Button>
                 {index !== links.length - 1 &&
-                    
+
                     <ButtonGroupSeparator />
                 }
             </>

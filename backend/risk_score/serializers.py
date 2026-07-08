@@ -1,6 +1,27 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import ValidationRun
+from .models import RiskConfig, ValidationRun
+
+
+class RiskConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RiskConfig
+        fields = ["id", "name", "is_active", "weights", "thresholds", "created_at"]
+        read_only_fields = ["id", "is_active", "created_at"]
+
+    def validate(self, attrs):
+        # Build a transient instance (merging existing values on update) so
+        # RiskConfig.clean() can enforce weight-sum/threshold-order rules
+        # exactly as it does for the Django admin form.
+        instance = self.instance or RiskConfig()
+        merged = {**{f: getattr(instance, f) for f in ("name", "weights", "thresholds")}, **attrs}
+        candidate = RiskConfig(**merged)
+        try:
+            candidate.clean()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict)
+        return attrs
 
 
 class ValidationRunSerializer(serializers.ModelSerializer):

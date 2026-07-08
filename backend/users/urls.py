@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .api_views import (
     AccountChangeListView,
+    AdminUserViewSet,
     DeviceViewSet,
     NotificationPreferenceView,
     OperatorListView,
@@ -20,6 +21,7 @@ from .registration_views import (
 router = DefaultRouter()
 router.register(r"account/subscriptions", SubscriptionViewSet, basename="subscription")
 router.register(r"account/devices", DeviceViewSet, basename="device")
+router.register(r"admin/users", AdminUserViewSet, basename="admin-user")
 
 urlpatterns = [
     # Phone-first mobile registration (anonymous, 3 phases).

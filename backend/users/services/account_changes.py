@@ -9,13 +9,19 @@ import json
 from ..models import AccountChange
 
 # Profile fields worth an audit trail. `address` is a JSON blob compared as a
-# whole and shown as a one-line address.
+# whole and shown as a one-line address. `is_operator`/`is_staff`/`is_active`
+# are only ever written through the admin console (self-edit never touches
+# them), so tracking them here also gives the admin user API its audit trail
+# for free.
 TRACKED_FIELDS = [
     "first_name",
     "last_name",
     "email",
     "phone_number",
     "address",
+    "is_operator",
+    "is_staff",
+    "is_active",
 ]
 
 # Order used to render an address dict into a readable one-liner.

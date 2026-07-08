@@ -1,9 +1,10 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import BarangayRiskView, RiskSnapshotView, ValidationRunViewSet
+from .views import BarangayRiskView, RiskConfigViewSet, RiskSnapshotView, ValidationRunViewSet
 
 router = DefaultRouter()
+router.register(r"admin/risk-configs", RiskConfigViewSet, basename="risk-config")
 router.register(r"admin/validation-runs", ValidationRunViewSet, basename="validation-run")
 
 urlpatterns = [
