@@ -1,4 +1,5 @@
 import { RISK_COLORS } from '@/features/gis/constants/risk'
+import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
 import { useHotspots } from '../hooks/useAnalytics'
 import type { AnalyticsWindow, Hotspot } from '../types/api'
 import PanelCard from './PanelCard'
@@ -24,9 +25,9 @@ const Row = ({ rank, row, max }: { rank: number; row: Hotspot; max: number }) =>
             <div className='min-w-0 flex-1'>
                 <div className='flex items-center gap-1.5'>
                     <span className='truncate text-sm font-medium'>{row.barangay_name}</span>
-                    {row.is_downstream && (
+                    {row.dominant_level && (
                         <span className='shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground'>
-                            downstream
+                            {SUSCEPTIBILITY_LABELS[row.dominant_level]} susceptibility
                         </span>
                     )}
                 </div>

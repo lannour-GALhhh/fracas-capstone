@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/common/utils/utils'
 
 /**
- * The full-height right rail shared by the barangay, dam, and POI-edit panels.
+ * The full-height right rail shared by the barangay detail panel.
  * Sits below the floating header (top-16) and runs to the bottom of the screen,
  * so a panel reads as a docked sidebar rather than a floating card.
  */

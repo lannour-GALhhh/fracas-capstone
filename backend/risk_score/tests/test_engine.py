@@ -27,7 +27,7 @@ class RiskEngineTests(SimpleTestCase):
 
     def test_all_factors_max_gives_critical(self):
         result = self._score(
-            [StubFactor("rainfall", 1.0), StubFactor("dam", 1.0), StubFactor("vulnerability", 1.0)]
+            [StubFactor("rainfall", 1.0), StubFactor("susceptibility", 1.0), StubFactor("extra", 1.0)]
         )
         self.assertEqual(result.score, 100.0)
         self.assertEqual(result.category, RiskCategory.CRITICAL)
@@ -38,8 +38,8 @@ class RiskEngineTests(SimpleTestCase):
         result = self._score(
             [
                 StubFactor("rainfall", 1.0),
-                StubFactor("dam", 0.0, available=False),
-                StubFactor("vulnerability", 0.0, available=False),
+                StubFactor("susceptibility", 0.0, available=False),
+                StubFactor("extra", 0.0, available=False),
             ]
         )
         self.assertEqual(result.score, 100.0)
@@ -52,9 +52,11 @@ class RiskEngineTests(SimpleTestCase):
         self.assertTrue(result.is_degraded)
 
     def test_breakdown_records_every_factor(self):
-        result = self._score([StubFactor("rainfall", 0.5), StubFactor("dam", 0.0, available=False)])
+        result = self._score(
+            [StubFactor("rainfall", 0.5), StubFactor("susceptibility", 0.0, available=False)]
+        )
         self.assertIn("rainfall", result.breakdown)
-        self.assertFalse(result.breakdown["dam"]["available"])
+        self.assertFalse(result.breakdown["susceptibility"]["available"])
 
 
 class CategorizeTests(SimpleTestCase):

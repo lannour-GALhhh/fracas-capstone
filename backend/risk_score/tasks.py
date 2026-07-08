@@ -10,7 +10,6 @@ from celery import chain, shared_task
 from django.utils import timezone
 
 from alert.tasks import evaluate_alerts
-from dam_level.tasks import ingest_dam_level
 from rainfall_fetch.tasks import fetch_rainfall_information
 
 from .models import RiskScore
@@ -121,14 +120,13 @@ def draft_auto_flood_events() -> dict:
 
 @shared_task
 def run_scoring_pipeline():
-    """Ingest dam + rainfall, then compute scores on the fresh data.
+    """Ingest rainfall, then compute scores on the fresh data.
 
     Sequential chain (no result backend needed); each step feeds the next
     cycle's inputs. Ingestion failures are swallowed inside their tasks, so
     the pipeline still reaches compute and degrades gracefully.
     """
     chain(
-        ingest_dam_level.si(),
         fetch_rainfall_information.si(),
         compute_risk_scores.si(),
         draft_auto_flood_events.si(),

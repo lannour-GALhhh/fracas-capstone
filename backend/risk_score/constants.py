@@ -17,16 +17,14 @@ class RiskCategory(models.TextChoices):
 # Factor keys — the identity of each pluggable contributor. Weights and
 # breakdowns are keyed by these.
 FACTOR_RAINFALL = "rainfall"
-FACTOR_DAM = "dam"
-FACTOR_VULNERABILITY = "vulnerability"
+FACTOR_SUSCEPTIBILITY = "susceptibility"
 
-FACTOR_KEYS = (FACTOR_RAINFALL, FACTOR_DAM, FACTOR_VULNERABILITY)
+FACTOR_KEYS = (FACTOR_RAINFALL, FACTOR_SUSCEPTIBILITY)
 
 # Default composite weights (must sum to 1.0). Tunable per RiskConfig.
 DEFAULT_WEIGHTS = {
     FACTOR_RAINFALL: 0.5,
-    FACTOR_DAM: 0.3,
-    FACTOR_VULNERABILITY: 0.2,
+    FACTOR_SUSCEPTIBILITY: 0.5,
 }
 
 # Lower bound (inclusive) of each category on the 0-100 composite scale.

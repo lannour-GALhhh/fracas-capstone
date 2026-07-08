@@ -13,7 +13,6 @@ from rest_framework.views import APIView
 from users.permissions import IsOperator
 
 from .services import (
-    dam_timeline,
     hotspots,
     model_performance,
     rainfall_timeline,
@@ -63,13 +62,6 @@ class RainfallTimelineView(_OperatorAnalyticsView):
 
     def build(self, since, days):
         return rainfall_timeline.build_rainfall_timeline(since, days)
-
-
-class DamTimelineView(_OperatorAnalyticsView):
-    cache_prefix = "dam-timeline"
-
-    def build(self, since, days):
-        return dam_timeline.build_dam_timeline(since)
 
 
 class ModelPerformanceView(_OperatorAnalyticsView):

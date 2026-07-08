@@ -13,14 +13,11 @@ export const DEFAULT_WINDOW: AnalyticsWindow = 30
 export const REFRESH_MS = 60_000
 
 /**
- * Rainfall/dam are their own measure (not a risk category), so they get a
- * single distinct blue hue — kept away from the reserved white→red risk ramp
+ * Rainfall is its own measure (not a risk category), so it gets a single
+ * distinct blue hue — kept away from the reserved white→red risk ramp
  * (`RISK_COLORS`) that every category chip/map fill uses.
  */
 export const RAINFALL_COLOR = '#2563eb'
-export const DAM_COLOR = '#2563eb'
-export const DAM_NORMAL_COLOR = '#b8860b'
-export const DAM_CRITICAL_COLOR = '#b01212'
 
 /** Flood-event marker colour by severity (amber → red status ramp). */
 export const SEVERITY_COLORS: Record<FloodSeverity, string> = {

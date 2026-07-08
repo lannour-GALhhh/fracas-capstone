@@ -31,8 +31,7 @@ const chartConfig = {
 
 const FACTOR_LABELS: Record<string, string> = {
     rainfall: 'Rainfall',
-    dam: 'Dam / river stage',
-    vulnerability: 'Terrain vulnerability',
+    susceptibility: 'Flood susceptibility',
 }
 
 /** Format a nullable number, dropping noise digits. */
@@ -307,7 +306,7 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
 }
 
 const PanelBody = ({ data }: { data: BarangayRisk }) => (
-    <>
+    <div className='h-full'>
         <HazardHero data={data} />
         <Actions id={data.id} name={data.name} />
         <Conditions data={data} />
@@ -329,7 +328,7 @@ const PanelBody = ({ data }: { data: BarangayRisk }) => (
                 )}
             </div>
         )}
-    </>
+    </div>
 )
 
 interface BarangayPanelProps {
@@ -343,8 +342,8 @@ const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
 
     return (
-        <SidePanel>
-            <div className='flex items-start justify-between'>
+        <SidePanel className='overflow-y-auto'>
+            <div className='flex items-start justify-between h-fit'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
                 <div className='flex items-center gap-1'>
                     <HeaderButton onClick={onHide} label='Hide panel'>

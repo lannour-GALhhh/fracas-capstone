@@ -77,14 +77,6 @@ export interface RainfallTelemetry {
     recorded_at: string
 }
 
-/** Peak dam level around the event (null when no reading in the window). */
-export interface DamTelemetry {
-    peak_level: number
-    is_spilling: boolean
-    turbidity: number | null
-    recorded_at: string
-}
-
 /** Peak computed hazard around the event (null when no score in the window). */
 export interface RiskTelemetry {
     peak_score: number
@@ -97,7 +89,6 @@ export interface RiskTelemetry {
 export interface FloodTelemetry {
     window_hours: number
     rainfall: RainfallTelemetry | null
-    dam: DamTelemetry | null
     risk: RiskTelemetry | null
     location: [number, number] // [lon, lat]
 }

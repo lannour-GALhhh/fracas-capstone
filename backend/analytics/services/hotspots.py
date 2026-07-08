@@ -11,6 +11,7 @@ context pattern in CLAUDE.md.
 from django.db.models import Count, Q, Sum
 
 from barangays.models import Barangay
+from barangays.services import dominant_susceptibility_by_barangay
 from risk_score.constants import RiskCategory
 from risk_score.models import RiskScore
 
@@ -43,20 +44,20 @@ def build_hotspots(since, limit=None):
     # Only barangays that registered a high/critical cycle or a flood in the
     # window make the leaderboard — no dumping every quiet barangay as a zero.
     brgy_ids = set(cycles_by_brgy) | set(floods_by_brgy)
-    barangays = Barangay.objects.filter(id__in=brgy_ids).values(
-        "id", "name", "is_downstream", "flood_susceptibility"
-    )
+    barangays = Barangay.objects.filter(id__in=brgy_ids).values("id", "name")
+    susceptibility_by_brgy = dominant_susceptibility_by_barangay()
 
     rows = []
     for b in barangays:
         cycles = cycles_by_brgy.get(b["id"], {})
         floods = floods_by_brgy.get(b["id"], {})
+        susceptibility = susceptibility_by_brgy.get(b["id"])
         rows.append(
             {
                 "barangay_id": b["id"],
                 "barangay_name": b["name"],
-                "is_downstream": b["is_downstream"],
-                "flood_susceptibility": b["flood_susceptibility"],
+                "dominant_level": susceptibility["level"] if susceptibility else None,
+                "susceptibility_value": susceptibility["value"] if susceptibility else None,
                 "critical_cycles": cycles.get("critical_cycles", 0),
                 "high_cycles": cycles.get("high_cycles", 0),
                 "flood_count": floods.get("flood_count", 0),
