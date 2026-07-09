@@ -1,6 +1,16 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Users, SlidersHorizontal, FlaskConical } from 'lucide-react'
-import { cn } from '@/common/utils/utils'
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarProvider,
+} from '@/common/ui/sidebar'
 
 // One entry per admin sub-page. Later phases (system ops, settings, audit)
 // add entries here — the sidebar itself doesn't change.
@@ -11,34 +21,41 @@ const NAV = [
 ]
 
 const AdminLayout = () => {
+    const { pathname } = useLocation()
+
     return (
-        <div className='flex w-full gap-6 p-4'>
-            <aside className='w-48 shrink-0'>
-                <h1 className='px-2 pb-3 text-lg font-semibold'>Admin</h1>
-                <nav className='flex flex-col gap-1'>
-                    {NAV.map(({ name, to, icon: Icon }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            className={({ isActive }) =>
-                                cn(
-                                    'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition',
-                                    isActive
-                                        ? 'bg-secondary text-foreground'
-                                        : 'text-black/60 hover:bg-secondary/60 hover:text-foreground',
-                                )
-                            }
-                        >
-                            <Icon className='size-4' />
-                            {name}
-                        </NavLink>
-                    ))}
-                </nav>
-            </aside>
+        <SidebarProvider className='min-h-0 items-start gap-6'>
+            {/* collapsible="none": this sidebar lives inside the app's own scrollable
+                page area, not a full-page shell, so it stays a normal flow element
+                instead of the offcanvas/icon variants' fixed-to-viewport positioning. */}
+            <Sidebar collapsible='none' className='w-56 shrink-0 rounded-lg border border-sidebar-border'>
+                <SidebarHeader>
+                    <h1 className='px-2 pt-1 text-lg font-semibold'>Admin</h1>
+                </SidebarHeader>
+                <SidebarContent>
+                    <SidebarGroup>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {NAV.map(({ name, to, icon: Icon }) => (
+                                    <SidebarMenuItem key={to}>
+                                        <SidebarMenuButton
+                                            isActive={pathname.startsWith(to)}
+                                            render={<NavLink to={to} />}
+                                        >
+                                            <Icon className='size-4' />
+                                            <span>{name}</span>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                </SidebarContent>
+            </Sidebar>
             <div className='min-w-0 flex-1'>
                 <Outlet />
             </div>
-        </div>
+        </SidebarProvider>
     )
 }
 
