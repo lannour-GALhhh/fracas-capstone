@@ -1,5 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/common/ui/tooltip'
 import { LAYERS, type LayerKey, type LayerVisibility } from '../constants/layers'
+import { ButtonGroup, ButtonGroupSeparator } from '@/common/ui/button-group'
+import { Button } from '@/common/ui/button'
 
 interface Props {
     layers: LayerVisibility
@@ -13,40 +15,44 @@ interface Props {
  * so this only governs the city-wide view.
  */
 const LayersControl = ({ layers, onToggle }: Props) => (
-    <div className='flex items-center gap-0.5'>
+    <ButtonGroup>
         {LAYERS.map(({ key, label, icon: Icon, color }) => {
             const on = layers[key]
             return (
+                <>
+                {key == "low" && <ButtonGroupSeparator />}
                 <Tooltip key={key}>
                     <TooltipTrigger
                         render={
-                            <button
+                            <Button
                                 type='button'
                                 onClick={() => onToggle(key)}
                                 aria-label={label}
                                 aria-pressed={on}
-                                className='hover:bg-muted relative flex size-8 items-center justify-center rounded-full transition-colors'
-                            >
+                                variant={"ghost"}
+                                className='hover:bg-muted relative flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer'
+                                >
                                 <Icon
                                     className='size-4'
                                     stroke={on ? color : 'currentColor'}
                                     opacity={on ? 1 : 0.45}
-                                />
+                                    />
                                 {!on && (
                                     <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
                                         <span className='bg-muted-foreground/70 h-5 w-px rotate-45 rounded-full' />
                                     </span>
                                 )}
-                            </button>
+                            </Button>
                         }
-                    />
+                        />
                     <TooltipContent>
                         {on ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
                     </TooltipContent>
                 </Tooltip>
+                </>
             )
         })}
-    </div>
+    </ButtonGroup>
 )
 
 export default LayersControl

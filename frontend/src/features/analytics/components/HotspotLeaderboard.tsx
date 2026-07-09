@@ -48,7 +48,7 @@ const Row = ({ rank, row, max }: { rank: number; row: Hotspot; max: number }) =>
                     <HoursLabel cycles={row.critical_cycles} />
                 </span>
                 <span className='w-10 text-right' title='Confirmed floods'>
-                    {nf.format(row.flood_count)} 🌊
+                    {nf.format(row.flood_count)}
                 </span>
             </div>
         </li>
