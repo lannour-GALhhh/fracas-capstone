@@ -62,7 +62,10 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
 
     return (
         <View style={[styles.root, { backgroundColor: theme.colors.surface }]}>
-            <DrawerContentScrollView {...props} contentContainerStyle={styles.scroll}>
+            <DrawerContentScrollView
+                {...props}
+                contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.lg }]}
+            >
                 {/* User info */}
                 <View style={[styles.profile, { borderBottomColor: theme.colors.border }]}>
                     <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>

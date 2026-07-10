@@ -26,13 +26,13 @@ const AdminLayout = () => {
     const { pathname } = useLocation()
 
     return (
-        <SidebarProvider className='min-h-0 items-start gap-6'>
+        <SidebarProvider className='min-h-0 items-start gap-4 py-2'>
             {/* collapsible="none": this sidebar lives inside the app's own scrollable
                 page area, not a full-page shell, so it stays a normal flow element
                 instead of the offcanvas/icon variants' fixed-to-viewport positioning. */}
-            <Sidebar collapsible='none' className='w-56 shrink-0 rounded-lg border border-sidebar-border'>
+            <Sidebar collapsible='none' className='rounded-lg border border-sidebar-border'>
                 <SidebarHeader>
-                    <h1 className='px-2 pt-1 text-lg font-semibold'>Admin</h1>
+                    Administrator
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarGroup>

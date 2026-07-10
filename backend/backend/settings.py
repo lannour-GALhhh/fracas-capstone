@@ -239,6 +239,12 @@ CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cas
 
 LOG_LEVEL = config("LOG_LEVEL", default="INFO")
 
+# --- OTP dev/presentation bypass -------------------------------------------
+# When set, this code always passes phone verification (no real SMS needed), so
+# the registration flow can be demoed without an SMS provider. Defaults to
+# "123456" in DEBUG and is disabled (empty) in production. Override via env.
+OTP_BYPASS_CODE = config("OTP_BYPASS_CODE", default="123456" if DEBUG else "")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

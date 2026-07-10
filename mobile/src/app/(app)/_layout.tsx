@@ -1,9 +1,10 @@
 import { Redirect, router } from 'expo-router'
 import { Drawer } from 'expo-router/drawer'
-import { Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
 import { useTheme } from '@/common/theme'
 import { Icon, type IconName, Spinner } from '@/common/ui'
+import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
@@ -80,7 +81,16 @@ function SignedInDrawer() {
                 ),
             })}
         >
-            <Drawer.Screen name="status" />
+            <Drawer.Screen
+                name="status"
+                options={{
+                    headerRight: () => (
+                        <View style={styles.headerRight}>
+                            <NotificationBell />
+                        </View>
+                    ),
+                }}
+            />
             <Drawer.Screen name="account" />
             <Drawer.Screen name="toolkit" />
             <Drawer.Screen name="alerts" options={secondary} />
@@ -95,5 +105,8 @@ const styles = StyleSheet.create({
     headerBtn: {
         paddingHorizontal: 16,
         paddingVertical: 4,
+    },
+    headerRight: {
+        marginRight: 12,
     },
 })

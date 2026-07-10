@@ -1,6 +1,7 @@
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Button, Icon, Text } from '@/common/ui'
@@ -20,6 +21,7 @@ const RECENT_LIMIT = 5
  */
 export function NotificationBell() {
     const theme = useTheme()
+    const insets = useSafeAreaInsets()
     const unread = useUnreadCount()
     const { notifications } = useNotifications()
 
@@ -64,7 +66,7 @@ export function NotificationBell() {
                 presentationStyle="pageSheet"
             >
                 <View style={[styles.sheet, { backgroundColor: theme.colors.bg }]}>
-                    <View style={styles.header}>
+                    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
                         <Text variant="title">Recent alerts</Text>
                         <Button
                             label="Close"

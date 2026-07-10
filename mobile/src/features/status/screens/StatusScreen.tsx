@@ -7,25 +7,23 @@ import { spacing, useTheme } from '@/common/theme'
 import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
-import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { RiskMap } from '@/features/gis/components/RiskMap'
-import { useDamStatus } from '@/features/gis/hooks/useDamStatus'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
 import { findBarangayAt, nearestCenter } from '@/features/gis/utils/geo'
 
 import { BarangayDetailModal } from '../components/BarangayDetailModal'
-import { DamStatusCard } from '../components/DamStatusCard'
 import { EvacuationCard } from '../components/EvacuationCard'
 import { HazardCard } from '../components/HazardCard'
+import { MapModal } from '../components/MapModal'
+import { StatusHero } from '../components/StatusHero'
 import { useHomeBarangay } from '../hooks/useHomeBarangay'
 
 export function StatusScreen() {
     const theme = useTheme()
     const riskMap = useRiskMap()
     const centers = useEvacuationCenters()
-    const dam = useDamStatus()
     const home = useHomeBarangay(riskMap.features)
     const { status: locStatus, coords, request } = useCurrentLocation()
 
@@ -33,6 +31,7 @@ export function StatusScreen() {
     useAutoSubscribeHome()
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
+    const [mapExpanded, setMapExpanded] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
 
     // Ask for a location fix the first time the tab opens (foreground-only).
@@ -67,7 +66,6 @@ export function StatusScreen() {
         setRefreshing(true)
         riskMap.refetch()
         centers.refetch()
-        dam.refetch()
         await request()
         setRefreshing(false)
     }
@@ -87,17 +85,16 @@ export function StatusScreen() {
                     contentContainerStyle={styles.body}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 >
-                    <View style={styles.headingRow}>
-                        <View style={styles.heading}>
-                            <Text variant="title">Flood status</Text>
-                            {riskMap.computedAt ? (
-                                <Text variant="caption" color="textMuted">
-                                    Updated {timeAgo(riskMap.computedAt)}
-                                </Text>
-                            ) : null}
-                        </View>
-                        <NotificationBell />
+                    <View style={styles.heading}>
+                        <Text variant="title">Flood status</Text>
+                        {riskMap.computedAt ? (
+                            <Text variant="caption" color="textMuted">
+                                Updated {timeAgo(riskMap.computedAt)}
+                            </Text>
+                        ) : null}
                     </View>
+
+                    <StatusHero feature={current} emptyMessage={currentEmpty} />
 
                     <RiskMap
                         data={riskMap.features}
@@ -105,10 +102,12 @@ export function StatusScreen() {
                         selectedId={selectedId}
                         onSelect={setSelectedId}
                         showUser={locStatus === 'granted'}
+                        interactive={false}
+                        onExpand={() => setMapExpanded(true)}
                     />
 
                     <HazardCard
-                        label="You are here"
+                        label="Current location"
                         feature={current}
                         emptyMessage={currentEmpty}
                         onPress={setSelectedId}
@@ -125,10 +124,16 @@ export function StatusScreen() {
                     />
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
-
-                    <DamStatusCard data={dam.data} isLoading={dam.isLoading} />
                 </ScrollView>
             )}
+
+            <MapModal
+                visible={mapExpanded}
+                onClose={() => setMapExpanded(false)}
+                data={riskMap.features}
+                centers={centers.data}
+                showUser={locStatus === 'granted'}
+            />
 
             <BarangayDetailModal barangayId={selectedId} onClose={() => setSelectedId(null)} />
         </SafeAreaView>
@@ -138,10 +143,5 @@ export function StatusScreen() {
 const styles = StyleSheet.create({
     flex: { flex: 1 },
     body: { padding: spacing.lg, gap: spacing.lg },
-    headingRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-    },
-    heading: { gap: spacing.xs, flex: 1 },
+    heading: { gap: spacing.xs },
 })

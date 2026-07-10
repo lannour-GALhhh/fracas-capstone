@@ -1,21 +1,19 @@
 import { StyleSheet, View } from 'react-native'
 
 import { spacing } from '@/common/theme'
-import { Screen, Text } from '@/common/ui'
+import { Collapsible, Screen, Text } from '@/common/ui'
 
 import { GoBagChecklist } from '../components/GoBagChecklist'
 import { HazardLegend } from '../components/HazardLegend'
 import { HotlineRow } from '../components/HotlineRow'
 import { PhaseCard } from '../components/PhaseCard'
-import { SectionHeader } from '../components/SectionHeader'
 import { GUIDANCE } from '../data/guidance'
 import { HOTLINES } from '../data/hotlines'
 
 /**
  * Offline disaster toolkit. Everything here is bundled static content — no
- * network — so it's fully usable in airplane mode during a flood: emergency
- * hotlines, before/during/after guidance, a persisted go-bag checklist, and the
- * hazard-level legend for the Status map.
+ * network — so it's fully usable in airplane mode during a flood. Sections are
+ * collapsible so the page stays calm; residents open only what they need.
  */
 export function ToolkitScreen() {
     return (
@@ -28,21 +26,38 @@ export function ToolkitScreen() {
                     </Text>
                 </View>
 
-                <SectionHeader title="Emergency hotlines" subtitle="Tap to call." />
-                {HOTLINES.map((hotline) => (
-                    <HotlineRow key={hotline.id} hotline={hotline} />
-                ))}
+                <Collapsible
+                    title="Flood safety"
+                    subtitle="Before, during, and after."
+                    icon="shield-checkmark-outline"
+                    defaultOpen
+                >
+                    {GUIDANCE.map((phase) => (
+                        <PhaseCard key={phase.id} phase={phase} />
+                    ))}
+                </Collapsible>
 
-                <SectionHeader title="Flood safety" />
-                {GUIDANCE.map((phase) => (
-                    <PhaseCard key={phase.id} phase={phase} />
-                ))}
+                <Collapsible
+                    title="Go-bag checklist"
+                    subtitle="Three days of essentials."
+                    icon="bag-handle-outline"
+                >
+                    <GoBagChecklist />
+                </Collapsible>
 
-                <SectionHeader title="Go-bag checklist" subtitle="Three days of essentials." />
-                <GoBagChecklist />
+                <Collapsible title="Emergency hotlines" subtitle="Tap to call." icon="call-outline">
+                    {HOTLINES.map((hotline) => (
+                        <HotlineRow key={hotline.id} hotline={hotline} />
+                    ))}
+                </Collapsible>
 
-                <SectionHeader title="Hazard levels" subtitle="What the map colors mean." />
-                <HazardLegend />
+                <Collapsible
+                    title="Hazard levels"
+                    subtitle="What the map colors mean."
+                    icon="color-palette-outline"
+                >
+                    <HazardLegend />
+                </Collapsible>
             </View>
         </Screen>
     )
@@ -50,5 +65,5 @@ export function ToolkitScreen() {
 
 const styles = StyleSheet.create({
     body: { gap: spacing.md },
-    intro: { gap: spacing.xs },
+    intro: { gap: spacing.xs, marginBottom: spacing.xs },
 })
