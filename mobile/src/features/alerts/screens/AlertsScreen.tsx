@@ -35,7 +35,7 @@ export function AlertsScreen() {
 
     if (isLoading) {
         return (
-            <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+            <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
                 <Spinner />
             </SafeAreaView>
         )
@@ -43,7 +43,7 @@ export function AlertsScreen() {
 
     if (isError) {
         return (
-            <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+            <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
                 <ErrorState
                     title="Can't load alerts"
                     message="We couldn't reach the alerts service. Check your connection and try again."
@@ -54,7 +54,7 @@ export function AlertsScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
             <View style={styles.header}>
                 <View style={styles.heading}>
                     <Text variant="title">Alerts</Text>

@@ -8,9 +8,9 @@ export const GUIDANCE: GuidancePhase[] = [
     {
         id: 'before',
         title: 'Before a flood',
-        icon: '🎒',
+        icon: 'bag-handle-outline',
         steps: [
-            'Check your barangay’s hazard level and nearest evacuation center in the Status tab.',
+            'Check your barangay’s hazard level and nearest evacuation center on the Flood status screen.',
             'Pack a go-bag with three days of essentials (see the checklist below).',
             'Keep phones charged and power banks full; save these hotlines while you have signal.',
             'Seal IDs, land titles, and other documents in waterproof bags.',
@@ -21,7 +21,7 @@ export const GUIDANCE: GuidancePhase[] = [
     {
         id: 'during',
         title: 'During a flood',
-        icon: '⚠️',
+        icon: 'warning-outline',
         steps: [
             'Evacuate immediately if officials advise it — do not wait for the water to rise.',
             'Never walk or drive through floodwater: 15 cm can knock you down, 60 cm can sweep a car away.',
@@ -34,7 +34,7 @@ export const GUIDANCE: GuidancePhase[] = [
     {
         id: 'after',
         title: 'After a flood',
-        icon: '🏠',
+        icon: 'home-outline',
         steps: [
             'Return home only when authorities declare it safe.',
             'Watch for weakened structures, live wires, and debris or snakes in the water.',

@@ -42,7 +42,7 @@ export function NotificationSettingsScreen() {
         )
 
     return (
-        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
             <View style={styles.header}>
                 <Button label="‹ Back" variant="ghost" onPress={() => router.back()} style={styles.back} />
                 <Text variant="title">Notifications</Text>

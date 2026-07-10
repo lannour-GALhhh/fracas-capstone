@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Button, Text } from '@/common/ui'
+import { Button, Icon, Text } from '@/common/ui'
 
 import { useNotifications } from '../hooks/useNotifications'
 import { useUnreadCount } from '../hooks/useUnreadCount'
@@ -47,7 +47,7 @@ export function NotificationBell() {
                 style={styles.bell}
                 accessibilityLabel={`Notifications${count ? `, ${count} unread` : ''}`}
             >
-                <Text style={styles.glyph}>🔔</Text>
+                <Icon name="notifications-outline" size={24} color={theme.colors.text} />
                 {count > 0 ? (
                     <View style={[styles.badge, { backgroundColor: theme.colors.danger }]}>
                         <Text style={[styles.badgeText, { color: theme.colors.onDanger }]}>
@@ -99,7 +99,6 @@ export function NotificationBell() {
 
 const styles = StyleSheet.create({
     bell: { padding: spacing.xs },
-    glyph: { fontSize: 22 },
     badge: {
         position: 'absolute',
         top: 0,

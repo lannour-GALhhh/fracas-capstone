@@ -1,79 +1,99 @@
-import { Redirect, Tabs } from 'expo-router'
+import { Redirect, router } from 'expo-router'
+import { Drawer } from 'expo-router/drawer'
+import { Pressable, StyleSheet } from 'react-native'
 
 import { useTheme } from '@/common/theme'
-import { Spinner, TabBarIcon } from '@/common/ui'
+import { Icon, type IconName, Spinner } from '@/common/ui'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
-import { useUnreadCount } from '@/features/alerts/hooks/useUnreadCount'
 import { useAuth } from '@/features/auth/context/useAuth'
+import { AppDrawerContent } from '@/features/navigation/AppDrawerContent'
 
-/** Signed-in tab shell. Redirects to login when there is no session. */
+/** Signed-in shell. Redirects to login when there is no session. */
 export default function AppLayout() {
     const { isInitializing, isAuthenticated } = useAuth()
 
     if (isInitializing) return <Spinner />
     if (!isAuthenticated) return <Redirect href="/login" />
 
-    return <SignedInTabs />
+    return <SignedInDrawer />
+}
+
+/** A round-tap header button (hamburger / back). */
+function HeaderButton({
+    icon,
+    onPress,
+    label,
+}: {
+    icon: IconName
+    onPress: () => void
+    label: string
+}) {
+    const theme = useTheme()
+    return (
+        <Pressable
+            onPress={onPress}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.5 }]}
+        >
+            <Icon name={icon} size={24} color={theme.colors.text} />
+        </Pressable>
+    )
 }
 
 /** The authenticated chrome. Split out so its data hooks only run with a session. */
-function SignedInTabs() {
+function SignedInDrawer() {
     const theme = useTheme()
-    const unread = useUnreadCount()
     const prefs = usePreferences()
 
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
 
-    const count = unread.data ?? 0
-    const badge = count > 0 ? (count > 9 ? '9+' : count) : undefined
+    // Secondary screens (reached from a drawer destination) get a back arrow and
+    // no edge-swipe, so the gesture is reserved for opening the drawer up top.
+    const secondary = {
+        headerLeft: () => (
+            <HeaderButton icon="arrow-back" label="Go back" onPress={() => router.back()} />
+        ),
+        swipeEnabled: false,
+    }
 
     return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarActiveTintColor: theme.colors.primary,
-                tabBarInactiveTintColor: theme.colors.textMuted,
-                tabBarStyle: {
-                    backgroundColor: theme.colors.surface,
-                    borderTopColor: theme.colors.border,
-                },
-            }}
+        <Drawer
+            drawerContent={(props) => <AppDrawerContent {...props} />}
+            screenOptions={({ navigation }) => ({
+                headerTitle: '',
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: theme.colors.bg },
+                headerTintColor: theme.colors.text,
+                sceneStyle: { backgroundColor: theme.colors.bg },
+                drawerType: 'front',
+                swipeEdgeWidth: 64,
+                headerLeft: () => (
+                    <HeaderButton
+                        icon="menu"
+                        label="Open menu"
+                        onPress={() => navigation.openDrawer()}
+                    />
+                ),
+            })}
         >
-            <Tabs.Screen
-                name="status"
-                options={{
-                    title: 'Status',
-                    tabBarIcon: ({ focused }) => <TabBarIcon glyph="🌊" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="alerts"
-                options={{
-                    title: 'Alerts',
-                    tabBarBadge: badge,
-                    tabBarIcon: ({ focused }) => <TabBarIcon glyph="🔔" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="toolkit"
-                options={{
-                    title: 'Toolkit',
-                    tabBarIcon: ({ focused }) => <TabBarIcon glyph="🧰" focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="account"
-                options={{
-                    title: 'Account',
-                    tabBarIcon: ({ focused }) => <TabBarIcon glyph="👤" focused={focused} />,
-                }}
-            />
-            {/* Reached from Account; not tabs of their own. */}
-            <Tabs.Screen name="notification-settings" options={{ href: null }} />
-            <Tabs.Screen name="edit-profile" options={{ href: null }} />
-            <Tabs.Screen name="change-password" options={{ href: null }} />
-        </Tabs>
+            <Drawer.Screen name="status" />
+            <Drawer.Screen name="account" />
+            <Drawer.Screen name="toolkit" />
+            <Drawer.Screen name="alerts" options={secondary} />
+            <Drawer.Screen name="notification-settings" options={secondary} />
+            <Drawer.Screen name="edit-profile" options={secondary} />
+            <Drawer.Screen name="change-password" options={secondary} />
+        </Drawer>
     )
 }
+
+const styles = StyleSheet.create({
+    headerBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+    },
+})

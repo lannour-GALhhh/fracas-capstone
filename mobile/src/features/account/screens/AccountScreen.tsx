@@ -1,39 +1,22 @@
 import { router } from 'expo-router'
-import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { spacing } from '@/common/theme'
-import { Button, Screen, Spinner, Text } from '@/common/ui'
-
-import { unregisterPushDevice } from '@/features/alerts/hooks/usePushRegistration'
-import { useAuth } from '@/features/auth/context/useAuth'
+import { Screen, Spinner, Text } from '@/common/ui'
 
 import { LinkCard } from '../components/LinkCard'
 import { ProfileSummary } from '../components/ProfileSummary'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 
 /**
- * Account tab. Shows the resident's profile snapshot and links out to the edit,
- * password and notification screens. Logout flips auth state → the app group
- * guard redirects back to the login stack.
+ * Account settings. Shows the resident's profile snapshot and links out to the
+ * edit, password and notification screens. Signing out lives in the side drawer.
  */
 export function AccountScreen() {
-    const { logout } = useAuth()
     const { data, isLoading } = useCurrentUser()
-    const [signingOut, setSigningOut] = useState(false)
-
-    const onSignOut = async () => {
-        setSigningOut(true)
-        try {
-            await unregisterPushDevice() // stop pushes to this device before clearing the session
-            await logout()
-        } finally {
-            setSigningOut(false)
-        }
-    }
 
     return (
-        <Screen>
+        <Screen edges={['bottom']}>
             <View style={styles.header}>
                 <Text variant="title">Account</Text>
                 <Text variant="body" color="textMuted">
@@ -58,20 +41,10 @@ export function AccountScreen() {
                 description="Channels, quiet hours, and which barangay alerts you get."
                 onPress={() => router.navigate('/notification-settings')}
             />
-
-            <View style={styles.footer}>
-                <Button
-                    label="Sign out"
-                    variant="danger"
-                    onPress={onSignOut}
-                    loading={signingOut}
-                />
-            </View>
         </Screen>
     )
 }
 
 const styles = StyleSheet.create({
     header: { gap: spacing.xs, marginBottom: spacing.xl },
-    footer: { marginTop: spacing.xxl },
 })

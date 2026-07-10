@@ -1,11 +1,13 @@
 /** Static content shapes for the offline disaster toolkit. All data is bundled. */
 
+import type { IconName } from '@/common/ui'
+
 /** One before/during/after phase of flood guidance. */
 export interface GuidancePhase {
     id: 'before' | 'during' | 'after'
     title: string
-    /** Leading emoji shown in the section header. */
-    icon: string
+    /** Leading icon (Ionicons name) shown in the phase header. */
+    icon: IconName
     /** Ordered, actionable steps for this phase. */
     steps: string[]
 }

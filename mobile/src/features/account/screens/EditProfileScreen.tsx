@@ -133,7 +133,7 @@ export function EditProfileScreen() {
     const { data, isLoading, isError, refetch } = useCurrentUser()
 
     return (
-        <Screen>
+        <Screen edges={['bottom']}>
             <Button
                 label="‹ Back"
                 variant="ghost"

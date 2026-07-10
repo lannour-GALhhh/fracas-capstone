@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 
+import { Icon } from './Icon'
 import { Text } from './Text'
 
 interface Props {
@@ -26,7 +27,7 @@ export function Checkbox({ checked, onToggle, children }: Props) {
                 ]}
             >
                 {checked ? (
-                    <Text style={{ color: theme.colors.onPrimary, fontWeight: '700' }}>✓</Text>
+                    <Icon name="checkmark" size={16} color={theme.colors.onPrimary} />
                 ) : null}
             </View>
             <View style={styles.label}>

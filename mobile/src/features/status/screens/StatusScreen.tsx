@@ -73,7 +73,7 @@ export function StatusScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top']}>
+        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
             {riskMap.isLoading ? (
                 <Spinner />
             ) : riskMap.isError ? (

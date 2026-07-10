@@ -36,7 +36,7 @@ export function ChangePasswordScreen() {
     })
 
     return (
-        <Screen>
+        <Screen edges={['bottom']}>
             <Button
                 label="‹ Back"
                 variant="ghost"

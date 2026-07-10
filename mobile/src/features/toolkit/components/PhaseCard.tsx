@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
-import { Card, Text } from '@/common/ui'
+import { spacing, useTheme } from '@/common/theme'
+import { Card, Icon, Text } from '@/common/ui'
 
 import type { GuidancePhase } from '../types'
 
@@ -11,10 +11,11 @@ interface Props {
 
 /** One before/during/after guidance card: an icon header + numbered steps. */
 export function PhaseCard({ phase }: Props) {
+    const theme = useTheme()
     return (
         <Card style={styles.card}>
             <View style={styles.header}>
-                <Text variant="subtitle">{phase.icon}</Text>
+                <Icon name={phase.icon} size={22} color={theme.colors.primary} />
                 <Text variant="subtitle">{phase.title}</Text>
             </View>
             {phase.steps.map((step, index) => (

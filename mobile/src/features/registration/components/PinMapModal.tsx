@@ -13,7 +13,7 @@ import {
 } from '@maplibre/maplibre-react-native'
 
 import { spacing, useTheme } from '@/common/theme'
-import { Button, Spinner, Text } from '@/common/ui'
+import { Button, Icon, Spinner, Text } from '@/common/ui'
 import { MAP_CENTER, MAP_PADDING, MAP_ZOOM, mapStyleFor } from '@/features/gis/constants/mapStyle'
 import { collectionBounds } from '@/features/gis/utils/bounds'
 import { featureAt } from '@/features/gis/utils/geo'
@@ -99,7 +99,7 @@ export function PinMapModal({ visible, onClose, onConfirm }: Props) {
 
                 {/* The fixed crosshair — its tip marks the map centre. */}
                 <View pointerEvents="none" style={styles.crosshair}>
-                    <Text variant="title">📍</Text>
+                    <Icon name="location-sharp" size={36} color={colors.primary} />
                 </View>
 
                 {!barangays && !error ? (
