@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -8,10 +8,12 @@ import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
-import { RiskMap } from '@/features/gis/components/RiskMap'
+import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
+import { centroidOf, geometryBounds } from '@/features/gis/utils/bounds'
 import { findBarangayAt, nearestCenter } from '@/features/gis/utils/geo'
+import type { RiskFeature } from '@/features/gis/types'
 
 import { BarangayDetailModal } from '../components/BarangayDetailModal'
 import { EvacuationCard } from '../components/EvacuationCard'
@@ -32,6 +34,7 @@ export function StatusScreen() {
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [mapExpanded, setMapExpanded] = useState(false)
+    const [focus, setFocus] = useState<MapFocus | null>(null)
     const [refreshing, setRefreshing] = useState(false)
 
     // Ask for a location fix the first time the tab opens (foreground-only).
@@ -41,6 +44,21 @@ export function StatusScreen() {
 
     const current = coords ? findBarangayAt(coords, riskMap.features) : null
     const nearest = coords ? nearestCenter(coords, centers.data?.features) : null
+
+    // The resident's general location, used to open the expanded map centered.
+    // Memoized so re-renders don't feed the expanded map a fresh object and yank
+    // its camera back after the resident has panned away.
+    const userFocus = useMemo<MapFocus | null>(
+        () => (coords ? { center: [coords.lng, coords.lat] } : null),
+        [coords],
+    )
+
+    // Recenter the locked status map on a card's barangay (fresh object each tap).
+    const focusOn = (feature: RiskFeature | null) => {
+        if (!feature) return
+        const box = geometryBounds(feature.geometry)
+        if (box) setFocus({ center: centroidOf(box) })
+    }
 
     const currentEmpty =
         locStatus === 'denied'
@@ -104,6 +122,7 @@ export function StatusScreen() {
                         showUser={locStatus === 'granted'}
                         interactive={false}
                         onExpand={() => setMapExpanded(true)}
+                        focus={focus}
                     />
 
                     <HazardCard
@@ -111,6 +130,7 @@ export function StatusScreen() {
                         feature={current}
                         emptyMessage={currentEmpty}
                         onPress={setSelectedId}
+                        onFocus={current ? () => focusOn(current) : undefined}
                     />
                     {locStatus === 'denied' ? (
                         <Button label="Enable location" variant="secondary" onPress={() => void request()} />
@@ -121,6 +141,7 @@ export function StatusScreen() {
                         feature={home.feature}
                         emptyMessage={homeEmpty}
                         onPress={setSelectedId}
+                        onFocus={home.feature ? () => focusOn(home.feature) : undefined}
                     />
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
@@ -133,6 +154,7 @@ export function StatusScreen() {
                 data={riskMap.features}
                 centers={centers.data}
                 showUser={locStatus === 'granted'}
+                focus={userFocus}
             />
 
             <BarangayDetailModal barangayId={selectedId} onClose={() => setSelectedId(null)} />

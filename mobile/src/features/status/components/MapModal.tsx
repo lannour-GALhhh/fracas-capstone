@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spacing, useTheme } from '@/common/theme'
 import { Icon, Text } from '@/common/ui'
-import { RiskMap } from '@/features/gis/components/RiskMap'
+import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import type { EvacuationCenterCollection, RiskFeatureCollection } from '@/features/gis/types'
 
 import { HazardCard } from './HazardCard'
@@ -15,14 +15,17 @@ interface Props {
     data: RiskFeatureCollection | null
     centers: EvacuationCenterCollection | undefined
     showUser: boolean
+    /** Where to center when it opens — the resident's general location. */
+    focus?: MapFocus | null
 }
 
 /**
  * Full-screen, draggable version of the status map. The card on the status page
  * is intentionally locked to the resident's area; this is where they can pan and
- * zoom to inspect other barangays. Tapping one shows its hazard at the bottom.
+ * zoom to inspect other barangays. Opens focused on their location; tapping a
+ * barangay shows its hazard at the bottom.
  */
-export function MapModal({ visible, onClose, data, centers, showUser }: Props) {
+export function MapModal({ visible, onClose, data, centers, showUser, focus = null }: Props) {
     const theme = useTheme()
     const insets = useSafeAreaInsets()
     const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -40,6 +43,7 @@ export function MapModal({ visible, onClose, data, centers, showUser }: Props) {
                     showUser={showUser}
                     interactive
                     fill
+                    focus={focus}
                 />
 
                 {/* Header overlay: title + close, kept clear of the status bar. */}

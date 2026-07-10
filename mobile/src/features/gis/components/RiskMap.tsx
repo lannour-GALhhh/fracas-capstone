@@ -36,7 +36,22 @@ interface Props {
     onExpand?: () => void
     /** Fill the parent instead of the fixed preview height (used by the expanded view). */
     fill?: boolean
+    /**
+     * Recenter the camera on this point. A fresh object flies the map there — used
+     * to focus the resident's location or a card's barangay. Null keeps the default
+     * city framing. Overrides the initial fit-to-city when set on mount.
+     */
+    focus?: MapFocus | null
 }
+
+/** A camera target: where to center and how far to zoom in. */
+export interface MapFocus {
+    center: [number, number]
+    zoom?: number
+}
+
+/** Neighborhood-level zoom used when focusing a single location. */
+const FOCUS_ZOOM = 14
 
 /** No barangay matches this id, so the "selected" outline hides when unset. */
 const NO_SELECTION = -1
@@ -58,6 +73,7 @@ export function RiskMap({
     interactive = true,
     onExpand,
     fill = false,
+    focus = null,
 }: Props) {
     const { colors, scheme } = useTheme()
     const cameraRef = useRef<CameraRef>(null)
@@ -75,9 +91,18 @@ export function RiskMap({
         fittedRef.current = true
     }, [data])
 
+    // Default framing: fit the whole city — but only when no explicit focus is
+    // requested (the expanded map opens focused on the resident's location).
     useEffect(() => {
-        if (loaded) fitToData()
-    }, [loaded, fitToData])
+        if (loaded && !focus) fitToData()
+    }, [loaded, focus, fitToData])
+
+    // Fly to a requested point whenever it changes (card "center map here"
+    // buttons pass a fresh object each tap, so repeat taps re-focus).
+    useEffect(() => {
+        if (!loaded || !focus) return
+        cameraRef.current?.flyTo({ center: focus.center, zoom: focus.zoom ?? FOCUS_ZOOM, duration: 600 })
+    }, [loaded, focus])
 
     const handlePress = (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
         const id = event.nativeEvent.features?.[0]?.properties?.id

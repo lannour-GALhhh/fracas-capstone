@@ -51,27 +51,24 @@ export function StatusHero({ feature, emptyMessage }: Props) {
         )
     }
 
-    const { name, category, score } = feature.properties
+    const { name, category } = feature.properties
     const accent = RISK_COLORS[category]
     const copy = COPY[category]
 
     return (
         <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: accent }]}>
-            <View style={[styles.accent, { backgroundColor: accent }]} />
             <View style={[styles.iconWrap, { backgroundColor: accent }]}>
                 <Icon name={copy.icon} size={26} color="#ffffff" />
             </View>
-            <View style={styles.text}>
+            <View style={styles.scoreColumn}>
                 <Text variant="label" color="textMuted">
                     {`You're in ${name}`}
                 </Text>
-                <View style={styles.scoreRow}>
-                    <Text style={styles.category}>{CATEGORY_LABELS[category]}</Text>
-                    {score != null ? (
-                        <Text variant="caption" color="textMuted">
-                            {Math.round(score)} / 100
-                        </Text>
-                    ) : null}
+                <View style={styles.scoreColumn}>
+                    <View style={styles.scoreRow}>
+                        <Text style={styles.category}>{CATEGORY_LABELS[category]}</Text>
+                        <Text variant={"caption"} style={{fontWeight: "bold"}}>Level Hazard Risk</Text>
+                    </View>
                 </View>
                 <Text variant="caption" color="textMuted">
                     {copy.message}
@@ -87,8 +84,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: spacing.md,
         padding: spacing.lg,
-        paddingLeft: spacing.lg + 6,
-        borderWidth: StyleSheet.hairlineWidth,
+        borderWidth: 2,
         borderRadius: radius.lg,
         overflow: 'hidden',
     },
@@ -102,5 +98,6 @@ const styles = StyleSheet.create({
     },
     text: { flex: 1, gap: 2 },
     scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+    scoreColumn: { flexDirection: 'column', alignItems: 'baseline', gap: spacing.xs },
     category: { fontSize: 22, fontWeight: '700' },
 })
