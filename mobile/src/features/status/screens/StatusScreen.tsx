@@ -45,6 +45,11 @@ export function StatusScreen() {
     const current = coords ? findBarangayAt(coords, riskMap.features) : null
     const nearest = coords ? nearestCenter(coords, centers.data?.features) : null
 
+    // Hide the Home card when the resident is already standing in their home
+    // barangay — the two cards would be identical.
+    const homeIsCurrent =
+        current != null && home.feature != null && current.properties.id === home.feature.properties.id
+
     // The resident's general location, used to open the expanded map centered.
     // Memoized so re-renders don't feed the expanded map a fresh object and yank
     // its camera back after the resident has panned away.
@@ -136,13 +141,15 @@ export function StatusScreen() {
                         <Button label="Enable location" variant="secondary" onPress={() => void request()} />
                     ) : null}
 
-                    <HazardCard
-                        label="Home"
-                        feature={home.feature}
-                        emptyMessage={homeEmpty}
-                        onPress={setSelectedId}
-                        onFocus={home.feature ? () => focusOn(home.feature) : undefined}
-                    />
+                    {!homeIsCurrent ? (
+                        <HazardCard
+                            label="Home"
+                            feature={home.feature}
+                            emptyMessage={homeEmpty}
+                            onPress={setSelectedId}
+                            onFocus={home.feature ? () => focusOn(home.feature) : undefined}
+                        />
+                    ) : null}
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
                 </ScrollView>
