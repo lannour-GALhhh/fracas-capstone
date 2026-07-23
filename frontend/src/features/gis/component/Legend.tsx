@@ -3,28 +3,63 @@ import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
 import type { RiskCategory } from '../types/api'
 import { LAYERS } from '../constants/layers'
 import { Separator } from '@/common/ui/separator'
+import {
+    SUSCEPTIBILITY_COLORS,
+    SUSCEPTIBILITY_LABELS,
+    SUSCEPTIBILITY_ORDER,
+    type ZoneColorMode,
+} from '../constants/susceptibility'
 
 // Low → critical, so the swatch column reads as a white→red ramp.
-const ORDER: RiskCategory[] = ['low', 'medium', 'high', 'critical']
+const RISK_ORDER: RiskCategory[] = ['low', 'medium', 'high', 'critical']
 
-const Legend = () => (
-    <Card size='sm' className='flex w-40 flex-col gap-2 px-2'>
+const Swatch = ({ color, label }: { color: string; label: string }) => (
+    <span className='flex items-center gap-2'>
+        <div
+            className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
+            style={{ backgroundColor: color }}
+        />
+        <h5 className='text-muted-foreground text-xs font-medium'>{label}</h5>
+    </span>
+)
+
+/** Map key. The first section mirrors the active hazard-zone view (set by the
+ * dashboard's Susceptibility / Flood-risk toggle). */
+const Legend = ({ view }: { view: ZoneColorMode }) => (
+    <Card size='sm' className='flex w-44 flex-col gap-2 px-2'>
         <div className='flex flex-col gap-1'>
-            <h5 className='font-medium'>Hazard</h5>
-            {ORDER.map((category) => (
-                <span key={category} className='flex items-center gap-2'>
-                    <div
-                        className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
-                        style={{ backgroundColor: RISK_COLORS[category] }}
-                    />
-                    <h5 className='text-muted-foreground text-xs font-medium'>
-                        {CATEGORY_LABELS[category]}
-                    </h5>
-                </span>
-            ))}
+            {view === 'susceptibility' ? (
+                <>
+                    <h5 className='font-medium'>Flood susceptibility</h5>
+                    {/* Least → most severe, top to bottom. */}
+                    {[...SUSCEPTIBILITY_ORDER].reverse().map((level) => (
+                        <Swatch
+                            key={level}
+                            color={SUSCEPTIBILITY_COLORS[level]}
+                            label={SUSCEPTIBILITY_LABELS[level]}
+                        />
+                    ))}
+                </>
+            ) : (
+                <>
+                    <h5 className='font-medium'>Flood risk</h5>
+                    {RISK_ORDER.map((category) => (
+                        <Swatch
+                            key={category}
+                            color={RISK_COLORS[category]}
+                            label={CATEGORY_LABELS[category]}
+                        />
+                    ))}
+                </>
+            )}
+            <p className='text-muted-foreground mt-0.5 text-[10px] leading-tight'>
+                {view === 'susceptibility'
+                    ? 'Zones by hazard class. Barangay tint = average risk.'
+                    : 'Zones & barangays by current flood risk.'}
+            </p>
         </div>
 
-        <Separator></Separator>
+        <Separator />
 
         <div className='flex flex-col gap-1'>
             <h5 className='font-medium'>Map layers</h5>
@@ -34,17 +69,6 @@ const Legend = () => (
                     <h5 className='text-muted-foreground text-xs font-medium'>{label}</h5>
                 </span>
             ))}
-        </div>
-
-        <Separator></Separator>
-
-        <div className='flex flex-col gap-1'>
-            <h5 className='font-medium'>Flood susceptibility</h5>
-            <p className='text-muted-foreground text-xs'>
-                Hazard zones are shaded by their <span className='font-medium'>current</span> risk
-                (rainfall × susceptibility) — dry zones read calm. Open a barangay for its
-                per-zone susceptibility classes and scores.
-            </p>
         </div>
     </Card>
 )

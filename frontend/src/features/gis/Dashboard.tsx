@@ -7,9 +7,11 @@ import GISMap from './component/GISMap'
 import RiskCard from './component/RiskCard'
 import Legend from './component/Legend'
 import LayersControl from './component/LayersControl'
+import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
 import { useRiskMap } from './hooks/useRiskMap'
 import { type LayerKey, type LayerVisibility } from './constants/layers'
+import { type ZoneColorMode } from './constants/susceptibility'
 
 /** Live viewport width, so panel padding stays correct across resizes. */
 const useViewportWidth = (): number => {
@@ -56,6 +58,8 @@ const Dashboard = () => {
         high: true,
         very_high: true,
     })
+    // Whether the hazard zones show their susceptibility class or computed risk.
+    const [zoneColorMode, setZoneColorMode] = useState<ZoneColorMode>('susceptibility')
     const viewportWidth = useViewportWidth()
     const cardsVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
@@ -72,9 +76,14 @@ const Dashboard = () => {
     return (
         <>
             <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
-                <Legend />
-                <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
-                    <LayersControl layers={layers} onToggle={toggleLayer} />
+                <Legend view={zoneColorMode} />
+                <div className='flex h-fit flex-col items-start gap-1.5'>
+                    <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+                        <LayersControl layers={layers} onToggle={toggleLayer} />
+                    </div>
+                    <div className='flex h-fit items-center rounded-full border bg-background/95 p-1 shadow-md backdrop-blur'>
+                        <MapViewToggle value={zoneColorMode} onChange={setZoneColorMode} />
+                    </div>
                 </div>
             </div>
 
@@ -114,6 +123,7 @@ const Dashboard = () => {
                 onSelect={handleSelect}
                 panelWidth={panelWidth}
                 layers={layers}
+                zoneColorMode={zoneColorMode}
             />
 
             {barangayPanelVisible && selectedId != null && (

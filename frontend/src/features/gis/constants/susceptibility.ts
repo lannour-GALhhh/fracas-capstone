@@ -1,6 +1,10 @@
 import type { ExpressionSpecification } from 'maplibre-gl'
 import type { SusceptibilityLevel } from '../types/api'
 
+/** How the hazard-zone layer is colored — its static susceptibility class, or
+ * the computed flood risk. Toggled from the dashboard. */
+export type ZoneColorMode = 'susceptibility' | 'risk'
+
 /** Least-to-most severe — drives legend ordering. */
 export const SUSCEPTIBILITY_ORDER: SusceptibilityLevel[] = [
     'very_low',
