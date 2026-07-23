@@ -72,10 +72,12 @@ class RiskConfigCrudTests(APITestCase):
         self.assertFalse(RiskConfig.objects.get(name="sneaky").is_active)
 
     def test_weights_must_sum_to_one(self):
+        # Weights are only enforced in the legacy additive mode.
         resp = self.client.post(
             reverse("risk-config-list"),
             {
                 "name": "bad",
+                "combination_mode": "weighted_sum",
                 "weights": {"rainfall": 0.9, "susceptibility": 0.4},
                 "thresholds": {"medium": 25, "high": 50, "critical": 75},
             },
@@ -83,6 +85,19 @@ class RiskConfigCrudTests(APITestCase):
         )
         self.assertEqual(resp.status_code, 400)
         self.assertIn("weights", resp.data)
+
+    def test_invalid_rainfall_curve_rejected(self):
+        resp = self.client.post(
+            reverse("risk-config-list"),
+            {
+                "name": "bad-curve",
+                "rainfall_curve": [[0, 0], [5, 1.5]],  # y out of 0-1
+                "thresholds": {"medium": 25, "high": 50, "critical": 75},
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("rainfall_curve", resp.data)
 
     def test_thresholds_must_be_ordered(self):
         resp = self.client.post(
@@ -98,7 +113,12 @@ class RiskConfigCrudTests(APITestCase):
         self.assertIn("thresholds", resp.data)
 
     def test_partial_update_revalidates_merged_config(self):
-        config = make_config("editable")
+        config = RiskConfig.objects.create(
+            name="editable",
+            combination_mode="weighted_sum",
+            weights={"rainfall": 0.5, "susceptibility": 0.5},
+            thresholds={"medium": 25.0, "high": 50.0, "critical": 75.0},
+        )
         resp = self.client.patch(
             reverse("risk-config-detail", args=[config.pk]),
             {"weights": {"rainfall": 0.9, "susceptibility": 0.4}},

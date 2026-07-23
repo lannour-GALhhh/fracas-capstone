@@ -78,8 +78,20 @@ def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None) 
     centroid = barangay.boundary.centroid
     data = fetch(centroid.y, centroid.x, when)
     rainfall = reconstruct_rainfall(data, when)
+
+    def zones_for(b):
+        info = susceptibility_by_barangay.get(b.id)
+        if not info:
+            return []
+        # Production carries a per-level `zones` list; fall back to a single
+        # worst-case zone when a caller passes only the aggregate dict.
+        if info.get("zones"):
+            return info["zones"]
+        return [{"level": info["level"], "value": info["value"], "share": 1.0}]
+
     context = SimpleNamespace(
-        susceptibility_for=lambda b: susceptibility_by_barangay.get(b.id)
+        susceptibility_for=lambda b: susceptibility_by_barangay.get(b.id),
+        zones_for=zones_for,
     )
     engine = RiskEngine.from_active_config()
     return engine.score(FactorInput(barangay, rainfall, context))

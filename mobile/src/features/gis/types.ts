@@ -27,12 +27,29 @@ export interface RiskFactorBreakdown {
     detail: Record<string, unknown>
 }
 
+/** Flood-susceptibility level, most-severe last. */
+export type SusceptibilityLevel = 'very_low' | 'low' | 'moderate' | 'high' | 'very_high'
+
+/** One susceptibility zone's *computed* localized risk (rainfall × susceptibility). */
+export interface ZoneScore {
+    level: SusceptibilityLevel
+    susceptibility: number // 0..1 static hazard-map value
+    share: number // 0..1 area share of the barangay
+    hazard: number // 0..1 zone hazard this cycle
+    score: number // 0..100
+    category: RiskCategory
+}
+
 /** GET /api/risk/barangays/:id/ — full detail for the barangay sheet. */
 export interface BarangayRisk {
     id: number
     name: string
     status: RiskCategory | null
     risk_score: number | null
+    /** Barangay headline number — mean of its zone scores (== risk_score). */
+    average: number | null
+    /** Per-zone localized scores (rainfall-gated model). */
+    zones: ZoneScore[]
     is_degraded: boolean | null
     breakdown: Record<string, RiskFactorBreakdown> | null
     computed_at: string | null
@@ -44,6 +61,20 @@ export interface BarangayRisk {
     accumulated_24hr: number | null
     rainfall_rate_change: number | null
     recorded_at: string | null
+}
+
+/** GET /api/risk/at/?lat=&lng= — pinpoint flood risk at the resident's location. */
+export interface LocalizedRisk {
+    barangay: { id: number; name: string }
+    /** The containing barangay's headline average score. */
+    average: number | null
+    status: RiskCategory | null
+    is_degraded: boolean | null
+    computed_at: string | null
+    /** The exact susceptibility zone the point falls in — null if outside any mapped zone. */
+    localized: ZoneScore | null
+    /** All of the barangay's zones, for context. */
+    zones: ZoneScore[]
 }
 
 /** GET /api/dam/status/ — latest Pasonanca reading + thresholds. */

@@ -7,15 +7,36 @@ from .models import RiskConfig, ValidationRun
 class RiskConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiskConfig
-        fields = ["id", "name", "is_active", "weights", "thresholds", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "is_active",
+            "combination_mode",
+            "weights",
+            "thresholds",
+            "rainfall_curve",
+            "accumulation_curve",
+            "zone_aggregation",
+            "created_at",
+        ]
         read_only_fields = ["id", "is_active", "created_at"]
+
+    _CLEAN_FIELDS = (
+        "name",
+        "combination_mode",
+        "weights",
+        "thresholds",
+        "rainfall_curve",
+        "accumulation_curve",
+        "zone_aggregation",
+    )
 
     def validate(self, attrs):
         # Build a transient instance (merging existing values on update) so
-        # RiskConfig.clean() can enforce weight-sum/threshold-order rules
+        # RiskConfig.clean() can enforce weight-sum/threshold-order/curve rules
         # exactly as it does for the Django admin form.
         instance = self.instance or RiskConfig()
-        merged = {**{f: getattr(instance, f) for f in ("name", "weights", "thresholds")}, **attrs}
+        merged = {**{f: getattr(instance, f) for f in self._CLEAN_FIELDS}, **attrs}
         candidate = RiskConfig(**merged)
         try:
             candidate.clean()
@@ -48,11 +69,16 @@ class BarangayRiskSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         b, s, r = instance["barangay"], instance["score"], instance["rainfall"]
+        zones = (s.breakdown or {}).get("zones", []) if s else []
         return {
             "id": b.id,
             "name": b.name,
             "status": s.category if s else None,
             "risk_score": round(s.score, 2) if s else None,
+            # `average` is the barangay headline number (mean of its zone scores);
+            # `zones` carries the per-zone localized scores for the side panel.
+            "average": round(s.score, 2) if s else None,
+            "zones": zones,
             "is_degraded": s.is_degraded if s else None,
             "breakdown": s.breakdown if s else None,
             "computed_at": s.computed_at.isoformat() if s else None,

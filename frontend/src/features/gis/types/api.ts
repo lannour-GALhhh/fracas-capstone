@@ -40,12 +40,26 @@ export interface SusceptibilityDetail {
     levels?: Partial<Record<SusceptibilityLevel, SusceptibilityLevelShare>>
 }
 
+/** One susceptibility zone's *computed* localized risk (rainfall × susceptibility). */
+export interface ZoneScore {
+    level: SusceptibilityLevel
+    susceptibility: number // 0..1 static hazard-map value
+    share: number // 0..1 area share of the barangay
+    hazard: number // 0..1 zone hazard this cycle
+    score: number // 0..100
+    category: RiskCategory
+}
+
 /** GET /api/risk/barangays/:id/ — full detail for the side panel. */
 export interface BarangayRisk {
     id: number
     name: string
     status: RiskCategory | null
     risk_score: number | null
+    /** Barangay headline number — mean of its zone scores (== risk_score). */
+    average: number | null
+    /** Per-zone localized scores (rainfall-gated model). */
+    zones: ZoneScore[]
     is_degraded: boolean | null
     breakdown: Record<string, RiskFactorBreakdown> | null
     computed_at: string | null
@@ -62,11 +76,29 @@ export interface BarangayRisk {
 /** Flood-susceptibility level, most-severe last — see constants/susceptibility.ts. */
 export type SusceptibilityLevel = 'very_low' | 'low' | 'moderate' | 'high' | 'very_high'
 
-/** Properties on each feature from GET /api/barangays/hazard-zones/. */
+/** One entry from GET /api/risk/zones/snapshot/ — a barangay×level's computed risk. */
+export interface ZoneRiskEntry {
+    barangay_id: number
+    level: SusceptibilityLevel
+    score: number
+    category: RiskCategory
+}
+
+/** GET /api/risk/zones/snapshot/ — latest per-zone risk for the hazard-zone layer. */
+export interface ZoneRiskSnapshot {
+    computed_at: string | null
+    count: number
+    zones: ZoneRiskEntry[]
+}
+
+/** Properties on each feature from GET /api/barangays/hazard-zones/.
+ * `category`/`score` are joined client-side from the per-zone risk snapshot. */
 export interface HazardZoneProperties {
     id: number
     barangay: number
     level: SusceptibilityLevel
+    category?: RiskCategory | null
+    score?: number | null
 }
 
 /** GET /api/barangays/hazard-zones/ — simplified susceptibility zone geometry for the map. */

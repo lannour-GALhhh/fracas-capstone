@@ -4,4 +4,5 @@ export const gisKeys = {
     snapshot: ['gis', 'risk', 'snapshot'] as const,
     barangayRisk: (id: number) => ['gis', 'risk', 'barangay', id] as const,
     hazardZones: ['gis', 'hazard-zones'] as const,
+    zoneRisk: ['gis', 'risk', 'zones'] as const,
 }

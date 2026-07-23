@@ -5,18 +5,13 @@ import { Badge, Button, Card, Spinner, Text } from '@/common/ui'
 import { ErrorState } from '@/common/components/ErrorState'
 import { timeAgo } from '@/common/utils/time'
 import { CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
+import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
 import { useBarangayRisk } from '@/features/gis/hooks/useBarangayRisk'
-import type { BarangayRisk, RiskCategory, RiskFactorBreakdown } from '@/features/gis/types'
+import type { BarangayRisk, RiskCategory, ZoneScore } from '@/features/gis/types'
 
 interface Props {
     barangayId: number | null
     onClose: () => void
-}
-
-const FACTOR_LABELS: Record<string, string> = {
-    rainfall: 'Rainfall',
-    dam: 'Dam / river stage',
-    vulnerability: 'Terrain vulnerability',
 }
 
 const badgeTextColor = (c: RiskCategory): string =>
@@ -58,7 +53,7 @@ export function BarangayDetailModal({ barangayId, onClose }: Props) {
                     <ScrollView contentContainerStyle={styles.body}>
                         <HazardHero data={data} />
                         <Conditions data={data} />
-                        {data.breakdown ? <Breakdown breakdown={data.breakdown} /> : null}
+                        <ZoneBreakdown data={data} />
                         <Footer data={data} />
                     </ScrollView>
                 ) : null}
@@ -133,60 +128,49 @@ const StatTile = ({ label, value, unit }: { label: string; value: string; unit: 
     </Card>
 )
 
-const Breakdown = ({ breakdown }: { breakdown: Record<string, RiskFactorBreakdown> }) => {
-    const entries = Object.entries(breakdown)
-    const availableWeight = entries.reduce((sum, [, f]) => sum + (f.available ? f.raw_weight : 0), 0)
-
+/**
+ * Rainfall-gated breakdown: each susceptibility zone scores rainfall ×
+ * susceptibility, and the barangay headline is their average — so a
+ * high-susceptibility zone only lights up when it actually rains.
+ */
+const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
+    if (!data.zones?.length) return null
     return (
         <Card style={styles.breakdown}>
-            <Text variant="label">Why this score</Text>
+            <Text variant="label">Zone risk</Text>
             <Text variant="caption" color="textMuted">
-                Each input scored 0–100, blended by weight.
+                Each susceptibility zone scored rainfall × susceptibility; the barangay score is
+                their average.
             </Text>
-            {entries.map(([name, factor]) => (
-                <FactorRow
-                    key={name}
-                    name={name}
-                    factor={factor}
-                    effectiveWeight={availableWeight > 0 ? factor.raw_weight / availableWeight : 0}
-                />
+            {data.zones.map((zone) => (
+                <ZoneRow key={zone.level} zone={zone} />
             ))}
+            <View style={styles.averageRow}>
+                <Text variant="caption">Barangay average</Text>
+                <Text variant="caption">
+                    {data.average == null ? '—' : Math.round(data.average)}
+                </Text>
+            </View>
         </Card>
     )
 }
 
-const FactorRow = ({
-    name,
-    factor,
-    effectiveWeight,
-}: {
-    name: string
-    factor: RiskFactorBreakdown
-    effectiveWeight: number
-}) => {
+const ZoneRow = ({ zone }: { zone: ZoneScore }) => {
     const theme = useTheme()
     return (
         <View style={styles.factor}>
             <View style={styles.factorHead}>
                 <Text variant="caption">
-                    {FACTOR_LABELS[name] ?? name}{' '}
+                    {SUSCEPTIBILITY_LABELS[zone.level]}{' '}
                     <Text variant="caption" color="textMuted">
-                        {factor.available ? `${Math.round(effectiveWeight * 100)}% weight` : 'redistributed'}
+                        {Math.round(zone.share * 100)}% of area
                     </Text>
                 </Text>
-                <Text variant="caption" color={factor.available ? 'text' : 'textMuted'}>
-                    {factor.available ? Math.round(factor.value * 100) : 'no data'}
-                </Text>
+                <Text variant="caption">{Math.round(zone.score)}</Text>
             </View>
             <View style={[styles.track, { backgroundColor: theme.colors.surfaceAlt }]}>
                 <View
-                    style={[
-                        styles.fill,
-                        {
-                            backgroundColor: theme.colors.text,
-                            width: `${factor.available ? factor.value * 100 : 0}%`,
-                        },
-                    ]}
+                    style={[styles.fill, { backgroundColor: RISK_COLORS[zone.category], width: `${zone.score}%` }]}
                 />
             </View>
         </View>
@@ -236,6 +220,14 @@ const styles = StyleSheet.create({
     breakdown: { gap: spacing.sm },
     factor: { gap: spacing.xs, marginTop: spacing.xs },
     factorHead: { flexDirection: 'row', justifyContent: 'space-between' },
+    averageRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: spacing.sm,
+        paddingTop: spacing.sm,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: 'rgba(127,127,127,0.3)',
+    },
     track: { height: 6, borderRadius: 3, overflow: 'hidden' },
     fill: { height: '100%', borderRadius: 3 },
     footer: { alignItems: 'center', gap: spacing.xs, paddingTop: spacing.sm },

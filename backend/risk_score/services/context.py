@@ -22,6 +22,9 @@ class ScoringContext:
     barangays: list[Barangay]
     rainfall_by_barangay: dict[int, Rainfall]
     susceptibility_by_barangay: dict[int, dict] = field(default_factory=dict)
+    # Admin-tunable rainfall scaling from the active RiskConfig (None -> defaults).
+    rainfall_curve: list | None = None
+    accumulation_curve: list | None = None
 
     def rainfall_for(self, barangay: Barangay) -> Rainfall | None:
         return self.rainfall_by_barangay.get(barangay.id)
@@ -29,8 +32,12 @@ class ScoringContext:
     def susceptibility_for(self, barangay: Barangay) -> dict | None:
         return self.susceptibility_by_barangay.get(barangay.id)
 
+    def zones_for(self, barangay: Barangay) -> list[dict]:
+        info = self.susceptibility_by_barangay.get(barangay.id)
+        return info["zones"] if info else []
+
     @classmethod
-    def build(cls) -> "ScoringContext":
+    def build(cls, config=None) -> "ScoringContext":
         # defer the heavy boundary geometry — scoring doesn't need it.
         barangays = list(Barangay.objects.defer("boundary"))
 
@@ -52,4 +59,6 @@ class ScoringContext:
             barangays=barangays,
             rainfall_by_barangay=rainfall_by_barangay,
             susceptibility_by_barangay=dominant_susceptibility_by_barangay(),
+            rainfall_curve=getattr(config, "rainfall_curve", None),
+            accumulation_curve=getattr(config, "accumulation_curve", None),
         )

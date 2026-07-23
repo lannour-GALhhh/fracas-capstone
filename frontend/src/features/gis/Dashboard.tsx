@@ -48,7 +48,14 @@ const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [panelHidden, setPanelHidden] = useState(false)
-    const [layers, setLayers] = useState<LayerVisibility>({ hazard: true, evacuation: true })
+    const [layers, setLayers] = useState<LayerVisibility>({
+        hazard: true,
+        evacuation: true,
+        low: true,
+        moderate: true,
+        high: true,
+        very_high: true,
+    })
     const viewportWidth = useViewportWidth()
     const cardsVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.

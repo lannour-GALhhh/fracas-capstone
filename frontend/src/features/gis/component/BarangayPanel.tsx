@@ -16,11 +16,10 @@ import {
     type ChartConfig,
 } from '@/common/ui/chart'
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
-import capitalize from '@/common/utils/capitalize'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
-import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS, SUSCEPTIBILITY_ORDER } from '../constants/susceptibility'
-import type { BarangayRisk, RiskFactorBreakdown, SusceptibilityDetail } from '../types/api'
+import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
+import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
 import ErrorState from '@/common/components/ErrorState'
@@ -29,11 +28,6 @@ import SidePanel from './SidePanel'
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
 } satisfies ChartConfig
-
-const FACTOR_LABELS: Record<string, string> = {
-    rainfall: 'Rainfall',
-    susceptibility: 'Flood susceptibility',
-}
 
 /** Format a nullable number, dropping noise digits. */
 const fmt = (v: number | null | undefined): string =>
@@ -77,41 +71,6 @@ const StatTile = ({
             {unit && <span className='text-muted-foreground text-xs'>{unit}</span>}
         </div>
     </Card>
-)
-
-/**
- * One factor's row in the breakdown. Shows its own hazard (0–100) and the
- * *effective* weight it carried this cycle — unavailable factors are dropped
- * and their weight is spread across the rest, so we surface that here.
- */
-const FactorRow = ({
-    name,
-    factor,
-    effectiveWeight,
-}: {
-    name: string
-    factor: RiskFactorBreakdown
-    effectiveWeight: number
-}) => (
-    <div className='flex flex-col gap-1.5'>
-        <div className='flex items-center justify-between text-xs'>
-            <span className='flex items-center gap-2'>
-                <span className='font-medium'>{FACTOR_LABELS[name] ?? capitalize(name)}</span>
-                <span className='text-muted-foreground'>
-                    {factor.available ? `${Math.round(effectiveWeight * 100)}% weight` : 'redistributed'}
-                </span>
-            </span>
-            <span className={factor.available ? 'font-medium tabular-nums' : 'text-muted-foreground'}>
-                {factor.available ? Math.round(factor.value * 100) : 'no data'}
-            </span>
-        </div>
-        <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
-            <div
-                className='bg-foreground/70 h-full rounded-full'
-                style={{ width: factor.available ? `${factor.value * 100}%` : 0 }}
-            />
-        </div>
-    </div>
 )
 
 const HazardHero = ({ data }: { data: BarangayRisk }) => {
@@ -178,89 +137,61 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
-/**
- * A susceptibility factor's row when the barangay spans more than one hazard
- * zone type. The plain `FactorRow` only surfaces the worst-case zone (the
- * value the score actually uses); this shows how much of the barangay falls
- * into each level so the worst-case pick doesn't read as arbitrary.
- */
-const SusceptibilityBreakdown = ({
-    factor,
-    effectiveWeight,
-}: {
-    factor: RiskFactorBreakdown
-    effectiveWeight: number
-}) => {
-    const detail = factor.detail as unknown as SusceptibilityDetail
-    const levels = SUSCEPTIBILITY_ORDER.filter((level) => detail.levels?.[level])
-        .map((level) => ({ level, share: detail.levels![level]!.share }))
-        .reverse() // most severe first
-
-    return (
-        <div className='flex flex-col gap-1.5'>
-            <div className='flex items-center justify-between text-xs'>
-                <span className='flex items-center gap-2'>
-                    <span className='font-medium'>Flood susceptibility</span>
-                    <span className='text-muted-foreground'>{Math.round(effectiveWeight * 100)}% weight</span>
-                </span>
-                <span className='font-medium tabular-nums'>{Math.round(factor.value * 100)}</span>
-            </div>
-            <p className='text-muted-foreground text-xs'>
-                Spans {levels.length} hazard zones — scored on the worst-case zone.
-            </p>
-            <div className='flex h-1.5 w-full overflow-hidden rounded-full'>
-                {levels.map(({ level, share }) => (
-                    <div
-                        key={level}
-                        style={{ width: `${share * 100}%`, backgroundColor: SUSCEPTIBILITY_COLORS[level] }}
-                    />
-                ))}
-            </div>
-            <div className='flex flex-col gap-1'>
-                {levels.map(({ level, share }) => (
-                    <div key={level} className='flex items-center justify-between text-xs'>
-                        <span className='flex items-center gap-1.5'>
-                            <span
-                                className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
-                                style={{ backgroundColor: SUSCEPTIBILITY_COLORS[level] }}
-                            />
-                            {SUSCEPTIBILITY_LABELS[level]}
-                        </span>
-                        <span className='text-muted-foreground tabular-nums'>{Math.round(share * 100)}%</span>
-                    </div>
-                ))}
-            </div>
+/** One susceptibility zone's localized risk (rainfall × susceptibility). */
+const ZoneRow = ({ zone }: { zone: ZoneScore }) => (
+    <div className='flex flex-col gap-1'>
+        <div className='flex items-center justify-between text-xs'>
+            <span className='flex items-center gap-1.5'>
+                <span
+                    className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
+                    style={{ backgroundColor: SUSCEPTIBILITY_COLORS[zone.level] }}
+                />
+                <span className='font-medium'>{SUSCEPTIBILITY_LABELS[zone.level]}</span>
+                <span className='text-muted-foreground'>{Math.round(zone.share * 100)}% of area</span>
+            </span>
+            <span
+                className='rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums'
+                style={{ backgroundColor: RISK_COLORS[zone.category], color: '#3f0a0a' }}
+            >
+                {Math.round(zone.score)}
+            </span>
         </div>
-    )
-}
+        <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
+            <div
+                className='h-full rounded-full'
+                style={{ width: `${zone.score}%`, backgroundColor: RISK_COLORS[zone.category] }}
+            />
+        </div>
+    </div>
+)
 
-const Breakdown = ({ breakdown }: { breakdown: Record<string, RiskFactorBreakdown> }) => {
-    const entries = Object.entries(breakdown)
-    const availableWeight = entries.reduce(
-        (sum, [, f]) => sum + (f.available ? f.raw_weight : 0),
-        0,
-    )
-
+/**
+ * The rainfall-gated breakdown: rainfall is the trigger, and each susceptibility
+ * zone scores `rainfall × susceptibility`. The barangay headline is the average
+ * of these zone scores, so a high-susceptibility zone only lights up when it
+ * actually rains.
+ */
+const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
+    if (!data.zones?.length) return null
     return (
         <Card className='gap-3'>
             <div>
-                <Label className='font-medium'>Why this score</Label>
-                <p className='text-muted-foreground text-xs'>Each input scored 0–100, blended by weight.</p>
+                <Label className='font-medium'>Zone risk</Label>
+                <p className='text-muted-foreground text-xs'>
+                    Each susceptibility zone scored rainfall × susceptibility; the barangay score is
+                    their average.
+                </p>
             </div>
-            <div className='flex flex-col gap-3'>
-                {entries.map(([name, factor]) => {
-                    const effectiveWeight = availableWeight > 0 ? factor.raw_weight / availableWeight : 0
-                    const zoneCount =
-                        name === 'susceptibility' && factor.available
-                            ? Object.keys((factor.detail as unknown as SusceptibilityDetail).levels ?? {}).length
-                            : 0
-
-                    return zoneCount > 1 ? (
-                        <SusceptibilityBreakdown key={name} factor={factor} effectiveWeight={effectiveWeight} />
-                    ) : (
-                        <FactorRow key={name} name={name} factor={factor} effectiveWeight={effectiveWeight} />
-                    )
-                })}
+            <div className='flex flex-col gap-2.5'>
+                {data.zones.map((zone) => (
+                    <ZoneRow key={zone.level} zone={zone} />
+                ))}
+            </div>
+            <div className='flex items-center justify-between border-t pt-2 text-xs'>
+                <span className='font-medium'>Barangay average</span>
+                <span className='font-semibold tabular-nums'>
+                    {data.average == null ? '—' : Math.round(data.average)}
+                </span>
             </div>
         </Card>
     )
@@ -387,7 +318,7 @@ const PanelBody = ({ data }: { data: BarangayRisk }) => (
         <Actions id={data.id} name={data.name} />
         <Conditions data={data} />
         <RecentFloods id={data.id} />
-        {data.breakdown && <Breakdown breakdown={data.breakdown} />}
+        <ZoneBreakdown data={data} />
         <RainfallTrend data={data} />
 
         {(data.computed_at || data.recorded_at) && (

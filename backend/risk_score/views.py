@@ -24,6 +24,61 @@ class RiskSnapshotView(APIView):
         return Response(snapshot.latest())
 
 
+class RiskZonesSnapshotView(APIView):
+    """Latest per-zone (barangay x susceptibility level) risk — colors the hazard-zone layer."""
+
+    def get(self, request):
+        return Response(snapshot.zones_latest())
+
+
+class LocalizedRiskView(APIView):
+    """Pinpoint flood risk for a lat/lng (mobile).
+
+    Resolves the resident's exact susceptibility zone by point-in-polygon and
+    returns that zone's localized score, alongside the containing barangay's
+    per-zone scores and headline average.
+    """
+
+    def get(self, request):
+        from django.contrib.gis.geos import Point
+
+        try:
+            lat = float(request.query_params["lat"])
+            lng = float(request.query_params["lng"])
+        except (KeyError, TypeError, ValueError):
+            return Response({"detail": "lat and lng query params are required."}, status=400)
+
+        point = Point(lng, lat, srid=4326)
+        barangay = Barangay.objects.filter(boundary__contains=point).first()
+        if barangay is None:
+            return Response({"detail": "Point is outside all barangay boundaries."}, status=404)
+
+        score = RiskScore.objects.filter(barangay=barangay).order_by("-computed_at").first()
+        zones = (score.breakdown or {}).get("zones", []) if score else []
+
+        from barangays.models import BarangaySusceptibility
+
+        hit = (
+            BarangaySusceptibility.objects.filter(barangay=barangay, geom__contains=point)
+            .order_by("-source_flood_value")
+            .first()
+        )
+        local_level = hit.level if hit else None
+        local_zone = next((z for z in zones if z["level"] == local_level), None)
+
+        return Response(
+            {
+                "barangay": {"id": barangay.id, "name": barangay.name},
+                "average": round(score.score, 2) if score else None,
+                "status": score.category if score else None,
+                "is_degraded": score.is_degraded if score else None,
+                "computed_at": score.computed_at.isoformat() if score else None,
+                "localized": local_zone,  # None if the point isn't inside a mapped zone
+                "zones": zones,
+            }
+        )
+
+
 class BarangayRiskView(RetrieveAPIView):
     """Full latest risk + rainfall detail for one barangay."""
 

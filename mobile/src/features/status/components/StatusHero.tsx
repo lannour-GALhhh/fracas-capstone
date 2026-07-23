@@ -3,11 +3,15 @@ import { StyleSheet, View } from 'react-native'
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Icon, type IconName, Text } from '@/common/ui'
 import { CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
-import type { RiskCategory, RiskFeature } from '@/features/gis/types'
+import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
+import type { LocalizedRisk, RiskCategory, RiskFeature } from '@/features/gis/types'
 
 interface Props {
     /** The resident's current-location barangay (falls back to a prompt when null). */
     feature: RiskFeature | null
+    /** Pinpoint risk at the resident's exact coordinates — preferred over the
+     * barangay average when the point falls inside a mapped susceptibility zone. */
+    localized?: LocalizedRisk | null
     /** Short line explaining why there's no reading (locating, denied, outside). */
     emptyMessage: string
 }
@@ -24,10 +28,14 @@ const COPY: Record<RiskCategory, { icon: IconName; message: string }> = {
  * current flood risk at a glance, so the most important number isn't buried in a
  * list of plain cards.
  */
-export function StatusHero({ feature, emptyMessage }: Props) {
+export function StatusHero({ feature, localized, emptyMessage }: Props) {
     const theme = useTheme()
 
-    if (!feature || !feature.properties.category) {
+    // Prefer the pinpoint zone reading; fall back to the barangay-average category.
+    const zone = localized?.localized ?? null
+    const category: RiskCategory | null = zone?.category ?? feature?.properties.category ?? null
+
+    if (!feature || !category) {
         return (
             <View
                 style={[
@@ -51,7 +59,7 @@ export function StatusHero({ feature, emptyMessage }: Props) {
         )
     }
 
-    const { name, category } = feature.properties
+    const { name } = feature.properties
     const accent = RISK_COLORS[category]
     const copy = COPY[category]
 
@@ -67,8 +75,21 @@ export function StatusHero({ feature, emptyMessage }: Props) {
                 <View style={styles.scoreColumn}>
                     <View style={styles.scoreRow}>
                         <Text style={styles.category}>{CATEGORY_LABELS[category]}</Text>
-                        <Text variant={"caption"} style={{fontWeight: "bold"}}>Level Hazard Risk</Text>
+                        {zone ? (
+                            <Text variant="caption" style={{ fontWeight: 'bold' }}>
+                                {Math.round(zone.score)} · your exact spot
+                            </Text>
+                        ) : (
+                            <Text variant="caption" style={{ fontWeight: 'bold' }}>
+                                Level Hazard Risk
+                            </Text>
+                        )}
                     </View>
+                    {zone ? (
+                        <Text variant="caption" color="textMuted">
+                            {`${SUSCEPTIBILITY_LABELS[zone.level]} susceptibility zone`}
+                        </Text>
+                    ) : null}
                 </View>
                 <Text variant="caption" color="textMuted">
                     {copy.message}

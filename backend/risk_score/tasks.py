@@ -12,11 +12,11 @@ from django.utils import timezone
 from alert.tasks import evaluate_alerts
 from rainfall_fetch.tasks import fetch_rainfall_information
 
-from .models import RiskScore
+from .models import RiskConfig, RiskScore
 from .services import snapshot
 from .services.context import ScoringContext
 from .services.engine import RiskEngine
-from .services.factors import FactorInput
+from .services.factors import DEFAULT_FACTORS, FactorInput
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,15 @@ logger = logging.getLogger(__name__)
 @shared_task
 def compute_risk_scores() -> dict:
     """Score every barangay from the latest inputs; persist + cache the result."""
-    context = ScoringContext.build()
-    engine = RiskEngine.from_active_config()
-    config = engine.config if engine.config.pk else None  # None when using in-memory defaults
+    active = RiskConfig.get_active()
+    context = ScoringContext.build(active)
+    engine = RiskEngine(active, DEFAULT_FACTORS)
+    config = active if active.pk else None  # None when using in-memory defaults
     computed_at = timezone.now()
 
     rows: list[RiskScore] = []
     entries: list[dict] = []
+    zone_entries: list[dict] = []
     for barangay in context.barangays:
         data = FactorInput(barangay=barangay, rainfall=context.rainfall_for(barangay), context=context)
         scored = engine.score(data)
@@ -54,9 +56,19 @@ def compute_risk_scores() -> dict:
                 "is_degraded": scored.is_degraded,
             }
         )
+        for zone in scored.breakdown.get("zones", []):
+            zone_entries.append(
+                {
+                    "barangay_id": barangay.id,
+                    "level": zone["level"],
+                    "score": zone["score"],
+                    "category": zone["category"],
+                }
+            )
 
     RiskScore.objects.bulk_create(rows)
     snapshot.store(computed_at, entries)
+    snapshot.store_zones(computed_at, zone_entries)
     logger.info("Computed risk scores for %d barangays", len(rows))
     return {"count": len(rows), "computed_at": computed_at.isoformat()}
 

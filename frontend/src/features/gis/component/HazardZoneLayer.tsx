@@ -1,12 +1,27 @@
-import { useEffect } from 'react'
-import type { Map as MapLibreMap } from 'maplibre-gl'
+import { useEffect, useMemo } from 'react'
+import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import { useMap } from '@/common/ui/map'
 import { useHazardZones } from '../hooks/useHazardZones'
-import { fillColorExpression } from '../constants/susceptibility'
+import { useZoneRisk } from '../hooks/useZoneRisk'
+import { NO_DATA_COLOR, RISK_COLORS } from '../constants/risk'
+import type { HazardZoneCollection } from '../types/api'
 
 const SOURCE = 'hazard-zones'
 const FILL = 'hazard-zone-fill'
 const LINE = 'hazard-zone-line'
+
+/** Color each zone by its *computed* localized risk (rainfall-gated), keyed on
+ * the `category` joined into each feature. Falls back to grey before scores load
+ * or when the pipeline hasn't run. */
+const fillColorExpression: ExpressionSpecification = [
+    'match',
+    ['get', 'category'],
+    'low', RISK_COLORS.low,
+    'medium', RISK_COLORS.medium,
+    'high', RISK_COLORS.high,
+    'critical', RISK_COLORS.critical,
+    NO_DATA_COLOR,
+]
 
 interface Props {
     visible: boolean
@@ -17,19 +32,39 @@ const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
     map.getStyle().layers?.find((l) => l.type === 'symbol')?.id
 
 /**
- * The authoritative flood-susceptibility zones — the primary hazard geometry
- * on the map (see `ENGINE_V2_PLAN.md` Phase 5). Read-only backdrop: no
- * click/hover interaction, just the classification fill + a thin outline.
+ * The authoritative flood-susceptibility zones, colored by the **computed
+ * per-zone risk** for the current cycle (`rainfall × susceptibility`) rather
+ * than the static susceptibility class — so a high-susceptibility zone reads as
+ * calm when it isn't raining and lights up only when rain actually arrives.
  */
 const HazardZoneLayer = ({ visible }: Props) => {
     const { map, isLoaded } = useMap()
     const { data } = useHazardZones()
+    const { data: zoneRisk } = useZoneRisk()
 
+    // Join each zone's computed risk category onto its feature properties.
+    const joined = useMemo<HazardZoneCollection | undefined>(() => {
+        if (!data) return undefined
+        return {
+            ...data,
+            features: data.features.map((f) => {
+                const risk = zoneRisk?.get(`${f.properties.barangay}-${f.properties.level}`)
+                return {
+                    ...f,
+                    properties: { ...f.properties, category: risk?.category ?? null, score: risk?.score ?? null },
+                }
+            }),
+        }
+    }, [data, zoneRisk])
+
+    // Add the source + layers ONCE (empty), tied only to the map lifecycle. The
+    // actual features/colors are pushed via setData below — re-adding the layers
+    // whenever scores refresh is what caused the flicker + freeze.
     useEffect(() => {
-        if (!map || !isLoaded || !data) return
+        if (!map || !isLoaded) return
         const beforeId = firstSymbolLayerId(map)
 
-        map.addSource(SOURCE, { type: 'geojson', data })
+        map.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
         map.addLayer(
             {
                 id: FILL,
@@ -54,7 +89,15 @@ const HazardZoneLayer = ({ visible }: Props) => {
             for (const id of [FILL, LINE]) if (map.getLayer(id)) map.removeLayer(id)
             if (map.getSource(SOURCE)) map.removeSource(SOURCE)
         }
-    }, [map, isLoaded, data])
+    }, [map, isLoaded])
+
+    // Push features + risk colors by updating the source data in place — cheap,
+    // and it never removes/re-adds the layer (no flicker).
+    useEffect(() => {
+        if (!map || !isLoaded || !joined) return
+        const source = map.getSource(SOURCE) as GeoJSONSource | undefined
+        source?.setData(joined)
+    }, [map, isLoaded, joined])
 
     useEffect(() => {
         if (!map || !isLoaded) return

@@ -4,6 +4,7 @@ import type {
     BarangayRisk,
     HazardZoneCollection,
     RiskSnapshot,
+    ZoneRiskSnapshot,
 } from '../types/api'
 
 /** Barangay geometries (server-cached ~15 min). Static; join risk on top. */
@@ -27,5 +28,11 @@ export const getBarangayRisk = async (id: number): Promise<BarangayRisk> => {
 /** Flood-susceptibility zone geometry for the hazard-zone map layer (server-cached ~15 min). */
 export const getHazardZones = async (): Promise<HazardZoneCollection> => {
     const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/')
+    return data
+}
+
+/** Latest per-zone computed risk (rainfall-gated) for coloring the hazard-zone layer. */
+export const getZoneRiskSnapshot = async (): Promise<ZoneRiskSnapshot> => {
+    const { data } = await apiClient.get<ZoneRiskSnapshot>('/api/risk/zones/snapshot/')
     return data
 }

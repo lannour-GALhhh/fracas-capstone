@@ -5,6 +5,7 @@ import type {
     BarangayRisk,
     DamStatus,
     EvacuationCenterCollection,
+    LocalizedRisk,
     RiskSnapshot,
 } from '../types'
 
@@ -23,6 +24,12 @@ export const getRiskSnapshot = async (): Promise<RiskSnapshot> => {
 /** Full explainable breakdown + rainfall for a single barangay. */
 export const getBarangayRisk = async (id: number): Promise<BarangayRisk> => {
     const { data } = await apiClient.get<BarangayRisk>(`/api/risk/barangays/${id}/`)
+    return data
+}
+
+/** Pinpoint flood risk at a lat/lng — the resident's exact susceptibility zone. */
+export const getLocalizedRisk = async (lat: number, lng: number): Promise<LocalizedRisk> => {
+    const { data } = await apiClient.get<LocalizedRisk>('/api/risk/at/', { params: { lat, lng } })
     return data
 }
 

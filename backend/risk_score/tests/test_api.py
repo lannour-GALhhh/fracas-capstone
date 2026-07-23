@@ -57,6 +57,52 @@ class RiskApiTests(APITestCase):
         self.assertEqual(resp.data["current_rainfall"], 12.0)
         self.assertEqual(resp.data["rainfall_forecast_1hr"], 5.0)
 
+    def test_barangay_detail_includes_zones_and_average(self):
+        RiskScore.objects.create(
+            barangay=self.barangay, score=42.0, category=RiskCategory.MEDIUM,
+            breakdown={"zones": [{"level": "very_high", "score": 80.0, "category": "critical"}]},
+            computed_at=self.now,
+        )
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(reverse("barangay-risk", args=[self.barangay.id]))
+        self.assertEqual(resp.data["average"], 42.0)
+        self.assertEqual(len(resp.data["zones"]), 1)
+        self.assertEqual(resp.data["zones"][0]["level"], "very_high")
+
     def test_barangay_detail_404(self):
         self.client.force_authenticate(self.user)
         self.assertEqual(self.client.get(reverse("barangay-risk", args=[999])).status_code, 404)
+
+    def test_zones_snapshot_falls_back_to_db(self):
+        RiskScore.objects.create(
+            barangay=self.barangay, score=80.0, category=RiskCategory.CRITICAL,
+            breakdown={"zones": [{"level": "very_high", "score": 80.0, "category": "critical"}]},
+            computed_at=self.now,
+        )
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(reverse("risk-zones-snapshot"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(resp.data["zones"][0]["barangay_id"], self.barangay.id)
+
+    def test_localized_risk_resolves_point(self):
+        RiskScore.objects.create(
+            barangay=self.barangay, score=42.0, category=RiskCategory.MEDIUM,
+            breakdown={"zones": [{"level": "very_high", "score": 80.0, "category": "critical"}]},
+            computed_at=self.now,
+        )
+        self.client.force_authenticate(self.user)
+        # Point inside the unit-square boundary used by make_barangay.
+        resp = self.client.get(reverse("risk-localized"), {"lat": 0.5, "lng": 0.5})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["barangay"]["id"], self.barangay.id)
+        self.assertEqual(resp.data["average"], 42.0)
+
+    def test_localized_risk_requires_coords(self):
+        self.client.force_authenticate(self.user)
+        self.assertEqual(self.client.get(reverse("risk-localized")).status_code, 400)
+
+    def test_localized_risk_outside_boundaries_404(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(reverse("risk-localized"), {"lat": 80.0, "lng": 80.0})
+        self.assertEqual(resp.status_code, 404)

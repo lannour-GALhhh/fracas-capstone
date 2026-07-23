@@ -12,13 +12,23 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/common/ui/select'
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { RiskConfigSchema } from '../../schemas'
 import { useCreateRiskConfig, useUpdateRiskConfig } from '../../hooks/useModelMutations'
-import type { RiskConfig } from '../../types/model'
+import type { CombinationMode, Curve, RiskConfig, ZoneAggregation } from '../../types/model'
+import CurveEditor from './CurveEditor'
 
 type FormState = {
     name: string
+    combination_mode: CombinationMode
+    zone_aggregation: ZoneAggregation
     rainfall: string
     susceptibility: string
     medium: string
@@ -26,10 +36,28 @@ type FormState = {
     critical: string
 }
 
+const DEFAULT_RAINFALL_CURVE: Curve = [
+    [0, 0],
+    [2.5, 0.05],
+    [7.5, 0.25],
+    [15, 0.55],
+    [30, 0.85],
+    [65, 1],
+]
+
+const DEFAULT_ACCUMULATION_CURVE: Curve = [
+    [0, 0],
+    [50, 0.33],
+    [100, 0.66],
+    [200, 1],
+]
+
 const toForm = (config?: RiskConfig): FormState =>
     config
         ? {
               name: config.name,
+              combination_mode: config.combination_mode,
+              zone_aggregation: config.zone_aggregation,
               rainfall: String(config.weights.rainfall),
               susceptibility: String(config.weights.susceptibility),
               medium: String(config.thresholds.medium),
@@ -38,6 +66,8 @@ const toForm = (config?: RiskConfig): FormState =>
           }
         : {
               name: '',
+              combination_mode: 'rainfall_gated',
+              zone_aggregation: 'mean',
               rainfall: '0.5',
               susceptibility: '0.5',
               medium: '25',
@@ -57,6 +87,14 @@ const RiskConfigFormDialog = ({
 }) => {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<FormState>(() => toForm(config))
+    // Curves are arrays, managed outside the flat zod form; backend validates
+    // strict ordering/bounds and surfaces any error on save.
+    const [rainfallCurve, setRainfallCurve] = useState<Curve>(
+        () => config?.rainfall_curve ?? DEFAULT_RAINFALL_CURVE,
+    )
+    const [accumulationCurve, setAccumulationCurve] = useState<Curve>(
+        () => config?.accumulation_curve ?? DEFAULT_ACCUMULATION_CURVE,
+    )
     const create = useCreateRiskConfig()
     const update = useUpdateRiskConfig(config?.id ?? 0)
     const mutation = config ? update : create
@@ -66,6 +104,8 @@ const RiskConfigFormDialog = ({
     const onOpenChange = (next: boolean) => {
         if (next) {
             setForm(toForm(config))
+            setRainfallCurve(config?.rainfall_curve ?? DEFAULT_RAINFALL_CURVE)
+            setAccumulationCurve(config?.accumulation_curve ?? DEFAULT_ACCUMULATION_CURVE)
             reset()
             mutation.reset()
         }
@@ -75,11 +115,17 @@ const RiskConfigFormDialog = ({
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
+    const gated = form.combination_mode === 'rainfall_gated'
+
     const onSubmit = handleSubmit((data) => {
         const payload = {
             name: data.name,
+            combination_mode: data.combination_mode,
+            zone_aggregation: data.zone_aggregation,
             weights: { rainfall: data.rainfall, susceptibility: data.susceptibility },
             thresholds: { medium: data.medium, high: data.high, critical: data.critical },
+            rainfall_curve: rainfallCurve,
+            accumulation_curve: accumulationCurve,
         }
         mutation.mutate(payload, { onSuccess: () => setOpen(false) })
     })
@@ -92,8 +138,8 @@ const RiskConfigFormDialog = ({
                     <DialogHeader>
                         <DialogTitle>{config ? 'Edit config' : 'New config'}</DialogTitle>
                         <DialogDescription>
-                            Weights must sum to 1.0; thresholds must satisfy medium &lt; high &lt;
-                            critical, all on a 0–100 scale.
+                            Rainfall-gated scoring means no rain → no risk. Tune the rainfall curve
+                            below; thresholds must satisfy medium &lt; high &lt; critical (0–100).
                         </DialogDescription>
                     </DialogHeader>
 
@@ -104,39 +150,97 @@ const RiskConfigFormDialog = ({
                             <FieldError errors={fieldError('name')} />
                         </Field>
 
-                        <div>
-                            <p className='mb-2 text-sm font-medium'>Weights</p>
-                            <div className='grid grid-cols-2 gap-4'>
-                                <Field>
-                                    <FieldLabel htmlFor='config-rainfall'>Rainfall</FieldLabel>
-                                    <Input
-                                        id='config-rainfall'
-                                        type='number'
-                                        step='0.01'
-                                        min={0}
-                                        max={1}
-                                        value={form.rainfall}
-                                        onChange={set('rainfall')}
-                                        onBlur={onBlur('rainfall')}
-                                    />
-                                    <FieldError errors={fieldError('rainfall')} />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor='config-susceptibility'>Susceptibility</FieldLabel>
-                                    <Input
-                                        id='config-susceptibility'
-                                        type='number'
-                                        step='0.01'
-                                        min={0}
-                                        max={1}
-                                        value={form.susceptibility}
-                                        onChange={set('susceptibility')}
-                                        onBlur={onBlur('susceptibility')}
-                                    />
-                                    <FieldError errors={fieldError('susceptibility')} />
-                                </Field>
-                            </div>
+                        <div className='grid grid-cols-2 gap-4'>
+                            <Field>
+                                <FieldLabel htmlFor='config-mode'>Combination</FieldLabel>
+                                <Select
+                                    id='config-mode'
+                                    value={form.combination_mode}
+                                    onValueChange={(v) =>
+                                        setForm((p) => ({ ...p, combination_mode: v as CombinationMode }))
+                                    }
+                                >
+                                    <SelectTrigger className='w-full'>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value='rainfall_gated'>Rainfall-gated</SelectItem>
+                                        <SelectItem value='weighted_sum'>Weighted sum (legacy)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor='config-agg'>Zone aggregation</FieldLabel>
+                                <Select
+                                    id='config-agg'
+                                    value={form.zone_aggregation}
+                                    onValueChange={(v) =>
+                                        setForm((p) => ({ ...p, zone_aggregation: v as ZoneAggregation }))
+                                    }
+                                >
+                                    <SelectTrigger className='w-full'>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value='mean'>Mean (average)</SelectItem>
+                                        <SelectItem value='max'>Max (worst zone)</SelectItem>
+                                        <SelectItem value='area_weighted'>Area-weighted</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Field>
                         </div>
+
+                        <CurveEditor
+                            label='Rainfall scaling (PAGASA)'
+                            description='mm/hr → 0–1 hazard. Steeper low end means light rain barely registers.'
+                            xLabel='Rainfall (mm/hr)'
+                            points={rainfallCurve}
+                            onChange={setRainfallCurve}
+                        />
+
+                        <CurveEditor
+                            label='Accumulation (saturation)'
+                            description='24h total (mm) → 0–1 saturation hazard.'
+                            xLabel='Accumulated (mm)'
+                            points={accumulationCurve}
+                            onChange={setAccumulationCurve}
+                        />
+
+                        {!gated && (
+                            <div>
+                                <p className='mb-2 text-sm font-medium'>Weights (weighted-sum mode)</p>
+                                <div className='grid grid-cols-2 gap-4'>
+                                    <Field>
+                                        <FieldLabel htmlFor='config-rainfall'>Rainfall</FieldLabel>
+                                        <Input
+                                            id='config-rainfall'
+                                            type='number'
+                                            step='0.01'
+                                            min={0}
+                                            max={1}
+                                            value={form.rainfall}
+                                            onChange={set('rainfall')}
+                                            onBlur={onBlur('rainfall')}
+                                        />
+                                        <FieldError errors={fieldError('rainfall')} />
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor='config-susceptibility'>Susceptibility</FieldLabel>
+                                        <Input
+                                            id='config-susceptibility'
+                                            type='number'
+                                            step='0.01'
+                                            min={0}
+                                            max={1}
+                                            value={form.susceptibility}
+                                            onChange={set('susceptibility')}
+                                            onBlur={onBlur('susceptibility')}
+                                        />
+                                        <FieldError errors={fieldError('susceptibility')} />
+                                    </Field>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <p className='mb-2 text-sm font-medium'>Thresholds</p>

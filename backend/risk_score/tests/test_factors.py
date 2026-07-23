@@ -24,7 +24,7 @@ def context(susceptibility_by_barangay=None):
 class RainfallFactorTests(SimpleTestCase):
     def test_peak_intensity_drives_hazard(self):
         result = RainfallFactor().evaluate(FactorInput(None, rainfall(f1=15.0), context()))
-        self.assertAlmostEqual(result.value, 0.66)  # 15 mm/hr -> orange band
+        self.assertAlmostEqual(result.value, 0.55)  # 15 mm/hr -> PAGASA heavy band
 
     def test_accumulation_raises_hazard_without_intensity(self):
         result = RainfallFactor().evaluate(FactorInput(None, rainfall(acc24=200.0), context()))

@@ -69,6 +69,11 @@ class ComputeRiskScoresTests(TestCase):
 
         score = RiskScore.objects.get(barangay=barangay)
         self.assertFalse(score.is_degraded)
-        self.assertEqual(set(score.breakdown.keys()), {"rainfall", "susceptibility"})
-        self.assertTrue(score.breakdown["susceptibility"]["available"])
+        # Rainfall-gated breakdown: the rainfall trigger + the per-zone scores.
+        self.assertIn("rainfall", score.breakdown)
+        self.assertIn("zones", score.breakdown)
+        self.assertTrue(score.breakdown["rainfall"]["available"])
+        zones = score.breakdown["zones"]
+        self.assertEqual(len(zones), 1)
+        self.assertEqual(zones[0]["level"], "very_high")
         self.assertGreater(score.score, 0)

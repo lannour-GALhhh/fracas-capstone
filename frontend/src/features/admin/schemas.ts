@@ -12,21 +12,29 @@ export const CreateUserSchema = z.object({
 })
 
 /** Scoring config form: a flat shape so field-level errors map 1:1 to inputs.
- * Mirrors RiskConfig.clean() on the backend — weights sum to 1.0, thresholds
- * strictly ordered medium < high < critical. */
+ * Mirrors RiskConfig.clean() on the backend — thresholds strictly ordered
+ * medium < high < critical; weights sum to 1.0 only in the legacy weighted_sum
+ * mode (the rainfall-gated default ignores them). */
 export const RiskConfigSchema = z
     .object({
         name: RequiredString('Name'),
+        combination_mode: z.enum(['rainfall_gated', 'weighted_sum']),
+        zone_aggregation: z.enum(['mean', 'max', 'area_weighted']),
         rainfall: z.coerce.number('Enter a number').min(0).max(1),
         susceptibility: z.coerce.number('Enter a number').min(0).max(1),
         medium: z.coerce.number('Enter a number').gt(0),
         high: z.coerce.number('Enter a number').gt(0),
         critical: z.coerce.number('Enter a number').gt(0),
     })
-    .refine((data) => Math.abs(data.rainfall + data.susceptibility - 1) < 1e-6, {
-        message: 'Rainfall + susceptibility must sum to 1.0',
-        path: ['susceptibility'],
-    })
+    .refine(
+        (data) =>
+            data.combination_mode !== 'weighted_sum' ||
+            Math.abs(data.rainfall + data.susceptibility - 1) < 1e-6,
+        {
+            message: 'Rainfall + susceptibility must sum to 1.0',
+            path: ['susceptibility'],
+        },
+    )
     .refine((data) => data.medium < data.high, {
         message: 'Medium must be less than high',
         path: ['medium'],

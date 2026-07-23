@@ -10,6 +10,7 @@ import { timeAgo } from '@/common/utils/time'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
+import { useLocalizedRisk } from '@/features/gis/hooks/useLocalizedRisk'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
 import { centroidOf, geometryBounds } from '@/features/gis/utils/bounds'
 import { findBarangayAt, nearestCenter } from '@/features/gis/utils/geo'
@@ -28,6 +29,8 @@ export function StatusScreen() {
     const centers = useEvacuationCenters()
     const home = useHomeBarangay(riskMap.features)
     const { status: locStatus, coords, request } = useCurrentLocation()
+    // Pinpoint risk at the resident's exact spot (server-side point-in-polygon).
+    const localized = useLocalizedRisk(coords)
 
     // Turn alerts on for the resident: subscribe them to their home barangay once.
     useAutoSubscribeHome()
@@ -89,6 +92,7 @@ export function StatusScreen() {
         setRefreshing(true)
         riskMap.refetch()
         centers.refetch()
+        localized.refetch()
         await request()
         setRefreshing(false)
     }
@@ -117,7 +121,7 @@ export function StatusScreen() {
                         ) : null}
                     </View>
 
-                    <StatusHero feature={current} emptyMessage={currentEmpty} />
+                    <StatusHero feature={current} localized={localized.data} emptyMessage={currentEmpty} />
 
                     <RiskMap
                         data={riskMap.features}

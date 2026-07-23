@@ -28,8 +28,10 @@ class RainfallFactor:
         peak_forecast = max(forecasts)
         peak_intensity = max(r.current_rainfall_strength, peak_forecast)
 
-        intensity = normalize_rainfall(peak_intensity)
-        saturation = normalize_accumulation(r.accumulated_24hr)
+        intensity = normalize_rainfall(peak_intensity, getattr(data.context, "rainfall_curve", None))
+        saturation = normalize_accumulation(
+            r.accumulated_24hr, getattr(data.context, "accumulation_curve", None)
+        )
         value = clamp(max(intensity, 0.5 * intensity + 0.5 * saturation))
 
         return FactorResult(

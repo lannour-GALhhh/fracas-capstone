@@ -23,7 +23,7 @@ const RiskConfigsTable = () => {
             <TableHeader className='bg-accent'>
                 <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Weights</TableHead>
+                    <TableHead>Mode</TableHead>
                     <TableHead>Thresholds</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className='text-right'>Actions</TableHead>
@@ -60,8 +60,9 @@ const RiskConfigsTable = () => {
                             </div>
                         </TableCell>
                         <TableCell className='text-black/60'>
-                            Rainfall {Math.round(config.weights.rainfall * 100)}% · Susceptibility{' '}
-                            {Math.round(config.weights.susceptibility * 100)}%
+                            {config.combination_mode === 'rainfall_gated'
+                                ? `Rainfall-gated · ${config.zone_aggregation}`
+                                : 'Weighted sum'}
                         </TableCell>
                         <TableCell className='text-black/60'>
                             {config.thresholds.medium} / {config.thresholds.high} /{' '}
