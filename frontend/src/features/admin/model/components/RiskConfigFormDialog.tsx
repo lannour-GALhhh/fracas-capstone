@@ -67,7 +67,7 @@ const toForm = (config?: RiskConfig): FormState =>
         : {
               name: '',
               combination_mode: 'rainfall_gated',
-              zone_aggregation: 'mean',
+              zone_aggregation: 'area_weighted',
               rainfall: '0.5',
               susceptibility: '0.5',
               medium: '25',

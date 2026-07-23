@@ -100,8 +100,22 @@ class RainfallGatedTests(SimpleTestCase):
         zones = {z["level"]: z for z in result.breakdown["zones"]}
         self.assertEqual(zones["very_high"]["score"], 50.0)  # 0.5 * 1.0 * 100
         self.assertAlmostEqual(zones["very_low"]["score"], 10.0)  # 0.5 * 0.2 * 100
-        # Barangay headline = simple mean of the two zone hazards -> 30.
+        # Equal shares -> area-weighted average equals the simple mean -> 30.
         self.assertAlmostEqual(result.score, 30.0)
+
+    def test_area_weighted_is_default_and_weights_by_share(self):
+        # 90% of the land is very-low, 10% very-high. The area-weighted default
+        # must pull the barangay score toward the dominant zone (not the mean).
+        result = self._score(
+            1.0,
+            [
+                {"level": "very_high", "value": 1.0, "share": 0.1},
+                {"level": "very_low", "value": 0.2, "share": 0.9},
+            ],
+        )
+        # 1.0*0.1 + 0.2*0.9 = 0.28 -> 28 (a simple mean would be 60).
+        self.assertAlmostEqual(result.score, 28.0)
+        self.assertEqual(result.breakdown["aggregation"], "area_weighted")
 
     def test_max_aggregation_takes_worst_zone(self):
         result = self._score(

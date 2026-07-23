@@ -179,7 +179,7 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
                 <Label className='font-medium'>Zone risk</Label>
                 <p className='text-muted-foreground text-xs'>
                     Each susceptibility zone scored rainfall × susceptibility; the barangay score is
-                    their average.
+                    their area-weighted average (by how much land each zone covers).
                 </p>
             </div>
             <div className='flex flex-col gap-2.5'>

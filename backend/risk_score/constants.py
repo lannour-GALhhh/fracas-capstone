@@ -42,9 +42,11 @@ DEFAULT_COMBINATION_MODE = COMBINATION_RAINFALL_GATED
 # How a barangay's per-zone scores collapse to one headline number.
 ZONE_AGG_MEAN = "mean"            # simple average across the zones present
 ZONE_AGG_MAX = "max"             # worst-case zone (most cautious)
-ZONE_AGG_AREA_WEIGHTED = "area_weighted"  # weighted by each zone's land area
+ZONE_AGG_AREA_WEIGHTED = "area_weighted"  # weighted by each zone's land area (default)
 ZONE_AGGREGATIONS = (ZONE_AGG_MEAN, ZONE_AGG_MAX, ZONE_AGG_AREA_WEIGHTED)
-DEFAULT_ZONE_AGGREGATION = ZONE_AGG_MEAN
+# Area-weighted by default: a barangay's score reflects how much of its land sits
+# in each susceptibility zone, not just the unweighted average of the zones present.
+DEFAULT_ZONE_AGGREGATION = ZONE_AGG_AREA_WEIGHTED
 
 # Configurable rainfall-intensity curve (mm/hr -> 0-1 hazard), seeded from PAGASA
 # intensity bands with a deliberately steep low end so drizzle barely registers:

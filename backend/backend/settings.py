@@ -10,12 +10,19 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import sys
+
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# True while the Django test runner is active. Used to isolate side-effecting
+# infrastructure (e.g. the shared Redis cache) so tests never touch — or
+# pollute — the running app's data.
+TESTING = "test" in sys.argv
 
 
 # Quick-start development settings - unsuitable for production
@@ -164,6 +171,13 @@ CACHES = {
         "LOCATION": config("REDIS_URL"),
     }
 }
+
+# Tests must never read from or write to the shared Redis — a test that calls
+# compute_risk_scores() would otherwise overwrite the live risk snapshot with
+# its fixture barangays (the "Highland/Lowland on the cards" bug). Use an
+# isolated, per-process in-memory cache instead.
+if TESTING:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
