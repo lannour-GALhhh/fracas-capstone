@@ -38,9 +38,8 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 
-/** Read-only evacuation-center markers — the console no longer creates, moves,
- * or deletes centers (see ENGINE_V2_PLAN Phase 4); `load_evacuation_centers`
- * stays the authoritative source. */
+/** Read-only evacuation-center markers. Centers are managed from the admin
+ * console (Admin → Evacuation centers), not on the map. */
 const EvacuationLayer = ({ visible, focusedBarangayId }: Props) => {
     const { data } = useEvacuationCenters()
 

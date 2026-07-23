@@ -23,6 +23,9 @@ const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPag
 const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'))
+const EvacuationCentersPage = lazy(
+  () => import('@/features/admin/evacuation/EvacuationCentersPage'),
+)
 const TestAuth = lazy(() => import('@/common/test/TestAuth'))
 const NotFound = lazy(() => import('@/common/pages/NotFound'))
 
@@ -46,6 +49,7 @@ const Routers = () => {
             <Route path='users/:id' element={<UserDetailPage />} />
             <Route path='model/config' element={<ModelConfigPage />} />
             <Route path='model/validation' element={<ModelValidationPage />} />
+            <Route path='evacuation' element={<EvacuationCentersPage />} />
             <Route path='system' element={<SystemPage />} />
             <Route path='settings' element={<SettingsPage />} />
           </Route>
