@@ -22,3 +22,8 @@ STALE_AFTER = {
 # task). RiskScore is kept longer because it feeds flood history / validation.
 RAINFALL_RETENTION_DAYS = 30
 RISK_SCORE_RETENTION_DAYS = 90
+
+# Per-resident EvacuationStatus rows are the ephemeral working set of an
+# evacuation; once it stands down the Evacuation row carries the frozen final
+# counts, so the per-user rows can be purged a short grace period later.
+EVACUATION_STATUS_RETENTION_DAYS = 7

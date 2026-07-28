@@ -4,7 +4,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from barangays.models import Barangay
 
-from .models import EvacuationCenter
+from .models import EvacuationCenter, EvacuationStatus
 
 
 class EvacuationCenterSerializer(GeoFeatureModelSerializer):
@@ -58,3 +58,56 @@ class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return EvacuationCenterSerializer(instance, context=self.context).data
+
+
+class EvacuationReportSerializer(serializers.Serializer):
+    """Validates one device's status transition report.
+
+    The device targets the active evacuation either by id or by its barangay;
+    everything else describes the resident's own computed status.
+    """
+
+    evacuation_id = serializers.IntegerField(required=False)
+    barangay_id = serializers.IntegerField(required=False)
+    status = serializers.ChoiceField(choices=EvacuationStatus.Status.choices)
+    resolved_via = serializers.ChoiceField(
+        choices=EvacuationStatus.ResolvedVia.choices, required=False, allow_blank=True
+    )
+    center_id = serializers.IntegerField(required=False, allow_null=True)
+    lat = serializers.FloatField(required=False, allow_null=True)
+    lng = serializers.FloatField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        if not attrs.get("evacuation_id") and not attrs.get("barangay_id"):
+            raise serializers.ValidationError(
+                "Provide evacuation_id or barangay_id."
+            )
+        return attrs
+
+
+class EvacuationStatusSerializer(serializers.ModelSerializer):
+    """Per-resident drill-down row for the operator console."""
+
+    user = serializers.SerializerMethodField()
+    center_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EvacuationStatus
+        fields = [
+            "id", "user", "status", "resolved_via",
+            "center", "center_name", "last_lat", "last_lng", "updated_at",
+        ]
+
+    def get_user(self, obj):
+        u = obj.user
+        label = u.get_full_name() or getattr(u, "email", "") or str(u.pk)
+        return {"id": u.pk, "label": label}
+
+    def get_center_name(self, obj):
+        return obj.center.name if obj.center_id else None
+
+
+class PingEvacuationSerializer(serializers.Serializer):
+    """Operator ping input — the barangay to open an evacuation for."""
+
+    barangay_id = serializers.IntegerField()

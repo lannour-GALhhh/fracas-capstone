@@ -15,6 +15,7 @@ const FloodHistory = lazy(() => import('@/features/history/component/FloodHistor
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
 const AccountPage = lazy(() => import('@/features/user/AccountPage'))
 const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'))
+const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage'))
 const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const UsersPage = lazy(() => import('@/features/admin/users/UsersPage'))
@@ -42,6 +43,7 @@ const Routers = () => {
           <Route path='/history/:id' element={<FloodEventDetail />} />
           <Route path='/me' element={<AccountPage />} />
           <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
+          <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
           <Route path='/analytics' element={<OperatorRoute><AnalyticsPage /></OperatorRoute>} />
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route index element={<Navigate to='users' replace />} />
