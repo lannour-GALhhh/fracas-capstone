@@ -11,6 +11,7 @@ class RetentionPolicySerializer(SingletonSerializer):
         fields = [
             "rainfall_retention_days",
             "risk_score_retention_days",
+            "evacuation_status_retention_days",
             "flood_event_purge_grace_hours",
             "updated_at",
         ]

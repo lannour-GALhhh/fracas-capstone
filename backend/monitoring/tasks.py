@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def cleanup_old_data() -> dict:
+    from evacuation.models import Evacuation, EvacuationStatus
     from rainfall_fetch.models import Rainfall
     from risk_score.models import RiskScore
 
@@ -30,9 +31,22 @@ def cleanup_old_data() -> dict:
         computed_at__lt=now - timedelta(days=policy.risk_score_retention_days)
     ).delete()
 
+    # Purge the per-resident working set of long-closed evacuations. The
+    # Evacuation row keeps the frozen final counts, so this loses no history.
+    evac_status_deleted, _ = EvacuationStatus.objects.filter(
+        evacuation__status=Evacuation.Status.STOOD_DOWN,
+        evacuation__closed_at__lt=now
+        - timedelta(days=policy.evacuation_status_retention_days),
+    ).delete()
+
     logger.info(
-        "Retention cleanup: %d rainfall, %d risk-score rows deleted",
+        "Retention cleanup: %d rainfall, %d risk-score, %d evacuation-status rows deleted",
         rain_deleted,
         score_deleted,
+        evac_status_deleted,
     )
-    return {"rainfall_deleted": rain_deleted, "risk_score_deleted": score_deleted}
+    return {
+        "rainfall_deleted": rain_deleted,
+        "risk_score_deleted": score_deleted,
+        "evacuation_status_deleted": evac_status_deleted,
+    }

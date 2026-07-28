@@ -8,6 +8,9 @@ import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
+import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
+import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
+import { useMyEvacuations } from '@/features/evacuation/hooks/useMyEvacuations'
 import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useLocalizedRisk } from '@/features/gis/hooks/useLocalizedRisk'
@@ -47,6 +50,25 @@ export function StatusScreen() {
 
     const current = coords ? findBarangayAt(coords, riskMap.features) : null
     const nearest = coords ? nearestCenter(coords, centers.data?.features) : null
+
+    // Is any of the resident's subscribed barangays under evacuation right now?
+    // Prefer the one they're standing in, then their home, then whatever's active.
+    const evacuations = useMyEvacuations()
+    const homeEvac = useMemo(() => {
+        const list = evacuations.data ?? []
+        if (list.length === 0) return null
+        const currentId = current?.properties.id
+        const homeId = home.feature?.properties.id
+        return (
+            list.find((e) => e.barangay_id === currentId) ??
+            list.find((e) => e.barangay_id === homeId) ??
+            list[0]
+        )
+    }, [evacuations.data, current, home.feature])
+
+    // Report this device's status as the resident moves (auto) + power the
+    // "I've reached safety" button (manual).
+    const reporter = useEvacuationReporter(homeEvac, coords, nearest, riskMap.features)
 
     // Hide the Home card when the resident is already standing in their home
     // barangay — the two cards would be identical.
@@ -112,6 +134,16 @@ export function StatusScreen() {
                     contentContainerStyle={styles.body}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 >
+                    {homeEvac ? (
+                        <EvacuationBanner
+                            evacuation={homeEvac}
+                            nearest={nearest}
+                            onMarkSafe={reporter.markSafe}
+                            isReporting={reporter.isReporting}
+                            locationEnabled={locStatus === 'granted'}
+                        />
+                    ) : null}
+
                     <View style={styles.heading}>
                         <Text variant="title">Flood status</Text>
                         {riskMap.computedAt ? (

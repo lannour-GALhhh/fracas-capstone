@@ -10,7 +10,11 @@ from django.db import models
 
 from audit.models import SingletonModel
 
-from ..constants import RAINFALL_RETENTION_DAYS, RISK_SCORE_RETENTION_DAYS
+from ..constants import (
+    EVACUATION_STATUS_RETENTION_DAYS,
+    RAINFALL_RETENTION_DAYS,
+    RISK_SCORE_RETENTION_DAYS,
+)
 
 # Today's soft-delete purge window (mirrors flood_events.tasks.PURGE_AFTER_HOURS).
 DEFAULT_PURGE_GRACE_HOURS = 6
@@ -21,6 +25,9 @@ class RetentionPolicy(SingletonModel):
 
     rainfall_retention_days = models.PositiveIntegerField(default=RAINFALL_RETENTION_DAYS)
     risk_score_retention_days = models.PositiveIntegerField(default=RISK_SCORE_RETENTION_DAYS)
+    evacuation_status_retention_days = models.PositiveIntegerField(
+        default=EVACUATION_STATUS_RETENTION_DAYS
+    )
     flood_event_purge_grace_hours = models.PositiveIntegerField(default=DEFAULT_PURGE_GRACE_HOURS)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -30,6 +37,10 @@ class RetentionPolicy(SingletonModel):
             raise ValidationError({"rainfall_retention_days": "Must be at least 1 day."})
         if self.risk_score_retention_days < 1:
             raise ValidationError({"risk_score_retention_days": "Must be at least 1 day."})
+        if self.evacuation_status_retention_days < 1:
+            raise ValidationError(
+                {"evacuation_status_retention_days": "Must be at least 1 day."}
+            )
         if self.flood_event_purge_grace_hours < 1:
             raise ValidationError({"flood_event_purge_grace_hours": "Must be at least 1 hour."})
 

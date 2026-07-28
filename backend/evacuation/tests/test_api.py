@@ -4,8 +4,9 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from evacuation.models import EvacuationCenter
+from evacuation.models import Evacuation, EvacuationCenter, EvacuationStatus
 from poi.models import MapPoiChange
+from users.models import Subscription
 
 
 class EvacuationCenterApiTests(APITestCase):
@@ -107,3 +108,54 @@ class EvacuationCenterOperatorTests(APITestCase):
         resp = self.client.get(reverse("poi-logs"))
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(resp.data["count"], 1)
+
+
+class MyEvacuationsApiTests(APITestCase):
+    """The resident-facing feed the mobile evacuation banner reads."""
+
+    def setUp(self):
+        poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
+        self.home = Barangay.objects.create(
+            name="Tumaga", code="T1", province_code="PH0907332", boundary=MultiPolygon(poly)
+        )
+        self.other = Barangay.objects.create(
+            name="Other", code="O1", province_code="PH0907332", boundary=MultiPolygon(poly)
+        )
+        self.user = get_user_model().objects.create_user("resident", password="pw")
+        Subscription.objects.create(user=self.user, barangay=self.home)
+        self.client.force_authenticate(self.user)
+
+    def test_requires_auth(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse("evacuation-for-me")).status_code, 401)
+
+    def test_lists_only_subscribed_barangays_with_own_status(self):
+        mine = Evacuation.objects.create(
+            barangay=self.home, trigger=Evacuation.Trigger.OPERATOR
+        )
+        # An evacuation for a barangay the user isn't subscribed to is invisible.
+        Evacuation.objects.create(barangay=self.other, trigger=Evacuation.Trigger.AUTOMATED)
+        EvacuationStatus.objects.create(evacuation=mine, user=self.user, status="moving")
+
+        resp = self.client.get(reverse("evacuation-for-me"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        row = resp.data[0]
+        self.assertEqual(row["evacuation_id"], mine.id)
+        self.assertEqual(row["barangay_id"], self.home.id)
+        self.assertEqual(row["barangay_name"], "Tumaga")
+        self.assertEqual(row["my_status"], "moving")
+
+    def test_no_status_reports_null(self):
+        Evacuation.objects.create(barangay=self.home, trigger=Evacuation.Trigger.OPERATOR)
+        resp = self.client.get(reverse("evacuation-for-me"))
+        self.assertIsNone(resp.data[0]["my_status"])
+
+    def test_stood_down_evacuation_is_excluded(self):
+        Evacuation.objects.create(
+            barangay=self.home,
+            trigger=Evacuation.Trigger.OPERATOR,
+            status=Evacuation.Status.STOOD_DOWN,
+        )
+        resp = self.client.get(reverse("evacuation-for-me"))
+        self.assertEqual(resp.data, [])

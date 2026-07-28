@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, ChevronsRight, History, Waves, X } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ChevronsRight, History, Siren, Waves, X } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
@@ -7,6 +7,8 @@ import { Progress } from '@/common/ui/progress'
 import { Badge } from '@/common/ui/badge'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
+import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
+import { useActiveEvacuations } from '@/features/evacuation/hooks/useActiveEvacuations'
 import { useRecentFloods } from '@/features/history/hooks/useRecentFloods'
 import { SEVERITY_COLORS, SEVERITY_LABELS } from '@/features/history/constants/floodEvents'
 import {
@@ -283,25 +285,48 @@ const RecentFloods = ({ id }: { id: number }) => {
     )
 }
 
-/** Operator-only actions for the selected barangay: broadcast + audit history. */
+/** Operator-only actions for the selected barangay: broadcast, audit history,
+ * and declaring an evacuation (or a link into one already active). */
 const Actions = ({ id, name }: { id: number; name: string }) => {
     const { isOperator } = useAuth()
     const navigate = useNavigate()
+    const { data: evacuations } = useActiveEvacuations()
 
     if (!isOperator) return null
 
+    const underEvacuation = (evacuations ?? []).some((e) => e.barangay.id === id)
+
     return (
-        <div className='flex gap-2'>
-            <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName='flex-1 cursor-pointer' />
-            <Button
-                variant='outline'
-                size='sm'
-                className='flex-1 cursor-pointer'
-                onClick={() => navigate(`/alerts?barangay=${id}`)}
-            >
-                <History className='size-4' />
-                Alert history
-            </Button>
+        <div className='flex flex-col gap-2'>
+            <div className='flex gap-2'>
+                <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName='flex-1 cursor-pointer' />
+                <Button
+                    variant='outline'
+                    size='sm'
+                    className='flex-1 cursor-pointer'
+                    onClick={() => navigate(`/alerts?barangay=${id}`)}
+                >
+                    <History className='size-4' />
+                    Alert history
+                </Button>
+            </div>
+            {underEvacuation ? (
+                <Button
+                    variant='outline'
+                    size='sm'
+                    className='text-destructive w-full cursor-pointer'
+                    onClick={() => navigate('/evacuation')}
+                >
+                    <Siren className='size-4' />
+                    Under evacuation — view
+                </Button>
+            ) : (
+                <PingEvacuationDialog
+                    barangayId={id}
+                    barangayName={name}
+                    triggerClassName='w-full cursor-pointer'
+                />
+            )}
         </div>
     )
 }

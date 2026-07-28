@@ -10,6 +10,7 @@ from celery import chain, shared_task
 from django.utils import timezone
 
 from alert.tasks import evaluate_alerts
+from evacuation.tasks import sync_evacuations
 from rainfall_fetch.tasks import fetch_rainfall_information
 
 from .models import RiskConfig, RiskScore
@@ -143,4 +144,5 @@ def run_scoring_pipeline():
         compute_risk_scores.si(),
         draft_auto_flood_events.si(),
         evaluate_alerts.si(),
+        sync_evacuations.si(),
     )()
