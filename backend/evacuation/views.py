@@ -20,6 +20,7 @@ class EvacuationCenterViewSet(PoiViewSet):
     tracked_fields = ["name", "capacity", "contact", "is_active"]
 
 
+from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status as http_status
 from rest_framework.generics import ListAPIView, get_object_or_404
 from rest_framework.response import Response
@@ -31,6 +32,7 @@ from users.permissions import IsOperator
 
 from .models import Evacuation, EvacuationCenter, EvacuationStatus
 from .serializers import (
+    EvacuationHistorySerializer,
     EvacuationReportSerializer,
     EvacuationStatusSerializer,
     PingEvacuationSerializer,
@@ -149,6 +151,45 @@ class EvacuationStatusesView(ListAPIView):
             .select_related("user", "center")
             .order_by("-updated_at")
         )
+
+
+def _parse_day(raw):
+    """Parse an ISO date or datetime query param into a date, or None."""
+    if not raw:
+        return None
+    dt = parse_datetime(raw)
+    if dt is not None:
+        return dt.date()
+    return parse_date(raw)
+
+
+class EvacuationHistoryView(ListAPIView):
+    """Operator archive: every evacuation that has been stood down.
+
+    The permanent record — each row carries the aggregate counts frozen at
+    stand-down, so it stays answerable long after retention purges the
+    per-resident status rows. Filterable by `barangay`, `trigger`, and an
+    inclusive `closed_after` / `closed_before` date range.
+    """
+
+    permission_classes = [IsOperator]
+    serializer_class = EvacuationHistorySerializer
+
+    def get_queryset(self):
+        queryset = Evacuation.objects.filter(
+            status=Evacuation.Status.STOOD_DOWN
+        ).select_related("barangay", "triggered_by")
+        params = self.request.query_params
+        if barangay := params.get("barangay"):
+            queryset = queryset.filter(barangay_id=barangay)
+        if trigger := params.get("trigger"):
+            queryset = queryset.filter(trigger=trigger)
+        if after := _parse_day(params.get("closed_after")):
+            queryset = queryset.filter(closed_at__date__gte=after)
+        if before := _parse_day(params.get("closed_before")):
+            queryset = queryset.filter(closed_at__date__lte=before)
+        # Newest stand-down first (the model's default ordering is by opening).
+        return queryset.order_by("-closed_at", "-opened_at")
 
 
 class PingEvacuationView(APIView):

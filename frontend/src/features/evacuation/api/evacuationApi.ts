@@ -1,10 +1,11 @@
 import apiClient from '@/app/apiClient'
 import type {
     EvacuationAggregate,
-    EvacueeStatus,
+    EvacuationHistoryEntry,
+    EvacuationHistoryFilters,
+    MarkSafeResult,
     Paginated,
     PingResult,
-    StandDownResult,
 } from '../types/api'
 
 /** Live aggregate for every active evacuation (one shared cached read). */
@@ -15,14 +16,13 @@ export const getActiveEvacuations = async (): Promise<EvacuationAggregate[]> => 
     return data
 }
 
-/** Paginated per-resident drill-down for one evacuation. */
-export const getEvacuationStatuses = async (
-    evacuationId: number,
-    page = 1,
-): Promise<Paginated<EvacueeStatus>> => {
-    const { data } = await apiClient.get<Paginated<EvacueeStatus>>(
-        `/api/evacuation/evacuations/${evacuationId}/statuses/`,
-        { params: { page } },
+/** Paginated archive of closed evacuations. */
+export const getEvacuationHistory = async (
+    filters: EvacuationHistoryFilters = {},
+): Promise<Paginated<EvacuationHistoryEntry>> => {
+    const { data } = await apiClient.get<Paginated<EvacuationHistoryEntry>>(
+        '/api/evacuation/evacuations/history/',
+        { params: filters },
     )
     return data
 }
@@ -35,11 +35,12 @@ export const pingEvacuation = async (barangayId: number): Promise<PingResult> =>
     return data
 }
 
-/** Operator stand-down: close an active evacuation and freeze its final counts. */
-export const standDownEvacuation = async (
-    evacuationId: number,
-): Promise<StandDownResult> => {
-    const { data } = await apiClient.post<StandDownResult>(
+/**
+ * Mark safe: close an active evacuation and freeze its final counts.
+ * The backend route is still `stand-down/` — only the operator-facing wording changed.
+ */
+export const markEvacuationSafe = async (evacuationId: number): Promise<MarkSafeResult> => {
+    const { data } = await apiClient.post<MarkSafeResult>(
         `/api/evacuation/evacuations/${evacuationId}/stand-down/`,
     )
     return data

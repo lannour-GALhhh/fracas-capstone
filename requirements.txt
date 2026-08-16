@@ -1,1 +1,0 @@
-ERROR: unknown command "freezr" - maybe you meant "freeze"

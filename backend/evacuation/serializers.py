@@ -4,7 +4,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from barangays.models import Barangay
 
-from .models import EvacuationCenter, EvacuationStatus
+from .models import Evacuation, EvacuationCenter, EvacuationStatus
 
 
 class EvacuationCenterSerializer(GeoFeatureModelSerializer):
@@ -111,3 +111,49 @@ class PingEvacuationSerializer(serializers.Serializer):
     """Operator ping input — the barangay to open an evacuation for."""
 
     barangay_id = serializers.IntegerField()
+
+
+class EvacuationHistorySerializer(serializers.ModelSerializer):
+    """One closed evacuation, answered from the row alone.
+
+    Reads only the counts frozen at stand-down — never the per-resident
+    ``EvacuationStatus`` rows, which retention purges once an evacuation is old
+    enough. Counts are therefore nullable: a row closed before freezing (or one
+    whose barangay had no roster) reports ``null``, which the console renders as
+    "not recorded" rather than a misleading zero.
+    """
+
+    barangay = serializers.SerializerMethodField()
+    triggered_by_name = serializers.SerializerMethodField()
+    duration_seconds = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Evacuation
+        fields = [
+            "id",
+            "barangay",
+            "trigger",
+            "triggered_by_name",
+            "opened_at",
+            "closed_at",
+            "duration_seconds",
+            "final_roster",
+            "final_safe",
+            "final_moving",
+            "final_unaccounted",
+        ]
+
+    def get_barangay(self, obj):
+        return {"id": obj.barangay_id, "name": obj.barangay.name}
+
+    def get_triggered_by_name(self, obj):
+        """None for an automated run — the console renders that as "System"."""
+        if not obj.triggered_by_id:
+            return None
+        user = obj.triggered_by
+        return user.get_full_name() or user.get_username() or str(user.pk)
+
+    def get_duration_seconds(self, obj):
+        if not obj.closed_at:
+            return None
+        return int((obj.closed_at - obj.opened_at).total_seconds())

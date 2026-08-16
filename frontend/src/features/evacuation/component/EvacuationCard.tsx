@@ -1,14 +1,11 @@
-import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronUp, MapPin, Users } from 'lucide-react'
+import { MapPin, Users } from 'lucide-react'
 import { Card } from '@/common/ui/card'
 import { Badge } from '@/common/ui/badge'
-import { Button } from '@/common/ui/button'
 import { SEGMENT_COLORS, TRIGGER_LABELS } from '../constants/evacuation'
 import type { EvacuationAggregate } from '../types/api'
 import EvacProgress from './EvacProgress'
-import EvacueeTable from './EvacueeTable'
-import StandDownDialog from './StandDownDialog'
+import MarkSafeDialog from './MarkSafeDialog'
 
 /** A labelled count with a color dot matching the progress segment. */
 const CountStat = ({ label, value, color }: { label: string; value: number; color?: string }) => (
@@ -30,9 +27,11 @@ interface EvacuationCardProps {
     evac: EvacuationAggregate
 }
 
-/** One active evacuation: headline, roster progress, counts, drill-down. */
+/**
+ * One active evacuation: headline, roster progress, and the aggregate counts.
+ * Deliberately aggregate-only — the per-resident roster is never rendered here.
+ */
 const EvacuationCard = ({ evac }: EvacuationCardProps) => {
-    const [expanded, setExpanded] = useState(false)
     const remaining = Math.max(evac.roster - evac.safe, 0)
 
     return (
@@ -52,7 +51,7 @@ const EvacuationCard = ({ evac }: EvacuationCardProps) => {
                         </span>
                     </span>
                 </div>
-                <StandDownDialog evacuationId={evac.evacuation_id} barangayName={evac.barangay.name} />
+                <MarkSafeDialog evacuationId={evac.evacuation_id} barangayName={evac.barangay.name} />
             </div>
 
             <div>
@@ -81,18 +80,6 @@ const EvacuationCard = ({ evac }: EvacuationCardProps) => {
                 />
                 <CountStat label='Total residents' value={evac.roster} />
             </div>
-
-            <Button
-                variant='ghost'
-                size='sm'
-                className='cursor-pointer self-start text-black/60'
-                onClick={() => setExpanded((e) => !e)}
-            >
-                {expanded ? <ChevronUp className='size-4' /> : <ChevronDown className='size-4' />}
-                {expanded ? 'Hide evacuees' : 'View evacuees'}
-            </Button>
-
-            {expanded && <EvacueeTable evacuationId={evac.evacuation_id} />}
         </Card>
     )
 }
