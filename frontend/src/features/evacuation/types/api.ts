@@ -37,6 +37,36 @@ export interface EvacueeStatus {
     updated_at: string
 }
 
+/**
+ * One stood-down evacuation (GET /evacuation/evacuations/history/).
+ * The `final_*` counts are the aggregate frozen at stand-down — they survive the
+ * retention purge of the per-resident rows. `null` means "never recorded", which
+ * is distinct from a genuine zero, so render it as an em dash, not a 0.
+ */
+export interface EvacuationHistoryEntry {
+    id: number
+    barangay: { id: number; name: string }
+    trigger: EvacuationTrigger
+    /** Operator who pinged it; `null` for an automated run. */
+    triggered_by_name: string | null
+    opened_at: string
+    closed_at: string
+    duration_seconds: number | null
+    final_roster: number | null
+    final_safe: number | null
+    final_moving: number | null
+    final_unaccounted: number | null
+}
+
+/** Query params for the history archive. Dates are `YYYY-MM-DD`. */
+export interface EvacuationHistoryFilters {
+    page?: number
+    barangay?: number
+    trigger?: EvacuationTrigger
+    closed_after?: string
+    closed_before?: string
+}
+
 /** DRF page envelope. */
 export interface Paginated<T> {
     count: number

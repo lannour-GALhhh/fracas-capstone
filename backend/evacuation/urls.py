@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ActiveEvacuationsView,
     EvacuationCenterViewSet,
+    EvacuationHistoryView,
     EvacuationReportView,
     EvacuationStatusesView,
     MyEvacuationsView,
@@ -23,6 +24,12 @@ urlpatterns = router.urls + [
         "evacuation/evacuations/active/",
         ActiveEvacuationsView.as_view(),
         name="evacuation-active",
+    ),
+    # Operator: paginated archive of stood-down evacuations.
+    path(
+        "evacuation/evacuations/history/",
+        EvacuationHistoryView.as_view(),
+        name="evacuation-history",
     ),
     # Resident-facing: active evacuations for the caller's subscribed barangays.
     path(

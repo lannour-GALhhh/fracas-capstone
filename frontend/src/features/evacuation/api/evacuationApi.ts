@@ -1,6 +1,8 @@
 import apiClient from '@/app/apiClient'
 import type {
     EvacuationAggregate,
+    EvacuationHistoryEntry,
+    EvacuationHistoryFilters,
     EvacueeStatus,
     Paginated,
     PingResult,
@@ -23,6 +25,17 @@ export const getEvacuationStatuses = async (
     const { data } = await apiClient.get<Paginated<EvacueeStatus>>(
         `/api/evacuation/evacuations/${evacuationId}/statuses/`,
         { params: { page } },
+    )
+    return data
+}
+
+/** Paginated archive of stood-down evacuations. */
+export const getEvacuationHistory = async (
+    filters: EvacuationHistoryFilters = {},
+): Promise<Paginated<EvacuationHistoryEntry>> => {
+    const { data } = await apiClient.get<Paginated<EvacuationHistoryEntry>>(
+        '/api/evacuation/evacuations/history/',
+        { params: filters },
     )
     return data
 }
