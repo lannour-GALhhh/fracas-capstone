@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -7,6 +6,7 @@ import { useZodForm } from '@/common/hooks/useZodForm'
 import { spacing } from '@/common/theme'
 import { Button, Field, Screen, Spinner, Text } from '@/common/ui'
 import { apiErrorMessage } from '@/common/utils/apiError'
+import { goBack } from '@/common/utils/navigation'
 import { AddressPicker } from '@/features/registration/components/AddressPicker'
 import type { RegistrationAddress } from '@/features/registration/types'
 
@@ -54,7 +54,7 @@ function ProfileForm({ user }: { user: CurrentUser }) {
             email: email.trim(),
             address: { ...address, zip_code: address.zip_code.trim() },
         }
-        update.mutate(payload, { onSuccess: () => router.back() })
+        update.mutate(payload, { onSuccess: () => goBack() })
     })
 
     return (
@@ -134,12 +134,6 @@ export function EditProfileScreen() {
 
     return (
         <Screen edges={['bottom']}>
-            <Button
-                label="‹ Back"
-                variant="ghost"
-                onPress={() => router.back()}
-                style={styles.back}
-            />
             <Text variant="title" style={styles.title}>
                 Edit profile
             </Text>
@@ -160,7 +154,6 @@ export function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    back: { alignSelf: 'flex-start', minHeight: 36, paddingHorizontal: 0 },
     title: { marginBottom: spacing.lg },
     form: { gap: spacing.lg },
     names: { flexDirection: 'row', gap: spacing.md },

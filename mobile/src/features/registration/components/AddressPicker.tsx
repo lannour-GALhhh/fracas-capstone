@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { spacing } from '@/common/theme'
@@ -7,6 +7,7 @@ import { Button, Card, Field, Text } from '@/common/ui'
 import { featureAt } from '@/features/gis/utils/geo'
 
 import { getPublicBarangays } from '../api/registrationApi'
+import { LocationConfirmModal } from './LocationConfirmModal'
 import { PinMapModal } from './PinMapModal'
 import type { RegistrationAddress } from '../types'
 
@@ -20,15 +21,17 @@ type Mode = 'idle' | 'choosing'
 
 /**
  * "Set permanent address" for registration phase 1. Offers two methods: the
- * location-service path (available now) resolves the barangay by point-in-polygon
- * against the public boundaries; the map-pin path lands in Phase C2. The detected
- * barangay is shown for the resident to confirm, plus an optional unit/house field.
+ * location-service path resolves the barangay by point-in-polygon against the
+ * public boundaries; the map-pin path lets the resident place it by hand. The
+ * detected barangay is shown for the resident to confirm, plus an optional
+ * unit/house field — and can be cleared to return to the two method buttons.
  */
 export function AddressPicker({ value, onChange, disabled }: Props) {
     const { request } = useCurrentLocation()
     const [mode, setMode] = useState<Mode>('idle')
     const [busy, setBusy] = useState(false)
     const [pinOpen, setPinOpen] = useState(false)
+    const [confirmOpen, setConfirmOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const detected = value.barangay?.trim() || null
@@ -37,6 +40,13 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
         onChange({ ...value, barangay })
         setMode('idle')
         setPinOpen(false)
+    }
+
+    /** Drop the detected barangay and go back to the two method buttons. */
+    const resetBarangay = () => {
+        onChange({ ...value, barangay: undefined })
+        setError(null)
+        setMode('choosing')
     }
 
     const resolveByLocation = async () => {
@@ -63,14 +73,8 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
     }
 
     const confirmLocation = () => {
-        Alert.alert(
-            'Set your permanent address',
-            'Please stand at your permanent address before continuing, then tap “I’m here”.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'I’m here', onPress: () => void resolveByLocation() },
-            ],
-        )
+        setConfirmOpen(false)
+        void resolveByLocation()
     }
 
     return (
@@ -91,7 +95,7 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                     <Button
                         label="Change barangay"
                         variant="ghost"
-                        onPress={() => setMode('choosing')}
+                        onPress={resetBarangay}
                         disabled={disabled || busy}
                     />
                 </>
@@ -100,19 +104,21 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                     <Text variant="body" color="textMuted">
                         How do you want to set your barangay?
                     </Text>
-                    <Button
-                        label="Use my location"
-                        variant="secondary"
-                        onPress={confirmLocation}
-                        loading={busy}
-                        disabled={disabled}
-                    />
-                    <Button
-                        label="Drop a pin on the map"
-                        variant="ghost"
-                        onPress={() => setPinOpen(true)}
-                        disabled={disabled}
-                    />
+                    <View style={styles.methods}>
+                        <Button
+                            label="Use my location"
+                            onPress={() => setConfirmOpen(true)}
+                            loading={busy}
+                            disabled={disabled}
+                            style={styles.method}
+                        />
+                        <Button
+                            label="Drop a pin"
+                            onPress={() => setPinOpen(true)}
+                            disabled={disabled || busy}
+                            style={styles.method}
+                        />
+                    </View>
                 </View>
             ) : (
                 <Button
@@ -129,6 +135,12 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                 </Text>
             ) : null}
 
+            <LocationConfirmModal
+                visible={confirmOpen}
+                onCancel={() => setConfirmOpen(false)}
+                onConfirm={confirmLocation}
+            />
+
             <PinMapModal
                 visible={pinOpen}
                 onClose={() => setPinOpen(false)}
@@ -141,4 +153,6 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
 const styles = StyleSheet.create({
     card: { gap: spacing.sm },
     choices: { gap: spacing.sm },
+    methods: { flexDirection: 'row', gap: spacing.sm },
+    method: { flex: 1 },
 })

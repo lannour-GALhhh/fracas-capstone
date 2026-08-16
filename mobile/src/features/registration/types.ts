@@ -11,3 +11,23 @@ export interface RegistrationAddress {
 }
 
 export type RegistrationStep = 'phone' | 'verify' | 'password'
+
+/** The two documents a resident must accept before verifying. */
+export type LegalDocumentId = 'terms' | 'privacy'
+
+/** One numbered clause of a legal document. Paragraphs render before bullets. */
+export interface LegalSection {
+    heading: string
+    body?: string[]
+    bullets?: string[]
+}
+
+export interface LegalDocument {
+    id: LegalDocumentId
+    title: string
+    /** Version + effective date line, shown under the title. */
+    effective: string
+    /** Plain-language lead paragraph, before the numbered clauses. */
+    intro: string
+    sections: LegalSection[]
+}

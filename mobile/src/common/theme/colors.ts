@@ -26,6 +26,9 @@ const light = {
     textMuted: '#5b616e',
     border: '#dfe2e7',
     primary: '#1f6feb',
+    /** Soft gradient stops for hero CTAs (see the `GradientButton` primitive). */
+    primaryFrom: '#4d94ff',
+    primaryTo: '#1f6feb',
     onPrimary: '#ffffff',
     danger: '#b01212',
     onDanger: '#ffffff',
@@ -40,6 +43,8 @@ const dark: typeof light = {
     textMuted: '#9aa1ad',
     border: '#2a2f37',
     primary: '#4c8dff',
+    primaryFrom: '#6aa4ff',
+    primaryTo: '#3b78e0',
     onPrimary: '#0b0d10',
     danger: '#f2a1a1',
     onDanger: '#0b0d10',

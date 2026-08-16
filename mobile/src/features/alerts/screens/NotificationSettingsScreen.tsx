@@ -1,10 +1,9 @@
-import { router } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ErrorState } from '@/common/components/ErrorState'
 import { spacing, useTheme } from '@/common/theme'
-import { Button, Card, Spinner, Text } from '@/common/ui'
+import { Card, Spinner, Text } from '@/common/ui'
 
 import { ToggleRow } from '../components/ToggleRow'
 import { CHANNEL_META, CHANNEL_ORDER } from '../constants'
@@ -44,7 +43,6 @@ export function NotificationSettingsScreen() {
     return (
         <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
             <View style={styles.header}>
-                <Button label="‹ Back" variant="ghost" onPress={() => router.back()} style={styles.back} />
                 <Text variant="title">Notifications</Text>
             </View>
 
@@ -112,7 +110,6 @@ const styles = StyleSheet.create({
         paddingTop: spacing.sm,
         paddingBottom: spacing.md,
     },
-    back: { alignSelf: 'flex-start', minHeight: 36, paddingHorizontal: 0 },
     body: { padding: spacing.lg, gap: spacing.lg },
     card: { gap: spacing.md },
 })

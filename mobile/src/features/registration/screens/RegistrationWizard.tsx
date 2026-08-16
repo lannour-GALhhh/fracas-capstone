@@ -1,8 +1,9 @@
-import { useRouter } from 'expo-router'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
-import { Button, Screen, Text } from '@/common/ui'
+import { useBackHandler } from '@/common/hooks/useBackHandler'
+import { spacing, useTheme } from '@/common/theme'
+import { Button, Icon, Screen, Text } from '@/common/ui'
+import { goBack } from '@/common/utils/navigation'
 
 import { PasswordStep } from '../components/PasswordStep'
 import { PhoneStep } from '../components/PhoneStep'
@@ -17,14 +18,33 @@ const STEP_TITLE: Record<RegistrationStep, string> = {
     password: 'Set a password',
 }
 
-/** The 3-phase registration flow, held in one route with an internal state machine. */
+/**
+ * The 3-phase registration flow, held in one route with an internal state
+ * machine. Because the steps are not routes, back is wired to the machine: a
+ * press unwinds one step and only leaves for the login screen once there is no
+ * earlier step to return to.
+ */
 export function RegistrationWizard() {
-    const router = useRouter()
-    const { step, phone, pending, error, start, resend, verify, setPassword } = useRegistration()
+    const theme = useTheme()
+    const { step, phone, pending, error, start, resend, verify, setPassword, back } =
+        useRegistration()
+
+    useBackHandler(back)
 
     return (
         <Screen>
             <View style={styles.header}>
+                {step === 'verify' ? (
+                    <Pressable
+                        onPress={back}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Back to your number"
+                        style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+                    >
+                        <Icon name="arrow-back" size={24} color={theme.colors.text} />
+                    </Pressable>
+                ) : null}
                 <Text variant="caption" color="textMuted">
                     Step {STEP_INDEX[step]} of 3
                 </Text>
@@ -50,7 +70,7 @@ export function RegistrationWizard() {
                     <Button
                         label="I already have an account"
                         variant="ghost"
-                        onPress={() => router.replace('/login')}
+                        onPress={() => goBack('/login')}
                     />
                 </View>
             ) : null}
@@ -60,5 +80,9 @@ export function RegistrationWizard() {
 
 const styles = StyleSheet.create({
     header: { gap: spacing.xs, marginBottom: spacing.xl },
-    footer: { marginTop: spacing.xxl, alignItems: 'center' },
+    back: { alignSelf: 'flex-start', paddingVertical: spacing.xs, marginBottom: spacing.xs },
+    pressed: { opacity: 0.5 },
+    // `marginTop: auto` pins the footer to the bottom of the (flex-grown) screen,
+    // keeping it clear of the primary call-to-action above it.
+    footer: { marginTop: 'auto', paddingTop: spacing.xxl, alignItems: 'center' },
 })

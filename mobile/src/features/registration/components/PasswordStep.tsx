@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { spacing } from '@/common/theme'
-import { Button, Field, Text } from '@/common/ui'
+import { Field, GradientButton, Text } from '@/common/ui'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { passwordSchema } from '../schemas'
@@ -52,7 +52,7 @@ export function PasswordStep({ pending, error, onSubmit }: Props) {
                 </Text>
             ) : null}
 
-            <Button label="Create account" onPress={submit} loading={pending} />
+            <GradientButton label="Get Started!" onPress={submit} loading={pending} />
         </View>
     )
 }

@@ -1,9 +1,10 @@
-import { Redirect, router } from 'expo-router'
+import { Redirect, type Href } from 'expo-router'
 import { Drawer } from 'expo-router/drawer'
 import { Pressable, StyleSheet, View } from 'react-native'
 
-import { useTheme } from '@/common/theme'
-import { Icon, type IconName, Spinner } from '@/common/ui'
+import { radius, spacing, useTheme } from '@/common/theme'
+import { Icon, type IconName, Spinner, Text } from '@/common/ui'
+import { goBack } from '@/common/utils/navigation'
 import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
@@ -20,7 +21,7 @@ export default function AppLayout() {
     return <SignedInDrawer />
 }
 
-/** A round-tap header button (hamburger / back). */
+/** A bare icon header button (hamburger). */
 function HeaderButton({
     icon,
     onPress,
@@ -44,6 +45,34 @@ function HeaderButton({
     )
 }
 
+/**
+ * Header back affordance for secondary screens. Reads as a real button — a
+ * bordered pill with a label — because it is the only way back on those screens
+ * (they no longer carry an in-body "Back" button).
+ */
+function HeaderBackButton({ fallback }: { fallback: Href }) {
+    const theme = useTheme()
+    return (
+        <Pressable
+            onPress={() => goBack(fallback)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={({ pressed }) => [
+                styles.backBtn,
+                {
+                    backgroundColor: theme.colors.surfaceAlt,
+                    borderColor: theme.colors.border,
+                },
+                pressed && styles.pressed,
+            ]}
+        >
+            <Icon name="arrow-back" size={18} color={theme.colors.text} />
+            <Text variant="label">Back</Text>
+        </Pressable>
+    )
+}
+
 /** The authenticated chrome. Split out so its data hooks only run with a session. */
 function SignedInDrawer() {
     const theme = useTheme()
@@ -52,14 +81,16 @@ function SignedInDrawer() {
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
 
-    // Secondary screens (reached from a drawer destination) get a back arrow and
+    // Secondary screens (reached from a drawer destination) get a back button and
     // no edge-swipe, so the gesture is reserved for opening the drawer up top.
-    const secondary = {
-        headerLeft: () => (
-            <HeaderButton icon="arrow-back" label="Go back" onPress={() => router.back()} />
-        ),
+    // The `fallback` names the screen each one is opened from: the drawer keeps no
+    // stack when the app lands straight here (push-notification tap, deep link),
+    // so without it `goBack` would have nothing to pop and the button would do
+    // nothing.
+    const secondary = (fallback: Href) => ({
+        headerLeft: () => <HeaderBackButton fallback={fallback} />,
         swipeEnabled: false,
-    }
+    })
 
     return (
         <Drawer
@@ -93,10 +124,10 @@ function SignedInDrawer() {
             />
             <Drawer.Screen name="account" />
             <Drawer.Screen name="toolkit" />
-            <Drawer.Screen name="alerts" options={secondary} />
-            <Drawer.Screen name="notification-settings" options={secondary} />
-            <Drawer.Screen name="edit-profile" options={secondary} />
-            <Drawer.Screen name="change-password" options={secondary} />
+            <Drawer.Screen name="alerts" options={secondary('/status')} />
+            <Drawer.Screen name="notification-settings" options={secondary('/account')} />
+            <Drawer.Screen name="edit-profile" options={secondary('/account')} />
+            <Drawer.Screen name="change-password" options={secondary('/account')} />
         </Drawer>
     )
 }
@@ -106,6 +137,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 4,
     },
+    backBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+        minHeight: 36,
+        marginLeft: spacing.lg,
+        paddingLeft: spacing.sm,
+        paddingRight: spacing.md,
+        borderWidth: 1,
+        borderRadius: radius.pill,
+    },
+    pressed: { opacity: 0.6 },
     headerRight: {
         marginRight: 12,
     },

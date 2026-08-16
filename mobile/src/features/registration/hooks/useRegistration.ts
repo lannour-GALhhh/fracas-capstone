@@ -69,5 +69,20 @@ export function useRegistration() {
         [run, phone, applyTokens],
     )
 
-    return { step, phone, pending, error, start, resend, verify, setPassword }
+    /**
+     * Step back one phase, reporting whether it moved.
+     *
+     * Only `verify` can go back — to fix a mistyped number, which re-sends the
+     * OTP. From `password` there is nowhere to return to: the code has already
+     * been consumed, so re-entering it would fail; `false` there lets a back
+     * press leave the flow instead of trapping the resident.
+     */
+    const back = useCallback(() => {
+        if (step !== 'verify') return false
+        setError(null)
+        setStep('phone')
+        return true
+    }, [step])
+
+    return { step, phone, pending, error, start, resend, verify, setPassword, back }
 }
