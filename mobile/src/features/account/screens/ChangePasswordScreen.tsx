@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
 
@@ -6,6 +5,7 @@ import { useZodForm } from '@/common/hooks/useZodForm'
 import { spacing } from '@/common/theme'
 import { Button, Field, Screen, Text } from '@/common/ui'
 import { apiErrorMessage } from '@/common/utils/apiError'
+import { goBack } from '@/common/utils/navigation'
 
 import { useChangePassword } from '../hooks/useAccountMutations'
 import { passwordChangeSchema } from '../schemas'
@@ -28,7 +28,7 @@ export function ChangePasswordScreen() {
                 onSuccess: () => {
                     setForm(EMPTY)
                     Alert.alert('Password updated', 'Your password has been changed.', [
-                        { text: 'OK', onPress: () => router.back() },
+                        { text: 'OK', onPress: () => goBack() },
                     ])
                 },
             },
@@ -37,12 +37,6 @@ export function ChangePasswordScreen() {
 
     return (
         <Screen edges={['bottom']}>
-            <Button
-                label="‹ Back"
-                variant="ghost"
-                onPress={() => router.back()}
-                style={styles.back}
-            />
             <Text variant="title" style={styles.title}>
                 Change password
             </Text>
@@ -89,7 +83,6 @@ export function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-    back: { alignSelf: 'flex-start', minHeight: 36, paddingHorizontal: 0 },
     title: { marginBottom: spacing.lg },
     form: { gap: spacing.lg },
 })

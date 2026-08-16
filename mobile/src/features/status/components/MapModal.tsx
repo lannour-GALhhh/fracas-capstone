@@ -32,8 +32,20 @@ export function MapModal({ visible, onClose, data, centers, showUser, focus = nu
 
     const selected = selectedId == null ? null : (data?.features.find((f) => f.properties.id === selectedId) ?? null)
 
+    /** Explicit dismissal — drop the selection so the map reopens clean. */
+    const close = () => {
+        setSelectedId(null)
+        onClose()
+    }
+
+    /** Back pops one layer: clear the selected barangay first, then the map. */
+    const back = () => {
+        if (selectedId != null) setSelectedId(null)
+        else close()
+    }
+
     return (
-        <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+        <Modal visible={visible} animationType="slide" onRequestClose={back}>
             <View style={[styles.flex, { backgroundColor: theme.colors.bg }]}>
                 <RiskMap
                     data={data}
@@ -52,7 +64,7 @@ export function MapModal({ visible, onClose, data, centers, showUser, focus = nu
                         <Text variant="label">Explore the map</Text>
                     </View>
                     <Pressable
-                        onPress={onClose}
+                        onPress={close}
                         hitSlop={8}
                         accessibilityRole="button"
                         accessibilityLabel="Close map"
