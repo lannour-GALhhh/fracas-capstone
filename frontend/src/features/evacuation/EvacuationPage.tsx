@@ -4,12 +4,12 @@ import EvacuationHistoryTable from './component/EvacuationHistoryTable'
 /**
  * Operator console for evacuations, in two stacked sections.
  *
- * **Active** — live cards for every open evacuation, with roster progress
- * drilling down to the per-resident report list.
+ * **Active** — live cards for every open evacuation, showing aggregate roster
+ * progress only (no per-resident list).
  *
- * **History** — the archive of stood-down evacuations, answered from the counts
- * frozen on each row at stand-down (so it survives the retention purge of the
- * per-resident rows).
+ * **History** — the archive of closed evacuations, answered from the counts
+ * frozen on each row when it was marked safe (so it survives the retention
+ * purge of the per-resident rows).
  */
 const EvacuationPage = () => (
     <div className='w-full p-4'>

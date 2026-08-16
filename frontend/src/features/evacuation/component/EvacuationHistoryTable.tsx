@@ -79,8 +79,8 @@ const OutcomeCell = ({ evac }: { evac: EvacuationHistoryEntry }) => {
 }
 
 /**
- * The archive of stood-down evacuations: when each one ran, what triggered it,
- * who declared it, and the roster outcome frozen at stand-down. Filterable by
+ * The archive of closed evacuations: when each one ran, what triggered it,
+ * who declared it, and the roster outcome frozen when it was marked safe. Filterable by
  * barangay, trigger, and the date the evacuation closed.
  */
 const EvacuationHistoryTable = () => {
@@ -253,7 +253,7 @@ const EvacuationHistoryTable = () => {
                             <TableCell colSpan={COLS} className='text-black/50'>
                                 {hasFilters
                                     ? 'No past evacuations match these filters.'
-                                    : 'No evacuations have been stood down yet.'}
+                                    : 'No evacuations have been marked safe yet.'}
                             </TableCell>
                         </TableRow>
                     )}

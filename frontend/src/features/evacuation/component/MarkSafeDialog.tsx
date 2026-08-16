@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import {
     Dialog,
@@ -11,48 +11,50 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
-import { useStandDown } from '../hooks/useStandDown'
+import { useMarkSafe } from '../hooks/useMarkSafe'
 
-interface StandDownDialogProps {
+interface MarkSafeDialogProps {
     evacuationId: number
     barangayName: string
 }
 
-/** Confirm closing an evacuation. Freezes the final counts as the record. */
-const StandDownDialog = ({ evacuationId, barangayName }: StandDownDialogProps) => {
+/** Confirm closing an evacuation as safe. Freezes the final counts as the record. */
+const MarkSafeDialog = ({ evacuationId, barangayName }: MarkSafeDialogProps) => {
     const [open, setOpen] = useState(false)
-    const standDown = useStandDown()
+    const markSafe = useMarkSafe()
 
     const onOpenChange = (next: boolean) => {
         setOpen(next)
-        if (next) standDown.reset()
+        if (next) markSafe.reset()
     }
 
     const handleConfirm = () => {
-        standDown.mutate(evacuationId, { onSuccess: () => setOpen(false) })
+        markSafe.mutate(evacuationId, { onSuccess: () => setOpen(false) })
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogTrigger
                 render={
-                    <Button size='sm' variant='outline' className='cursor-pointer'>
-                        <CheckCircle2 className='size-4' />
-                        Stand down
+                    <Button size='sm' className='cursor-pointer'>
+                        <ShieldCheck className='size-4' />
+                        Mark as Safe
                     </Button>
                 }
             />
             <DialogContent className='sm:max-w-md'>
                 <DialogHeader>
-                    <DialogTitle>Stand down evacuation — {barangayName}?</DialogTitle>
+                    <DialogTitle>Mark {barangayName} as safe?</DialogTitle>
                     <DialogDescription>
                         This closes the evacuation and freezes its current counts as the permanent
                         record. Residents are no longer tracked for this event.
                     </DialogDescription>
                 </DialogHeader>
 
-                {standDown.isError && (
-                    <p className='text-destructive text-sm'>Couldn&apos;t stand down. Please try again.</p>
+                {markSafe.isError && (
+                    <p className='text-destructive text-sm'>
+                        Couldn&apos;t mark it as safe. Please try again.
+                    </p>
                 )}
 
                 <DialogFooter>
@@ -60,10 +62,10 @@ const StandDownDialog = ({ evacuationId, barangayName }: StandDownDialogProps) =
                     <Button
                         type='button'
                         className='cursor-pointer'
-                        disabled={standDown.isPending}
+                        disabled={markSafe.isPending}
                         onClick={handleConfirm}
                     >
-                        {standDown.isPending ? 'Standing down…' : 'Confirm stand-down'}
+                        {markSafe.isPending ? 'Marking safe…' : 'Mark as Safe'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -71,4 +73,4 @@ const StandDownDialog = ({ evacuationId, barangayName }: StandDownDialogProps) =
     )
 }
 
-export default StandDownDialog
+export default MarkSafeDialog

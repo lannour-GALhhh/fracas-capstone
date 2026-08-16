@@ -8,8 +8,8 @@ import EvacuationCard from './EvacuationCard'
 
 /**
  * Live cards for every open evacuation: roster progress (evacuated / moving /
- * unaccounted of the subscriber roster) drilling down to the per-resident
- * report list. Reads the one shared cached aggregate the GIS ping badges use.
+ * unaccounted of the subscriber roster). Reads the one shared cached aggregate
+ * the GIS ping badges use — aggregate counts only, never per-resident rows.
  */
 const ActiveEvacuationsList = () => {
     const { data, isLoading, isError, refetch } = useActiveEvacuations()

@@ -5,9 +5,9 @@ import { evacuationKeys } from './queryKeys'
 import type { EvacuationHistoryFilters } from '../types/api'
 
 /**
- * Paginated archive of stood-down evacuations. Closed records never change, so
- * unlike the live aggregate this doesn't poll — it refreshes when a stand-down
- * invalidates the key. Keeps the current page visible while paging/filtering.
+ * Paginated archive of closed evacuations. Closed records never change, so
+ * unlike the live aggregate this doesn't poll — it refreshes when marking one
+ * safe invalidates the key. Keeps the current page visible while paging/filtering.
  *
  * Operator-only endpoint, so the query stays disabled for everyone else.
  */
