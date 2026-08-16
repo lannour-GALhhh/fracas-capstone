@@ -1,2 +1,15 @@
-/phl_admin_boundaries
+# Large GIS source datasets (~530MB). These are read from the bind mount
+# (docker-compose mounts ./backend:/backend), never from the image layer.
+# NOTE: patterns are matched exactly -- keep these in sync with .gitignore.
+/phl_admin_boundaries.gdb
 /rasters_COP30
+/zbga-city-flood-shapefile
+
+# Runtime artifacts and local dev state
+/staticfiles
+/media
+db.sqlite3
+.env
+
+__pycache__/
+*.py[cod]

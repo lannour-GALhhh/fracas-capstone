@@ -1,5 +1,6 @@
 FROM imresamu/postgis:17-3.5-bookworm
 
-RUN apt-get update && apt-get install -y postgresql-17-timescaledb
-
-RUN echo "shared_preload_libraries = 'timescaledb'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-17-timescaledb \
+    && rm -rf /var/lib/apt/lists/* \
+    && echo "shared_preload_libraries = 'timescaledb'" >> /usr/share/postgresql/postgresql.conf.sample

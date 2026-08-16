@@ -22,6 +22,10 @@ services:
 
   backend:
     build: ./backend
+    # backend, celery and celery-beat run the same code from the same Dockerfile.
+    # Sharing one image tag means one built artifact instead of three, so they
+    # can never drift apart and `up` doesn't tag the same layers three times.
+    image: fracas-backend:latest
     command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3
     volumes:
       - ./backend:/backend
@@ -44,6 +48,7 @@ services:
 
   celery:
     build: ./backend
+    image: fracas-backend:latest
     container_name: celery_worker
     command: celery -A backend worker --loglevel=info
     env_file: .env
@@ -57,6 +62,7 @@ services:
 
   celery-beat:
     build: ./backend
+    image: fracas-backend:latest
     container_name: celery_beat
     # Write the scheduler state file outside the mounted source tree.
     command: celery -A backend beat --loglevel=info --schedule=/tmp/celerybeat-schedule
