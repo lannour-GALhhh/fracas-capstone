@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/common/ui/button'
 import {
     Select,
@@ -20,8 +21,13 @@ const ROLE_PATCH: Record<Role, UpdateUserPayload> = {
     admin: { is_operator: false, is_staff: true },
 }
 
-/** Pick a target role and apply it behind a confirm dialog. */
+/** Pick a target role and apply it behind a confirm dialog.
+ *
+ * "Resident" is the revoke path: it strips console access, and because the
+ * console only manages operators/admins, the account then disappears from this
+ * section entirely — so the dialog says so and we return to the list after. */
 const RoleControl = ({ user }: { user: AdminUser }) => {
+    const navigate = useNavigate()
     const [target, setTarget] = useState<Role>(user.role)
     const update = useUpdateAdminUser(user.id)
 
@@ -34,6 +40,14 @@ const RoleControl = ({ user }: { user: AdminUser }) => {
     }
 
     const changed = target !== user.role
+    const revoking = target === 'resident'
+
+    const apply = () =>
+        update.mutate(ROLE_PATCH[target], {
+            onSuccess: () => {
+                if (revoking) navigate('/admin/users')
+            },
+        })
 
     return (
         <div className='flex items-center gap-2'>
@@ -42,9 +56,9 @@ const RoleControl = ({ user }: { user: AdminUser }) => {
                     <SelectValue>{(v) => capitalize(v as string)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value='resident'>Resident</SelectItem>
                     <SelectItem value='operator'>Operator</SelectItem>
                     <SelectItem value='admin'>Admin</SelectItem>
+                    <SelectItem value='resident'>Resident (no console access)</SelectItem>
                 </SelectContent>
             </Select>
             {changed && (
@@ -52,11 +66,16 @@ const RoleControl = ({ user }: { user: AdminUser }) => {
                     trigger={
                         <Button size='sm'>Apply</Button>
                     }
-                    title={`Change role to ${capitalize(target)}?`}
-                    description={`This updates ${user.username}'s console permissions immediately.`}
-                    confirmLabel='Change role'
+                    title={revoking ? 'Revoke console access?' : `Change role to ${capitalize(target)}?`}
+                    description={
+                        revoking
+                            ? `${user.username} keeps their account but loses the console, and will no longer appear under Users. Restoring access requires the Django admin site.`
+                            : `This updates ${user.username}'s console permissions immediately.`
+                    }
+                    confirmLabel={revoking ? 'Revoke access' : 'Change role'}
+                    destructive={revoking}
                     isPending={update.isPending}
-                    onConfirm={() => update.mutate(ROLE_PATCH[target])}
+                    onConfirm={apply}
                 />
             )}
         </div>

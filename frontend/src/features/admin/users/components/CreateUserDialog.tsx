@@ -22,8 +22,7 @@ import {
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { useCreateAdminUser } from '../../hooks/useAdminUserMutations'
 import { CreateUserSchema } from '../../schemas'
-
-type ConsoleRole = 'operator' | 'admin'
+import type { ConsoleRole } from '../../types/user'
 
 const emptyForm = {
     username: '',

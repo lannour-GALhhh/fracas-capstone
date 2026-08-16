@@ -1,5 +1,12 @@
 import type { Role } from '@/common/types/Role'
 
+/**
+ * The roles this console manages. Residents are deliberately absent: their
+ * accounts are personal data with no operational reason to be browsable by
+ * staff, and the backend filters them out of `/api/admin/users/` entirely.
+ */
+export type ConsoleRole = Exclude<Role, 'resident'>
+
 /** One row of GET /api/admin/users/ (mirrors AdminUserSerializer). */
 export interface AdminUser {
     id: number
@@ -20,12 +27,12 @@ export interface AdminUser {
 /** Server-side filters for the admin user list. `page` drives DRF pagination. */
 export interface AdminUserFilters {
     search?: string
-    role?: Role
+    role?: ConsoleRole
     is_active?: boolean
     page?: number
 }
 
-/** POST /api/admin/users/ payload — provisions a new account. */
+/** POST /api/admin/users/ payload — provisions a new console account. */
 export interface CreateUserPayload {
     username: string
     password: string

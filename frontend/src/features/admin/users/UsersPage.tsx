@@ -1,7 +1,8 @@
 import UsersTable from './components/UsersTable'
 import CreateUserDialog from './components/CreateUserDialog'
 
-/** Phase 1 admin console: list, search and provision resident/operator/admin accounts. */
+/** Phase 1 admin console: list, search and provision operator/admin accounts.
+ * Resident accounts are out of scope here and excluded server-side. */
 const UsersPage = () => {
     return (
         <div className='w-full'>
@@ -9,7 +10,8 @@ const UsersPage = () => {
                 <div>
                     <h1 className='text-2xl font-semibold'>Users</h1>
                     <p className='text-xs text-black/50'>
-                        Manage every account: promote/demote, deactivate, and reset passwords.
+                        Operator and admin accounts: promote/demote, deactivate, and reset
+                        passwords. Resident accounts aren't shown here.
                     </p>
                 </div>
                 <CreateUserDialog />

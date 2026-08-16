@@ -37,6 +37,13 @@ class AccountChangeListView(ListAPIView):
         return AccountChange.objects.filter(user=self.request.user).select_related("actor")
 
 
+# A *console* account — operator or admin. Residents are ordinary members of
+# the public whose profiles carry personal data (name, phone, home barangay)
+# with no operational reason to be browsable by staff, so they are excluded
+# from every staff-facing account endpoint at the queryset level.
+CONSOLE_ACCOUNT = Q(is_operator=True) | Q(is_staff=True) | Q(is_superuser=True)
+
+
 class OperatorListView(ListAPIView):
     """Operators + admins as {id, name}, for the flood-report source picker.
 
@@ -48,9 +55,9 @@ class OperatorListView(ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return User.objects.filter(
-            Q(is_operator=True) | Q(is_staff=True) | Q(is_superuser=True)
-        ).order_by("first_name", "last_name", "username")
+        return User.objects.filter(CONSOLE_ACCOUNT).order_by(
+            "first_name", "last_name", "username"
+        )
 
 
 def _is_last_active_admin(user: User) -> bool:
@@ -70,7 +77,14 @@ class AdminUserViewSet(
     mixins.UpdateModelMixin,
     GenericViewSet,
 ):
-    """Admin console: list/create/edit every account (list/create/edit, no delete).
+    """Admin console: list/create/edit **console** accounts (no delete).
+
+    Scope is operators and admins only — `CONSOLE_ACCOUNT` filters the base
+    queryset, so residents are invisible to *every* route here (list, detail,
+    update, reset-password, audit trail), not just hidden from the list. Their
+    accounts are personal data, and nothing in the console's job requires
+    browsing them. Demoting a console account to resident therefore drops it
+    out of this API for good; re-promotion is a Django `/admin/` operation.
 
     Deactivating (`is_active=False`) is the removal path, not deletion. Three
     guardrails, enforced server-side:
@@ -81,7 +95,7 @@ class AdminUserViewSet(
     """
 
     permission_classes = [IsAdmin]
-    queryset = User.objects.all().order_by("-date_joined")
+    queryset = User.objects.filter(CONSOLE_ACCOUNT).order_by("-date_joined")
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_serializer_class(self):
@@ -107,7 +121,9 @@ class AdminUserViewSet(
         elif role == "operator":
             qs = qs.filter(is_operator=True, is_staff=False, is_superuser=False)
         elif role == "resident":
-            qs = qs.filter(is_operator=False, is_staff=False, is_superuser=False)
+            # Out of scope for this endpoint — never leak residents, even if a
+            # stale client (or a hand-rolled request) still asks for them.
+            qs = qs.none()
 
         is_active = params.get("is_active")
         if is_active is not None:
