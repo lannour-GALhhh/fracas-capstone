@@ -1,6 +1,7 @@
 export { Text } from './Text'
 export { Screen } from './Screen'
 export { Button } from './Button'
+export { GradientButton } from './GradientButton'
 export { Input } from './Input'
 export { Field } from './Field'
 export { Card } from './Card'

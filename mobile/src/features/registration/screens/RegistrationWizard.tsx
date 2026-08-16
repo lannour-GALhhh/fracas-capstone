@@ -82,5 +82,7 @@ const styles = StyleSheet.create({
     header: { gap: spacing.xs, marginBottom: spacing.xl },
     back: { alignSelf: 'flex-start', paddingVertical: spacing.xs, marginBottom: spacing.xs },
     pressed: { opacity: 0.5 },
-    footer: { marginTop: spacing.xxl, alignItems: 'center' },
+    // `marginTop: auto` pins the footer to the bottom of the (flex-grown) screen,
+    // keeping it clear of the primary call-to-action above it.
+    footer: { marginTop: 'auto', paddingTop: spacing.xxl, alignItems: 'center' },
 })

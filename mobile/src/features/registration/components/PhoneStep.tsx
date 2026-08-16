@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { spacing } from '@/common/theme'
-import { Button, Field, Text } from '@/common/ui'
+import { Field, GradientButton, Text } from '@/common/ui'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { AddressPicker } from './AddressPicker'
@@ -50,7 +50,14 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
                 </Text>
             ) : null}
 
-            <Button label="Send code" onPress={submit} loading={pending} />
+            {/* Gated on a valid number: the OTP send is a real SMS, so don't let
+                a half-typed number spend one. */}
+            <GradientButton
+                label="Send Verification Code"
+                onPress={submit}
+                loading={pending}
+                disabled={!form.isValid}
+            />
         </View>
     )
 }
