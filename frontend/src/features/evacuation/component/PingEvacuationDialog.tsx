@@ -58,10 +58,9 @@ const PingEvacuationDialog = ({
                         Declare evacuation — {barangayName}?
                     </DialogTitle>
                     <DialogDescription>
-                        This pushes an <span className='font-medium'>evacuate-now</span> notice to
-                        every subscriber in {barangayName} and begins tracking who has reached
-                        safety. The action is recorded against your account. You can stand it down
-                        from the Evacuations page.
+                        Sends an <span className='font-medium'>evacuate-now</span> alert to every
+                        subscriber in {barangayName} and starts tracking who reaches safety. Stand
+                        it down from the Evacuations page.
                     </DialogDescription>
                 </DialogHeader>
 

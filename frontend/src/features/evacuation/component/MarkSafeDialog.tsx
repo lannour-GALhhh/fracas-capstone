@@ -46,8 +46,7 @@ const MarkSafeDialog = ({ evacuationId, barangayName }: MarkSafeDialogProps) => 
                 <DialogHeader>
                     <DialogTitle>Mark {barangayName} as safe?</DialogTitle>
                     <DialogDescription>
-                        This closes the evacuation and freezes its current counts as the permanent
-                        record. Residents are no longer tracked for this event.
+                        Closes the evacuation and saves its current counts as the final record.
                     </DialogDescription>
                 </DialogHeader>
 
