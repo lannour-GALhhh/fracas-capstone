@@ -87,6 +87,15 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             "role",
         ]
 
+    def validate(self, attrs):
+        # The console only lists operators/admins, so provisioning a plain
+        # resident here would create an account it can never show again.
+        if not (attrs.get("is_operator") or attrs.get("is_staff")):
+            raise serializers.ValidationError(
+                "Pick a console role — this endpoint provisions operators and admins only."
+            )
+        return attrs
+
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User(**validated_data)

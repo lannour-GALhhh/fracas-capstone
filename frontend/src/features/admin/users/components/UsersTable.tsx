@@ -32,16 +32,18 @@ import { cn } from '@/common/utils/utils'
 import { getPageItems } from '@/common/utils/pageItems'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import UserActiveBadge from '@/features/user/components/UserActiveBadge'
-import type { Role } from '@/common/types/Role'
 import { useAdminUsers } from '../../hooks/useAdminUsers'
+import type { ConsoleRole } from '../../types/user'
 
 const PAGE_SIZE = 25
 const COLS = 5
 
+/** Operator/admin accounts only — residents are never listed here (see
+ * `ConsoleRole`); the backend excludes them from the endpoint too. */
 const UsersTable = () => {
     const navigate = useNavigate()
     const [search, setSearch] = useState('')
-    const [role, setRole] = useState<Role | 'all'>('all')
+    const [role, setRole] = useState<ConsoleRole | 'all'>('all')
     const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all')
     const [page, setPage] = useState(1)
 
@@ -75,13 +77,15 @@ const UsersTable = () => {
                     className='w-64'
                 />
 
-                <Select value={role} onValueChange={(v) => resetTo(setRole)(v as Role | 'all')}>
+                <Select
+                    value={role}
+                    onValueChange={(v) => resetTo(setRole)(v as ConsoleRole | 'all')}
+                >
                     <SelectTrigger className='w-36'>
                         <SelectValue>{(v) => (v === 'all' ? 'All roles' : v)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value='all'>All roles</SelectItem>
-                        <SelectItem value='resident'>Resident</SelectItem>
                         <SelectItem value='operator'>Operator</SelectItem>
                         <SelectItem value='admin'>Admin</SelectItem>
                     </SelectContent>

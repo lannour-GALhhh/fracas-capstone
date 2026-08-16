@@ -38,8 +38,49 @@ class AdminUserApiTests(APITestCase):
         resp = self.client.get(self.list_url())
         self.assertEqual(resp.status_code, 200)
         usernames = {row["username"] for row in resp.data["results"]}
-        self.assertIn("resident", usernames)
-        self.assertIn("operator", usernames)
+        self.assertEqual(usernames, {"operator", "admin", "admin2"})
+
+    # --- resident privacy -------------------------------------------------
+
+    def test_residents_are_never_listed(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get(self.list_url())
+        usernames = {row["username"] for row in resp.data["results"]}
+        self.assertNotIn("resident", usernames)
+
+    def test_resident_search_finds_nothing(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get(self.list_url(), {"search": "resident"})
+        self.assertEqual(resp.data["results"], [])
+
+    def test_resident_role_filter_returns_nothing(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get(self.list_url(), {"role": "resident"})
+        self.assertEqual(resp.data["results"], [])
+
+    def test_resident_detail_is_not_reachable(self):
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.get(self.detail_url(self.resident)).status_code, 404)
+        self.assertEqual(
+            self.client.patch(self.detail_url(self.resident), {"is_staff": True}).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("admin-user-reset-password", args=[self.resident.pk])
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(reverse("admin-user-changes", args=[self.resident.pk])).status_code,
+            404,
+        )
+
+    def test_demoting_to_resident_removes_from_console(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.patch(self.detail_url(self.operator), {"is_operator": False})
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(self.client.get(self.detail_url(self.operator)).status_code, 404)
 
     # --- filtering --------------------------------------------------------
 
@@ -82,11 +123,21 @@ class AdminUserApiTests(APITestCase):
             {
                 "username": "sneaky",
                 "password": "correct-horse-battery-staple",
+                "is_operator": True,
                 "is_superuser": True,
             },
         )
         self.assertEqual(resp.status_code, 201, resp.data)
         self.assertFalse(User.objects.get(username="sneaky").is_superuser)
+
+    def test_cannot_create_a_resident(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(
+            self.list_url(),
+            {"username": "newresident", "password": "correct-horse-battery-staple"},
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(User.objects.filter(username="newresident").exists())
 
     # --- update / guardrails -----------------------------------------
 
