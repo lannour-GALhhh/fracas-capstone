@@ -1,10 +1,10 @@
 import { router } from 'expo-router'
 import { type DrawerContentComponentProps, DrawerContentScrollView } from 'expo-router/drawer'
 import { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, Switch, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { radius, spacing, useTheme } from '@/common/theme'
+import { radius, spacing, useTheme, useThemeControls } from '@/common/theme'
 import { Icon, type IconName, Spinner, Text } from '@/common/ui'
 import { unregisterPushDevice } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
@@ -128,13 +128,15 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
                 </View>
             </DrawerContentScrollView>
 
-            {/* Pinned sign-out */}
+            {/* Pinned appearance toggle + sign-out */}
             <View
                 style={[
                     styles.footer,
                     { borderTopColor: theme.colors.border, paddingBottom: insets.bottom + spacing.md },
                 ]}
             >
+                <ThemeToggleRow />
+
                 <Pressable
                     onPress={onSignOut}
                     disabled={signingOut}
@@ -153,6 +155,42 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
                 </Pressable>
             </View>
         </View>
+    )
+}
+
+/**
+ * Light/dark switch. The whole row is the tap target and the single accessibility
+ * element — the `Switch` is decorative, so screen readers announce it once.
+ */
+function ThemeToggleRow() {
+    const theme = useTheme()
+    const { scheme, toggleScheme } = useThemeControls()
+    const isDark = scheme === 'dark'
+
+    return (
+        <Pressable
+            onPress={toggleScheme}
+            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+            accessibilityRole="switch"
+            accessibilityLabel="Dark mode"
+            accessibilityState={{ checked: isDark }}
+        >
+            <Icon
+                name={isDark ? 'moon-outline' : 'sunny-outline'}
+                size={22}
+                color={theme.colors.textMuted}
+            />
+            <Text variant="label" style={styles.itemLabel}>
+                Dark mode
+            </Text>
+            <View pointerEvents="none">
+                <Switch
+                    value={isDark}
+                    trackColor={{ true: theme.colors.primary, false: theme.colors.border }}
+                    thumbColor={theme.colors.onPrimary}
+                />
+            </View>
+        </Pressable>
     )
 }
 
