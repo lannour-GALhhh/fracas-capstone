@@ -1,4 +1,4 @@
-  {
+{
   "expo": {
     "name": "mobile",
     "slug": "mobile",
@@ -57,6 +57,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bf04bf7a-eb22-4cec-af75-c16250cf2613"
+      }
     }
   }
 }
