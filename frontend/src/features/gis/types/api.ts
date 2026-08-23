@@ -76,6 +76,15 @@ export interface BarangayRisk {
 /** Flood-susceptibility level, most-severe last — see constants/susceptibility.ts. */
 export type SusceptibilityLevel = 'very_low' | 'low' | 'moderate' | 'high' | 'very_high'
 
+/** One row from GET /api/high-risk-streets/?barangay=<id>. */
+export interface HighRiskStreet {
+    id: number
+    name: string
+    barangay: number
+    barangay_name: string
+    susceptibility_level: SusceptibilityLevel
+}
+
 /** One entry from GET /api/risk/zones/snapshot/ — a barangay×level's computed risk. */
 export interface ZoneRiskEntry {
     barangay_id: number

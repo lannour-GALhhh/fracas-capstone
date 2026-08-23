@@ -44,3 +44,26 @@ class BarangaySusceptibility(models.Model):
 
     def __str__(self):
         return f"{self.barangay.name} — {self.get_level_display()}"
+
+
+class Street(models.Model):
+    """A named street inside a barangay whose dominant flood-susceptibility
+    level (see `barangays.services.dominant_susceptibility_by_barangay`) is
+    high/very_high, sourced from OpenStreetMap. See
+    `barangays/management/commands/load_high_risk_streets.py`. Only covers
+    high-risk barangays by design — this isn't a general street directory."""
+
+    name = models.CharField(max_length=255)
+    barangay = models.ForeignKey(Barangay, on_delete=models.CASCADE, related_name="streets")
+    susceptibility_level = models.CharField(max_length=12, choices=SusceptibilityLevel.choices, db_index=True)
+    loaded_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["barangay", "susceptibility_level"])]
+        constraints = [
+            models.UniqueConstraint(fields=["barangay", "name"], name="uniq_barangay_street_name")
+        ]
+        ordering = ["barangay__name", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.barangay.name})"

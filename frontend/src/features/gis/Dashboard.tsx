@@ -9,6 +9,7 @@ import Legend from './component/Legend'
 import LayersControl from './component/LayersControl'
 import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
+import HighRiskStreetsPanel from './component/HighRiskStreetsPanel'
 import { useRiskMap } from './hooks/useRiskMap'
 import { SUSCEPTIBILITY_LAYER_KEYS, type LayerKey, type LayerVisibility } from './constants/layers'
 import { type ZoneColorMode } from './constants/susceptibility'
@@ -134,11 +135,14 @@ const Dashboard = () => {
             />
 
             {barangayPanelVisible && selectedId != null && (
-                <BarangayPanel
-                    barangayId={selectedId}
-                    onClose={() => setSelectedId(null)}
-                    onHide={() => setPanelHidden(true)}
-                />
+                <>
+                    <HighRiskStreetsPanel barangayId={selectedId} />
+                    <BarangayPanel
+                        barangayId={selectedId}
+                        onClose={() => setSelectedId(null)}
+                        onHide={() => setPanelHidden(true)}
+                    />
+                </>
             )}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}

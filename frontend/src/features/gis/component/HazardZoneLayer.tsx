@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import { useMap } from '@/common/ui/map'
-import { useHazardZones } from '../hooks/useHazardZones'
+import { useHazardZones, useHazardZonesDetailed } from '../hooks/useHazardZones'
 import { useZoneRisk } from '../hooks/useZoneRisk'
 import { NO_DATA_COLOR, RISK_COLORS } from '../constants/risk'
 import {
@@ -13,6 +13,11 @@ import type { HazardZoneCollection, SusceptibilityLevel } from '../types/api'
 const SOURCE = 'hazard-zones'
 const FILL = 'hazard-zone-fill'
 const LINE = 'hazard-zone-line'
+
+/** Zoom level at which the layer swaps the simplified geometry for the
+ * full-precision one. Below this, the generalized shapes read fine at a
+ * fraction of the payload; above it, the extra vertices become visible. */
+const DETAIL_ZOOM_THRESHOLD = 13
 
 /** Color each zone by its *computed* localized risk (rainfall-gated), keyed on
  * the `category` joined into each feature. Falls back to grey before scores load
@@ -50,8 +55,27 @@ const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
  */
 const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { map, isLoaded } = useMap()
-    const { data } = useHazardZones()
+    const [zoom, setZoom] = useState(() => map?.getZoom() ?? 0)
+    const { data: simplified } = useHazardZones()
+    const showDetailed = zoom >= DETAIL_ZOOM_THRESHOLD
+    const { data: detailed } = useHazardZonesDetailed(showDetailed)
     const { data: zoneRisk } = useZoneRisk()
+
+    // Track zoom so we know when to swap to the full-precision geometry. Fires
+    // continuously during a zoom gesture; cheap since it's just a number compare.
+    useEffect(() => {
+        if (!map) return
+        const handleZoom = () => setZoom(map.getZoom())
+        handleZoom()
+        map.on('zoom', handleZoom)
+        return () => {
+            map.off('zoom', handleZoom)
+        }
+    }, [map])
+
+    // Prefer the detailed geometry once zoomed in and it has loaded; fall back
+    // to simplified otherwise (zoomed out, or detailed still fetching).
+    const data = showDetailed && detailed ? detailed : simplified
 
     // Key on the sorted level set so the filter effect only re-runs on a real change.
     const levelKey = [...visibleLevels].sort().join(',')

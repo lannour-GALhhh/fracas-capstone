@@ -12,11 +12,14 @@ from rest_framework.response import Response
 from .models import (
     Barangay,
     BarangaySusceptibility,
+    Street,
 )
 from .serializers import (
     BarangayListSerializer,
     BarangayPublicSerializer,
+    HazardZoneDetailedSerializer,
     HazardZoneSerializer,
+    StreetSerializer,
 )
 
 @method_decorator(cache_page(60 * 15, key_prefix='barangay_list'),
@@ -58,3 +61,30 @@ class HazardZoneListView(viewsets.ReadOnlyModelViewSet):
     queryset = BarangaySusceptibility.objects.select_related("barangay")
     serializer_class = HazardZoneSerializer
     pagination_class = None
+
+    def get_serializer_class(self):
+        # `?detail=full` swaps in the authoritative, unsimplified geometry —
+        # the frontend only requests it once zoomed in far enough that the
+        # extra vertices are visible. `cache_page` keys on the full request
+        # path, so the two variants are cached independently.
+        if self.request.query_params.get("detail") == "full":
+            return HazardZoneDetailedSerializer
+        return HazardZoneSerializer
+
+
+class HighRiskStreetListView(viewsets.ReadOnlyModelViewSet):
+    # Streets in barangays whose dominant susceptibility is high/very_high —
+    # see `load_high_risk_streets`. No geometry, so it's a plain (non-GeoJSON)
+    # list, but still unpaginated: the map panel always filters to one
+    # barangay (up to ~43 rows today), and DRF's default page size of 25
+    # would silently truncate that.
+    queryset = Street.objects.select_related("barangay")
+    serializer_class = StreetSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        barangay_id = self.request.query_params.get("barangay")
+        if barangay_id:
+            qs = qs.filter(barangay_id=barangay_id)
+        return qs

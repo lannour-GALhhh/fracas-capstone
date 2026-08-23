@@ -1,4 +1,5 @@
 import type { Position } from 'geojson'
+import type { LngLatBoundsLike, Map as MapLibreMap } from 'maplibre-gl'
 import type { BarangayGeometry, RiskFeatureCollection } from '../types/api'
 
 /** [minLng, minLat, maxLng, maxLat] */
@@ -40,4 +41,19 @@ export const featureBoundsById = (
 ): BBox | null => {
     const feature = collection.features.find((f) => f.properties.id === id)
     return feature ? geometryBounds(feature.geometry) : null
+}
+
+/** Fits the map to `box`, padded on the right for the side panel. Shared
+ * between the auto-fit-on-select behaviour and the manual "zoom to city" button. */
+export const fitBox = (
+    map: MapLibreMap,
+    box: BBox,
+    panelWidth: number,
+    duration: number,
+): void => {
+    map.fitBounds(box as LngLatBoundsLike, {
+        padding: { top: 64, bottom: 64, left: 64, right: 64 + panelWidth },
+        maxZoom: 14,
+        duration,
+    })
 }

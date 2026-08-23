@@ -5,12 +5,14 @@ from .views import (
     BarangayListView,
     BarangayPublicView,
     HazardZoneListView,
+    HighRiskStreetListView,
 )
 
 router = DefaultRouter()
 
 router.register(r'barangays', BarangayListView, basename="barangay")
 router.register(r'hazard-zones', HazardZoneListView, basename="hazard-zone")
+router.register(r'high-risk-streets', HighRiskStreetListView, basename="high-risk-street")
 
 urlpatterns = [
     # Explicit path BEFORE the router so `barangays/public/` isn't swallowed by

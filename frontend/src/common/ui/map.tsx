@@ -16,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Locate, Maximize, Loader2, Home } from "lucide-react";
 
 import { cn } from "@/common/utils/utils";
 
@@ -733,10 +733,14 @@ type MapControlsProps = {
   showLocate?: boolean;
   /** Show fullscreen toggle button (default: false) */
   showFullscreen?: boolean;
+  /** Show a button that resets the camera to the full extent (default: false) */
+  showReset?: boolean;
   /** Additional CSS classes for the controls container */
   className?: string;
   /** Callback with user coordinates when located */
   onLocate?: (coords: { longitude: number; latitude: number }) => void;
+  /** Callback fired when the reset button is clicked */
+  onReset?: () => void;
 };
 
 const positionClasses = {
@@ -790,8 +794,10 @@ function MapControls({
   showCompass = false,
   showLocate = false,
   showFullscreen = false,
+  showReset = false,
   className,
   onLocate,
+  onReset,
 }: MapControlsProps) {
   const { map } = useMap();
   const [waitingForLocation, setWaitingForLocation] = useState(false);
@@ -885,6 +891,13 @@ function MapControls({
         <ControlGroup>
           <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
             <Maximize className="size-4" />
+          </ControlButton>
+        </ControlGroup>
+      )}
+      {showReset && (
+        <ControlGroup>
+          <ControlButton onClick={() => onReset?.()} label="Reset view">
+            <Home className="size-4" />
           </ControlButton>
         </ControlGroup>
       )}
