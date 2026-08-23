@@ -3,6 +3,7 @@ import type {
     BarangayFeatureCollection,
     BarangayRisk,
     HazardZoneCollection,
+    HighRiskStreet,
     RiskSnapshot,
     ZoneRiskSnapshot,
 } from '../types/api'
@@ -43,5 +44,14 @@ export const getHazardZonesDetailed = async (): Promise<HazardZoneCollection> =>
 /** Latest per-zone computed risk (rainfall-gated) for coloring the hazard-zone layer. */
 export const getZoneRiskSnapshot = async (): Promise<ZoneRiskSnapshot> => {
     const { data } = await apiClient.get<ZoneRiskSnapshot>('/api/risk/zones/snapshot/')
+    return data
+}
+
+/** Named streets inside a barangay whose dominant susceptibility is high/very_high.
+ * Empty for barangays below that threshold (or with no named roads in OSM yet). */
+export const getBarangayHighRiskStreets = async (id: number): Promise<HighRiskStreet[]> => {
+    const { data } = await apiClient.get<HighRiskStreet[]>('/api/high-risk-streets/', {
+        params: { barangay: id },
+    })
     return data
 }

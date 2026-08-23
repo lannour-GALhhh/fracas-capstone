@@ -74,10 +74,13 @@ class HazardZoneListView(viewsets.ReadOnlyModelViewSet):
 
 class HighRiskStreetListView(viewsets.ReadOnlyModelViewSet):
     # Streets in barangays whose dominant susceptibility is high/very_high —
-    # see `load_high_risk_streets`. No geometry, so it's a plain paginated
-    # list rather than a GeoJSON FeatureCollection.
+    # see `load_high_risk_streets`. No geometry, so it's a plain (non-GeoJSON)
+    # list, but still unpaginated: the map panel always filters to one
+    # barangay (up to ~43 rows today), and DRF's default page size of 25
+    # would silently truncate that.
     queryset = Street.objects.select_related("barangay")
     serializer_class = StreetSerializer
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()
