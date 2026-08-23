@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Map, MapControls } from '@/common/ui/map'
+import { useCallback, useRef, useState } from 'react'
+import { Map, MapControls, type MapRef } from '@/common/ui/map'
 import type { RiskFeatureCollection, SusceptibilityLevel } from '../types/api'
-import { featureBoundsById } from '../utils/bounds'
+import { collectionBounds, featureBoundsById, fitBox } from '../utils/bounds'
 import BarangayChoropleth from './BarangayChoropleth'
 import BarangayTooltip from './BarangayTooltip'
 import HazardZoneLayer from './HazardZoneLayer'
@@ -41,6 +41,14 @@ const GISMap = ({
     visibleLevels,
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
+    const mapRef = useRef<MapRef>(null)
+
+    const handleResetView = useCallback(() => {
+        const map = mapRef.current
+        if (!map || !data) return
+        const box = collectionBounds(data)
+        if (box) fitBox(map, box, panelWidth, 800)
+    }, [data, panelWidth])
 
     const pinnedCentroid =
         data && selectedId != null ? centroidOf(data, selectedId) : null
@@ -56,8 +64,13 @@ const GISMap = ({
                 <BarangaySearch data={data} onSelect={onSelect} />
             </div>
 
-            <Map center={[122.07, 6.92]} zoom={11} theme='light'>
-                <MapControls position='bottom-left' showFullscreen={true} />
+            <Map ref={mapRef} center={[122.07, 6.92]} zoom={11} theme='light'>
+                <MapControls
+                    position='bottom-left'
+                    showFullscreen={true}
+                    showReset={true}
+                    onReset={handleResetView}
+                />
                 {data && (
                     <>
                         <BarangayChoropleth

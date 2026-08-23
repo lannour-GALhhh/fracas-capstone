@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type {
     GeoJSONSource,
-    LngLatBoundsLike,
     Map as MapLibreMap,
     MapGeoJSONFeature,
     MapLayerMouseEvent,
@@ -9,7 +8,7 @@ import type {
 import { useMap } from '@/common/ui/map'
 import type { RiskFeatureCollection } from '../types/api'
 import { fillColorExpression } from '../constants/risk'
-import { collectionBounds, featureBoundsById, type BBox } from '../utils/bounds'
+import { collectionBounds, featureBoundsById, fitBox } from '../utils/bounds'
 
 const SOURCE = 'barangays'
 const FILL = 'barangay-fill'
@@ -41,19 +40,6 @@ interface Props {
 /** First symbol (label) layer, so our fills sit under place names, not over them. */
 const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
     map.getStyle().layers?.find((l) => l.type === 'symbol')?.id
-
-const fitBox = (
-    map: MapLibreMap,
-    box: BBox,
-    panelWidth: number,
-    duration: number,
-): void => {
-    map.fitBounds(box as LngLatBoundsLike, {
-        padding: { top: 64, bottom: 64, left: 64, right: 64 + panelWidth },
-        maxZoom: 14,
-        duration,
-    })
-}
 
 const BarangayChoropleth = ({
     data,
@@ -222,11 +208,11 @@ const BarangayChoropleth = ({
         map.setPaintProperty(DIM, 'fill-opacity', selectedId != null ? 0.5 : 0)
         map.setFilter(OUTLINE, ['==', ['id'], id])
 
+        // Only zoom IN to frame the newly selected barangay. Deliberately no
+        // else-branch zooming back out on unselect — that camera snap read as
+        // janky; the city-wide view is reachable via the explicit reset button.
         if (selectedId != null) {
             const box = featureBoundsById(data, selectedId)
-            if (box) fitBox(map, box, panelWidth, 800)
-        } else if (didFitRef.current) {
-            const box = collectionBounds(data)
             if (box) fitBox(map, box, panelWidth, 800)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

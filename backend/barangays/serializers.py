@@ -4,6 +4,7 @@ from rest_framework_gis.fields import GeometryField
 from .models import (
     Barangay,
     BarangaySusceptibility,
+    Street,
 )
 
 # ~0.1 m at Zamboanga's latitude — well below any meaningful map precision, but
@@ -50,7 +51,8 @@ class HazardZoneSerializer(GeoFeatureModelSerializer):
     """One flood-susceptibility zone (Barangay x SusceptibilityLevel), simplified
     for MapLibre. See `barangays.services.dominant_susceptibility_by_barangay` for
     the worst-case-per-barangay aggregate the risk engine actually scores on —
-    this is the full zone geometry for the map layer."""
+    this is the full zone geometry for the map layer. Served at low zoom levels;
+    see `HazardZoneDetailedSerializer` for the close-in variant."""
 
     geom_simplified = GeometryField(precision=GEOJSON_PRECISION)
 
@@ -59,3 +61,30 @@ class HazardZoneSerializer(GeoFeatureModelSerializer):
         geo_field = "geom_simplified"
         id_field = False
         fields = ["id", "barangay", "level"]
+
+
+class HazardZoneDetailedSerializer(GeoFeatureModelSerializer):
+    """Same zones as `HazardZoneSerializer` but with the full-precision,
+    authoritative `geom` — no PostGIS generalization pass. Heavier payload, so
+    it's only fetched once the map is zoomed in far enough that the extra
+    vertices are actually visible (see `HazardZoneListView.get_serializer_class`
+    and the frontend's zoom-gated `useHazardZonesDetailed`)."""
+
+    geom = GeometryField(precision=GEOJSON_PRECISION)
+
+    class Meta:
+        model = BarangaySusceptibility
+        geo_field = "geom"
+        id_field = False
+        fields = ["id", "barangay", "level"]
+
+
+class StreetSerializer(serializers.ModelSerializer):
+    """Plain (non-geo) list — Street carries no geometry, just a name and the
+    barangay it was matched into. See `load_high_risk_streets`."""
+
+    barangay_name = serializers.CharField(source="barangay.name", read_only=True)
+
+    class Meta:
+        model = Street
+        fields = ["id", "name", "barangay", "barangay_name", "susceptibility_level"]
