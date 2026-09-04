@@ -1,0 +1,43 @@
+# Rainfall Context — Flooding Incident in Zamboanga City
+
+Hourly and daily precipitation for Zamboanga City (7.0000, 122.0000), 1 week before through 1 week after the event (2023-01-24 to 2023-02-11), pulled from the Open-Meteo Historical Weather API (ERA5 reanalysis, hourly, mm) — the same provider this project already uses for live rainfall ingestion (`rainfall_fetch`).
+
+- **Hourly series (full window):** [`2023-01-31-zamboanga-city-rainfall-hourly.csv`](2023-01-31-zamboanga-city-rainfall-hourly.csv)
+- **Daily totals + computed summary (JSON):** [`2023-01-31-zamboanga-city-rainfall-daily.json`](2023-01-31-zamboanga-city-rainfall-daily.json)
+- **Day before event (2023-01-30) total:** 18.6 mm
+- **Day after event (2023-02-05) total:** 4.2 mm
+- **Total accumulation across the event span (2023-01-31 to 2023-02-04):** 26.9 mm
+- **Total accumulation, week before (2023-01-24 to 2023-01-30):** 46.6 mm
+- **Total accumulation, week after (2023-02-05 to 2023-02-11):** 22.1 mm
+
+## Daily totals (mm)
+
+| Date | Total (mm) | Note |
+|---|---|---|
+| 2023-01-24 | 17.4 |  |
+| 2023-01-25 | 1.8 |  |
+| 2023-01-26 | 0.7 |  |
+| 2023-01-27 | 2.7 |  |
+| 2023-01-28 | 2.2 |  |
+| 2023-01-29 | 3.2 |  |
+| 2023-01-30 | 18.6 | day before |
+| 2023-01-31 | 20.0 | **event day** |
+| 2023-02-01 | 0.8 | **event day** |
+| 2023-02-02 | 3.6 | **event day** |
+| 2023-02-03 | 2.0 | **event day** |
+| 2023-02-04 | 0.5 | **event day** |
+| 2023-02-05 | 4.2 | day after |
+| 2023-02-06 | 0.3 |  |
+| 2023-02-07 | 5.0 |  |
+| 2023-02-08 | 0.6 |  |
+| 2023-02-09 | 9.3 |  |
+| 2023-02-10 | 1.3 |  |
+| 2023-02-11 | 1.4 |  |
+
+## Caveats
+
+- **Model pinned to `era5` explicitly** (not Open-Meteo's default `best_match` blend). An initial pull of this dataset used `best_match`, and a manual check against the 25–26 Aug 2025 Tumaga flash flood (see that event's rainfall file) found it silently dampened the event-day signal — 7.5mm on the actual flood day vs 20.4mm three days earlier with no reported flooding, reversed under raw `era5` (20.3mm on the flood day vs 42.6mm on the earlier day) — and also smoothed away the afternoon-building hourly shape that raw ERA5 preserved. `era5_land` returned no data at all at this coastal grid cell, so `era5` is the most reliable of the three available here. All figures below reflect the `era5`-pinned re-pull.
+- Figures are still **model reanalysis estimates (ERA5, ~31 km grid)**, not a physical gauge reading at the flooded barangay — they represent the area-average rainfall over a wide grid cell, not necessarily what fell over the specific barangay(s) named in the incident report.
+- Flash floods are frequently driven by short, hyper-local convective bursts (tens of mm in under an hour over one barangay) that a coarse reanalysis grid can still under-report in its area-average even after pinning to `era5` — treat a low daily total on an event day as a possible known limitation, not automatic evidence the DROMIC report is wrong.
+- All events use a single fixed Zamboanga City reference point (7.0000, 122.0000) rather than per-barangay coordinates, for consistency across the dataset and because most incidents span multiple barangays.
+- No PAGASA station-gauge or radar QPE data was cross-checked against these reanalysis figures; do that before using these numbers for anything beyond rough calibration context.

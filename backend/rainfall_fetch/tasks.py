@@ -16,7 +16,7 @@ def rainfall_url(latitude: float, longitude: float) -> str:
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
-        f"&current=precipitation&hourly=precipitation"
+        f"&current=precipitation&hourly=precipitation&minutely_15=precipitation"
         f"&past_days=1&forecast_days=1"
     )
 
@@ -28,19 +28,28 @@ def _accumulate(precipitation, index, hours):
 
 def parse_rainfall_data(data, barangay_name=None):
     current_rainfall = data['current']['precipitation']
-    current_hour = data['current']['time'][:13]
+    current_time = data['current']['time']
+    current_hour = current_time[:13]
     times = data['hourly']['time']
     precipitation = data['hourly']['precipitation']
 
     index = next((i for i, t in enumerate(times) if t.startswith(current_hour)), None)
 
-    if index is None:
-        logger.warning(f"Current hour not found in hourly forecast for {barangay_name}. Defaulting to 0")
+    quarter_times = data['minutely_15']['time']
+    quarter_precipitation = data['minutely_15']['precipitation']
+    quarter_index = next((i for i, t in enumerate(quarter_times) if t == current_time), None)
+
+    if index is None or quarter_index is None:
+        logger.warning(f"Current hour not found in forecast for {barangay_name}. Defaulting to 0")
         return {key: 0 for key in [
             'current_rainfall_strength',
+            'forecast_strength_30min',
             'forecast_strength_1hr',
+            'forecast_strength_90min',
             'forecast_strength_2hr',
+            'forecast_strength_150min',
             'forecast_strength_3hr',
+            'forecast_strength_210min',
             'forecast_strength_4hr',
             'accumulated_6hr',
             'accumulated_12hr',
@@ -49,12 +58,18 @@ def parse_rainfall_data(data, barangay_name=None):
 
     # 1 hand function to get the precipitation based on hour represented as index, which is 1, 2, 3, 4
     forecast = lambda x: precipitation[index + x] if index + x < len(precipitation) else 0
+    # same idea but at 15-minute resolution, so `x` is a count of 15-minute buckets ahead
+    forecast_quarter = lambda x: quarter_precipitation[quarter_index + x] if quarter_index + x < len(quarter_precipitation) else 0
 
     return {
         'current_rainfall_strength': current_rainfall,
+        'forecast_strength_30min': forecast_quarter(2),
         'forecast_strength_1hr': forecast(1),
+        'forecast_strength_90min': forecast_quarter(6),
         'forecast_strength_2hr': forecast(2),
+        'forecast_strength_150min': forecast_quarter(10),
         'forecast_strength_3hr': forecast(3),
+        'forecast_strength_210min': forecast_quarter(14),
         'forecast_strength_4hr': forecast(4),
         'accumulated_6hr': _accumulate(precipitation, index, 6),
         'accumulated_12hr': _accumulate(precipitation, index, 12),

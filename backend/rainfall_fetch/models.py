@@ -6,9 +6,13 @@ class Rainfall(models.Model):
     barangay = models.ForeignKey(Barangay,on_delete=models.CASCADE, related_name="rainfall_readings", null=True, blank=True)
 
     current_rainfall_strength = models.FloatField(default=0)
+    forecast_strength_30min = models.FloatField(default=0)
     forecast_strength_1hr = models.FloatField(default=0)
+    forecast_strength_90min = models.FloatField(default=0)
     forecast_strength_2hr = models.FloatField(default=0)
+    forecast_strength_150min = models.FloatField(default=0)
     forecast_strength_3hr = models.FloatField(default=0)
+    forecast_strength_210min = models.FloatField(default=0)
     forecast_strength_4hr = models.FloatField(default=0)
 
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.

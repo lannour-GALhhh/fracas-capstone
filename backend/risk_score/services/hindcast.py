@@ -61,9 +61,15 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
 
     return SimpleNamespace(
         current_rainfall_strength=at(index),
+        # Archive data is hourly-only, so there's no sub-hourly reading to fill
+        # these with; they default to 0 and don't affect the peak-forecast max.
+        forecast_strength_30min=0.0,
         forecast_strength_1hr=at(index + 1),
+        forecast_strength_90min=0.0,
         forecast_strength_2hr=at(index + 2),
+        forecast_strength_150min=0.0,
         forecast_strength_3hr=at(index + 3),
+        forecast_strength_210min=0.0,
         forecast_strength_4hr=at(index + 4),
         accumulated_24hr=round(sum(at(i) for i in range(index - 23, index + 1)), 2),
     )

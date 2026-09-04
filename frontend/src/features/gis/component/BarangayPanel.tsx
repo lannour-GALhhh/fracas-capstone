@@ -118,9 +118,13 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 const Conditions = ({ data }: { data: BarangayRisk }) => {
     const roc = data.rainfall_rate_change
     const forecasts = [
+        data.rainfall_forecast_30min,
         data.rainfall_forecast_1hr,
+        data.rainfall_forecast_90min,
         data.rainfall_forecast_2hr,
+        data.rainfall_forecast_150min,
         data.rainfall_forecast_3hr,
+        data.rainfall_forecast_210min,
         data.rainfall_forecast_4hr,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
@@ -196,9 +200,13 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     const chartData = [
         { name: 'Now', rainfall: data.current_rainfall },
+        { name: '+30 min', rainfall: data.rainfall_forecast_30min },
         { name: '+1 hr', rainfall: data.rainfall_forecast_1hr },
+        { name: '+1:30 hr', rainfall: data.rainfall_forecast_90min },
         { name: '+2 hr', rainfall: data.rainfall_forecast_2hr },
+        { name: '+2:30 hr', rainfall: data.rainfall_forecast_150min },
         { name: '+3 hr', rainfall: data.rainfall_forecast_3hr },
+        { name: '+3:30 hr', rainfall: data.rainfall_forecast_210min },
         { name: '+4 hr', rainfall: data.rainfall_forecast_4hr },
     ].filter((d) => d.rainfall != null)
 
