@@ -7,11 +7,11 @@ pipeline lands, add its entries here so scheduling stays in one place.
 from celery.schedules import crontab
 
 BEAT_SCHEDULE = {
-    "scoring-pipeline-15min": {
+    "scoring-pipeline-5min": {
         # Chains: fetch rainfall -> compute risk scores (so compute runs on
-        # fresh data). Runs every 15 minutes for near-real-time warning.
+        # fresh data). Runs every 5 minutes for near-real-time warning.
         "task": "risk_score.tasks.run_scoring_pipeline",
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/5"),
     },
     "cleanup-old-data-daily": {
         # Prune old rainfall / risk-score rows past their retention window.

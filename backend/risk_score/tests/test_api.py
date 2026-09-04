@@ -47,7 +47,7 @@ class RiskApiTests(APITestCase):
         )
         Rainfall.objects.create(
             barangay=self.barangay, recorded_at=self.now,
-            current_rainfall_strength=12.0, forecast_strength_1hr=5.0,
+            current_rainfall_strength=12.0, forecast_strength_30min=3.0, forecast_strength_1hr=5.0,
         )
         self.client.force_authenticate(self.user)
         resp = self.client.get(reverse("barangay-risk", args=[self.barangay.id]))
@@ -55,6 +55,7 @@ class RiskApiTests(APITestCase):
         self.assertEqual(resp.data["status"], "critical")
         self.assertEqual(resp.data["risk_score"], 80.0)
         self.assertEqual(resp.data["current_rainfall"], 12.0)
+        self.assertEqual(resp.data["rainfall_forecast_30min"], 3.0)
         self.assertEqual(resp.data["rainfall_forecast_1hr"], 5.0)
 
     def test_barangay_detail_includes_zones_and_average(self):

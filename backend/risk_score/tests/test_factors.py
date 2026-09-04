@@ -8,9 +8,13 @@ from risk_score.services.factors import FactorInput, RainfallFactor, Susceptibil
 def rainfall(current=0.0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, acc24=0.0):
     return SimpleNamespace(
         current_rainfall_strength=current,
+        forecast_strength_30min=0.0,
         forecast_strength_1hr=f1,
+        forecast_strength_90min=0.0,
         forecast_strength_2hr=f2,
+        forecast_strength_150min=0.0,
         forecast_strength_3hr=f3,
+        forecast_strength_210min=0.0,
         forecast_strength_4hr=f4,
         accumulated_24hr=acc24,
     )

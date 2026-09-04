@@ -4,6 +4,7 @@
 /docs
 /diagrams
 /.claude
+/flood_events
 
 # Python bytecode
 __pycache__/
