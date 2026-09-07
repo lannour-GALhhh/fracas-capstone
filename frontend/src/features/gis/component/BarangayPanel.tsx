@@ -198,8 +198,8 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 }
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
-    const base = data.recorded_at ? new Date(data.recorded_at) : new Date()
-    const atOffset = (minutes: number) => format(new Date(base.getTime() + minutes * 60_000), 'h:mm a')
+    const now = new Date()
+    const atOffset = (minutes: number) => format(new Date(now.getTime() + minutes * 60_000), 'h:mm a')
 
     const chartData = [
         { name: atOffset(0), rainfall: data.current_rainfall },
@@ -217,7 +217,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
                 <Label>Rainfall forecast</Label>
-                <span className='text-muted-foreground text-xs'>{format(base, 'MMMM d, yyyy, EEEE')}</span>
+                <span className='text-muted-foreground text-xs'>{format(now, 'MMMM d, yyyy, EEEE')}</span>
             </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
