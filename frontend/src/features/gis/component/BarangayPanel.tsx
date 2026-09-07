@@ -198,21 +198,27 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 }
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
+    const base = data.recorded_at ? new Date(data.recorded_at) : new Date()
+    const atOffset = (minutes: number) => format(new Date(base.getTime() + minutes * 60_000), 'h:mm a')
+
     const chartData = [
-        { name: 'Now', rainfall: data.current_rainfall },
-        { name: '+30 min', rainfall: data.rainfall_forecast_30min },
-        { name: '+1 hr', rainfall: data.rainfall_forecast_1hr },
-        { name: '+1:30 hr', rainfall: data.rainfall_forecast_90min },
-        { name: '+2 hr', rainfall: data.rainfall_forecast_2hr },
-        { name: '+2:30 hr', rainfall: data.rainfall_forecast_150min },
-        { name: '+3 hr', rainfall: data.rainfall_forecast_3hr },
-        { name: '+3:30 hr', rainfall: data.rainfall_forecast_210min },
-        { name: '+4 hr', rainfall: data.rainfall_forecast_4hr },
+        { name: atOffset(0), rainfall: data.current_rainfall },
+        { name: atOffset(30), rainfall: data.rainfall_forecast_30min },
+        { name: atOffset(60), rainfall: data.rainfall_forecast_1hr },
+        { name: atOffset(90), rainfall: data.rainfall_forecast_90min },
+        { name: atOffset(120), rainfall: data.rainfall_forecast_2hr },
+        { name: atOffset(150), rainfall: data.rainfall_forecast_150min },
+        { name: atOffset(180), rainfall: data.rainfall_forecast_3hr },
+        { name: atOffset(210), rainfall: data.rainfall_forecast_210min },
+        { name: atOffset(240), rainfall: data.rainfall_forecast_4hr },
     ].filter((d) => d.rainfall != null)
 
     return (
         <Card className='gap-1 py-3'>
-            <Label>Rainfall forecast</Label>
+            <div className='flex items-center justify-between'>
+                <Label>Rainfall forecast</Label>
+                <span className='text-muted-foreground text-xs'>{format(base, 'MMMM d, yyyy, EEEE')}</span>
+            </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
                     <ChartContainer config={chartConfig}>
