@@ -300,37 +300,31 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
 
     const underEvacuation = (evacuations ?? []).some((e) => e.barangay.id === id)
 
+    const tileClass = 'h-16 flex-1 flex-col gap-1 rounded-xl text-xs cursor-pointer'
+
     return (
-        <div className='flex flex-col gap-2'>
-            <div className='flex gap-2'>
-                <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName='flex-1 cursor-pointer' />
-                <Button
-                    variant='outline'
-                    size='sm'
-                    className='flex-1 cursor-pointer'
-                    onClick={() => navigate(`/alerts?barangay=${id}`)}
-                >
-                    <History className='size-4' />
-                    Alert history
-                </Button>
-            </div>
+        <div className='grid grid-cols-3 gap-2'>
             {underEvacuation ? (
                 <Button
                     variant='outline'
-                    size='sm'
-                    className='text-destructive w-full cursor-pointer'
+                    className={`${tileClass} text-destructive`}
                     onClick={() => navigate('/evacuation')}
                 >
                     <Siren className='size-4' />
-                    Under evacuation — view
+                    Under evacuation
                 </Button>
             ) : (
-                <PingEvacuationDialog
-                    barangayId={id}
-                    barangayName={name}
-                    triggerClassName='w-full cursor-pointer'
-                />
+                <PingEvacuationDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
             )}
+            <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
+            <Button
+                variant='outline'
+                className={tileClass}
+                onClick={() => navigate(`/alerts?barangay=${id}`)}
+            >
+                <History className='size-4' />
+                Alert history
+            </Button>
         </div>
     )
 }
