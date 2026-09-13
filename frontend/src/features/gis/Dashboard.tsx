@@ -56,6 +56,7 @@ const Dashboard = () => {
     const [layers, setLayers] = useState<LayerVisibility>({
         hazard: true,
         evacuation: true,
+        rainfall: true,
         very_low: true,
         low: true,
         moderate: true,

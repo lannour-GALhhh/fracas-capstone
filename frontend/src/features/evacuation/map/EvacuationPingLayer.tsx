@@ -5,6 +5,7 @@ import { featureBoundsById } from '@/features/gis/utils/bounds'
 import type { RiskFeatureCollection } from '@/features/gis/types/api'
 import { useActiveEvacuations } from '../hooks/useActiveEvacuations'
 import { TRIGGER_LABELS } from '../constants/evacuation'
+import { EvacuationPingBadge } from '../component/EvacuationPingIcon'
 import type { EvacuationAggregate } from '../types/api'
 
 interface Props {
@@ -18,11 +19,11 @@ const centroidOf = (data: RiskFeatureCollection, id: number): [number, number] |
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
-/** The pulsing badge: evacuated / total, ringed by an animated pulse. */
+/** The pulsing siren badge, with evacuated/total pinned to its corner. */
 const PingBadge = ({ safe, roster }: { safe: number; roster: number }) => (
     <div className='relative flex items-center justify-center'>
-        <span className='bg-destructive/40 absolute inline-flex h-full w-full animate-ping rounded-full' />
-        <span className='bg-destructive relative inline-flex items-center gap-1 rounded-full border-2 border-white px-2 py-0.5 text-xs font-semibold text-white shadow-lg tabular-nums'>
+        <EvacuationPingBadge />
+        <span className='bg-foreground absolute -right-1.5 -bottom-1.5 rounded-full border border-white px-1 text-[10px] font-semibold text-white shadow tabular-nums'>
             {safe}/{roster}
         </span>
     </div>
