@@ -69,8 +69,8 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
                 <DialogHeader>
                     <DialogTitle>Send alert — {barangayName}</DialogTitle>
                     <DialogDescription>
-                        Pushes an advisory to this barangay&apos;s subscribers across every channel
-                        they&apos;ve opted into. Recorded in the alert log.
+                        Write a message below and every subscriber in {barangayName} will get it
+                        immediately.
                     </DialogDescription>
                 </DialogHeader>
 

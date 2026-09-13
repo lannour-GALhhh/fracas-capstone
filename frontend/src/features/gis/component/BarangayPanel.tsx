@@ -1,10 +1,18 @@
-import { AlertTriangle, ChevronRight, ChevronsRight, History, Siren, Waves, X } from 'lucide-react'
+import {
+    AlertTriangle,
+    ChevronRight,
+    ChevronsRight,
+    CloudRain,
+    History,
+    Siren,
+    TrendingUp,
+    Waves,
+    X,
+} from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
-import { Progress } from '@/common/ui/progress'
-import { Badge } from '@/common/ui/badge'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
@@ -19,7 +27,7 @@ import {
 } from '@/common/ui/chart'
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
-import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
+import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
@@ -56,23 +64,25 @@ const HeaderButton = ({
     </button>
 )
 
-/** A compact metric readout: label above a large value with an optional unit. */
-const StatTile = ({
+/** One half of the rainfall card: a label over a large value, optionally
+ * flagging that the forecast trends above the current reading. */
+const RainfallStat = ({
     label,
     value,
-    unit,
+    rising,
 }: {
     label: string
     value: string
-    unit?: string
+    rising?: boolean
 }) => (
-    <Card size='sm' className='gap-1'>
-        <Label className='text-muted-foreground text-xs'>{label}</Label>
+    <div className='flex flex-1 flex-col gap-1'>
+        <span className='text-muted-foreground text-xs'>{label}</span>
         <div className='flex items-baseline gap-1'>
             <span className='text-2xl font-semibold tabular-nums'>{value}</span>
-            {unit && <span className='text-muted-foreground text-xs'>{unit}</span>}
+            <span className='text-muted-foreground text-xs'>mm/hr</span>
+            {rising && <TrendingUp className='text-amber-500 size-3.5' />}
         </div>
-    </Card>
+    </div>
 )
 
 const HazardHero = ({ data }: { data: BarangayRisk }) => {
@@ -81,29 +91,21 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 
     return (
         <Card className='gap-3'>
-            <div className='flex items-start justify-between'>
-                <div className='flex flex-col gap-1'>
-                    <Label className='text-muted-foreground text-xs'>Hazard score</Label>
-                    <div className='flex items-baseline gap-1.5'>
-                        <span className='text-4xl font-bold tabular-nums'>
-                            {score == null ? '—' : Math.round(score)}
-                        </span>
-                        <span className='text-muted-foreground text-sm'>/ 100</span>
-                    </div>
-                </div>
-                <Badge
-                    style={
-                        category
-                            ? { backgroundColor: RISK_COLORS[category], color: '#3f0a0a' }
-                            : undefined
-                    }
-                    variant={category ? 'default' : 'secondary'}
+            <Label className='font-medium'>Flood Risk Analysis</Label>
+
+            <div className='flex flex-col items-center gap-1.5 py-1.5 text-center'>
+                <span
+                    className='text-3xl font-bold uppercase tracking-wide'
+                    style={{ color: category ? RISK_TEXT_COLORS[category] : undefined }}
                 >
                     {category ? CATEGORY_LABELS[category] : 'No data'}
-                </Badge>
+                </span>
+                <p className='text-muted-foreground max-w-[85%] text-xs'>
+                    {category
+                        ? CATEGORY_DESCRIPTIONS[category]
+                        : 'Risk level unavailable — no recent score for this barangay.'}
+                </p>
             </div>
-
-            <Progress value={score ?? 0} />
 
             {data.is_degraded && (
                 <div className='text-destructive flex items-center gap-1.5 text-xs'>
@@ -111,6 +113,13 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
                     <span>Degraded — some inputs were stale; weights were redistributed.</span>
                 </div>
             )}
+
+            <div className='flex items-center justify-between border-t pt-2 text-xs'>
+                <span className='text-muted-foreground'>Hazard score</span>
+                <span className='font-semibold tabular-nums'>
+                    {score == null ? '—' : Math.round(score)} / 100
+                </span>
+            </div>
         </Card>
     )
 }
@@ -127,12 +136,20 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
         data.rainfall_forecast_4hr,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
+    const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
 
     return (
-        <div className='grid grid-cols-2 gap-3'>
-            <StatTile label='Current rainfall' value={fmt(data.current_rainfall)} unit='mm/hr' />
-            <StatTile label='Peak forecast (4 hr)' value={fmt(peak)} unit='mm/hr' />
-        </div>
+        <Card className='gap-3'>
+            <div className='flex items-center gap-1.5'>
+                <CloudRain className='text-muted-foreground size-4' />
+                <Label className='font-medium'>Rainfall</Label>
+            </div>
+            <div className='flex items-stretch'>
+                <RainfallStat label='Current' value={fmt(data.current_rainfall)} />
+                <div className='bg-border mx-3 w-px' />
+                <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
+            </div>
+        </Card>
     )
 }
 
@@ -303,49 +320,42 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
 
     const underEvacuation = (evacuations ?? []).some((e) => e.barangay.id === id)
 
+    const tileClass = 'h-16 flex-1 flex-col gap-1 rounded-xl text-xs cursor-pointer'
+
     return (
-        <div className='flex flex-col gap-2'>
-            <div className='flex gap-2'>
-                <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName='flex-1 cursor-pointer' />
-                <Button
-                    variant='outline'
-                    size='sm'
-                    className='flex-1 cursor-pointer'
-                    onClick={() => navigate(`/alerts?barangay=${id}`)}
-                >
-                    <History className='size-4' />
-                    Alert history
-                </Button>
-            </div>
+        <div className='grid grid-cols-3 gap-2'>
             {underEvacuation ? (
                 <Button
                     variant='outline'
-                    size='sm'
-                    className='text-destructive w-full cursor-pointer'
+                    className={`${tileClass} text-destructive`}
                     onClick={() => navigate('/evacuation')}
                 >
                     <Siren className='size-4' />
-                    Under evacuation — view
+                    Under evacuation
                 </Button>
             ) : (
-                <PingEvacuationDialog
-                    barangayId={id}
-                    barangayName={name}
-                    triggerClassName='w-full cursor-pointer'
-                />
+                <PingEvacuationDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
             )}
+            <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
+            <Button
+                variant='outline'
+                className={tileClass}
+                onClick={() => navigate(`/alerts?barangay=${id}`)}
+            >
+                <History className='size-4' />
+                Alert history
+            </Button>
         </div>
     )
 }
 
 const PanelBody = ({ data }: { data: BarangayRisk }) => (
-    <div className='h-full'>
+    <div className='flex flex-col gap-3'>
         <HazardHero data={data} />
-        <Actions id={data.id} name={data.name} />
-        <Conditions data={data} />
-        <RecentFloods id={data.id} />
         <ZoneBreakdown data={data} />
+        <Conditions data={data} />
         <RainfallTrend data={data} />
+        <RecentFloods id={data.id} />
 
         {(data.computed_at || data.recorded_at) && (
             <div className='text-muted-foreground mt-auto flex flex-col gap-0.5 pt-2 text-center text-xs'>
@@ -372,10 +382,11 @@ interface BarangayPanelProps {
 }
 
 const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
+    const { isOperator } = useAuth()
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
 
     return (
-        <SidePanel className='overflow-y-auto'>
+        <SidePanel footer={data && isOperator && <Actions id={data.id} name={data.name} />}>
             <div className='flex items-start justify-between h-fit'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
                 <div className='flex items-center gap-1'>

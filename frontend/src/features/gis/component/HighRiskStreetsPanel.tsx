@@ -11,8 +11,8 @@ interface HighRiskStreetsPanelProps {
 /**
  * Floating companion to `BarangayPanel`, docked directly to its left —
  * `right` mirrors that panel's own `w-1/4 min-w-80` so the two line up
- * regardless of viewport width. Fixed at a third of its height per design:
- * this is a quick-glance list, not another data-dense breakdown.
+ * regardless of viewport width. Fixed at a fifth of viewport height per
+ * design: this is a quick-glance list, not another data-dense breakdown.
  */
 const HighRiskStreetsPanel = ({ barangayId }: HighRiskStreetsPanelProps) => {
     const { data: streets, isLoading, isError, refetch } = useBarangayHighRiskStreets(barangayId)
@@ -24,7 +24,7 @@ const HighRiskStreetsPanel = ({ barangayId }: HighRiskStreetsPanelProps) => {
             initial={reduce ? false : { opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className='bg-background absolute top-16 right-[calc(max(25%,20rem)+0.75rem)] z-30 h-[calc((100vh-4rem)/3)] w-72 rounded-lg border shadow-xl'
+            className='bg-background absolute top-16 right-[calc(max(25%,20rem)+0.75rem)] z-30 h-[calc((100vh-4rem)/5)] w-72 rounded-lg border shadow-xl'
         >
             <div className='flex h-full flex-col gap-2 p-4'>
                 <div className='flex items-start justify-between gap-2'>
