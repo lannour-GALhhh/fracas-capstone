@@ -138,7 +138,6 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
                 unit='mm/hr'
             />
             <StatTile label='Peak forecast (4 hr)' value={fmt(peak)} unit='mm/hr' />
-            <StatTile label='Accumulated (24 hr)' value={fmt(data.accumulated_24hr)} unit='mm' />
         </div>
     )
 }

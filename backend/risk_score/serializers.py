@@ -92,6 +92,7 @@ class BarangayRiskSerializer(serializers.Serializer):
             "rainfall_forecast_210min": r.forecast_strength_210min if r else None,
             "rainfall_forecast_4hr": r.forecast_strength_4hr if r else None,
             "accumulated_24hr": r.accumulated_24hr if r else None,
+            "accumulated_7day": r.accumulated_7day if r else None,
             "rainfall_rate_change": float(r.rate_of_change) if r and r.rate_of_change is not None else None,
             "recorded_at": r.recorded_at.isoformat() if r else None,
         }

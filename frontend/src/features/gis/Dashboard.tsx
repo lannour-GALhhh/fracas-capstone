@@ -10,6 +10,7 @@ import LayersControl from './component/LayersControl'
 import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
 import HighRiskStreetsPanel from './component/HighRiskStreetsPanel'
+import RainfallAccumulationPanel from './component/RainfallAccumulationPanel'
 import { useRiskMap } from './hooks/useRiskMap'
 import { SUSCEPTIBILITY_LAYER_KEYS, type LayerKey, type LayerVisibility } from './constants/layers'
 import { type ZoneColorMode } from './constants/susceptibility'
@@ -137,6 +138,7 @@ const Dashboard = () => {
             {barangayPanelVisible && selectedId != null && (
                 <>
                     <HighRiskStreetsPanel barangayId={selectedId} />
+                    <RainfallAccumulationPanel barangayId={selectedId} />
                     <BarangayPanel
                         barangayId={selectedId}
                         onClose={() => setSelectedId(null)}
