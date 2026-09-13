@@ -11,6 +11,26 @@ export const CATEGORY_LABELS: Record<RiskCategory, string> = {
     critical: 'Critical',
 }
 
+/** Official, concise guidance shown alongside the category in the barangay panel. */
+export const CATEGORY_DESCRIPTIONS: Record<RiskCategory, string> = {
+    low: 'Risk of flooding is low. No action required at this time.',
+    medium: 'Risk of flooding is moderate. Stay alert and monitor conditions.',
+    high: 'Risk of flooding is high. Prepare for possible evacuation and remain vigilant.',
+    critical: 'Risk of flooding is critical. Evacuate immediately if directed by local authorities.',
+}
+
+/**
+ * Legible foreground (text) counterpart to `RISK_COLORS`, which is tuned for
+ * fills, not contrast against a light card background. Same severity ramp,
+ * calibrated so each level reads clearly as text.
+ */
+export const RISK_TEXT_COLORS: Record<RiskCategory, string> = {
+    low: '#f87171',
+    medium: '#ef4444',
+    high: '#dc2626',
+    critical: '#991b1b',
+}
+
 /**
  * White → red intensity ramp. Danger reads as saturation/darkness of red:
  * low is nearly white (calm), critical is deep red. Single source of truth for

@@ -3,8 +3,6 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
-import { Progress } from '@/common/ui/progress'
-import { Badge } from '@/common/ui/badge'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
@@ -19,7 +17,7 @@ import {
 } from '@/common/ui/chart'
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
-import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
+import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
@@ -81,29 +79,21 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 
     return (
         <Card className='gap-3'>
-            <div className='flex items-start justify-between'>
-                <div className='flex flex-col gap-1'>
-                    <Label className='text-muted-foreground text-xs'>Hazard score</Label>
-                    <div className='flex items-baseline gap-1.5'>
-                        <span className='text-4xl font-bold tabular-nums'>
-                            {score == null ? '—' : Math.round(score)}
-                        </span>
-                        <span className='text-muted-foreground text-sm'>/ 100</span>
-                    </div>
-                </div>
-                <Badge
-                    style={
-                        category
-                            ? { backgroundColor: RISK_COLORS[category], color: '#3f0a0a' }
-                            : undefined
-                    }
-                    variant={category ? 'default' : 'secondary'}
+            <Label className='font-medium'>Flood Risk Analysis</Label>
+
+            <div className='flex flex-col items-center gap-1.5 py-1.5 text-center'>
+                <span
+                    className='text-3xl font-bold uppercase tracking-wide'
+                    style={{ color: category ? RISK_TEXT_COLORS[category] : undefined }}
                 >
                     {category ? CATEGORY_LABELS[category] : 'No data'}
-                </Badge>
+                </span>
+                <p className='text-muted-foreground max-w-[85%] text-xs'>
+                    {category
+                        ? CATEGORY_DESCRIPTIONS[category]
+                        : 'Risk level unavailable — no recent score for this barangay.'}
+                </p>
             </div>
-
-            <Progress value={score ?? 0} />
 
             {data.is_degraded && (
                 <div className='text-destructive flex items-center gap-1.5 text-xs'>
@@ -111,6 +101,13 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
                     <span>Degraded — some inputs were stale; weights were redistributed.</span>
                 </div>
             )}
+
+            <div className='flex items-center justify-between border-t pt-2 text-xs'>
+                <span className='text-muted-foreground'>Hazard score</span>
+                <span className='font-semibold tabular-nums'>
+                    {score == null ? '—' : Math.round(score)} / 100
+                </span>
+            </div>
         </Card>
     )
 }
