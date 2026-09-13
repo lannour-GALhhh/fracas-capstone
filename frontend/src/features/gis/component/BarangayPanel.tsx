@@ -350,13 +350,12 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
 }
 
 const PanelBody = ({ data }: { data: BarangayRisk }) => (
-    <div className='h-full'>
+    <div className='flex flex-col gap-3'>
         <HazardHero data={data} />
-        <Actions id={data.id} name={data.name} />
-        <Conditions data={data} />
-        <RecentFloods id={data.id} />
         <ZoneBreakdown data={data} />
+        <Conditions data={data} />
         <RainfallTrend data={data} />
+        <RecentFloods id={data.id} />
 
         {(data.computed_at || data.recorded_at) && (
             <div className='text-muted-foreground mt-auto flex flex-col gap-0.5 pt-2 text-center text-xs'>
@@ -383,10 +382,11 @@ interface BarangayPanelProps {
 }
 
 const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
+    const { isOperator } = useAuth()
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
 
     return (
-        <SidePanel className='overflow-y-auto'>
+        <SidePanel footer={data && isOperator && <Actions id={data.id} name={data.name} />}>
             <div className='flex items-start justify-between h-fit'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
                 <div className='flex items-center gap-1'>
