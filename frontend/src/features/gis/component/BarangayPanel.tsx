@@ -1,4 +1,14 @@
-import { AlertTriangle, ChevronRight, ChevronsRight, History, Siren, Waves, X } from 'lucide-react'
+import {
+    AlertTriangle,
+    ChevronRight,
+    ChevronsRight,
+    CloudRain,
+    History,
+    Siren,
+    TrendingUp,
+    Waves,
+    X,
+} from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
@@ -54,23 +64,25 @@ const HeaderButton = ({
     </button>
 )
 
-/** A compact metric readout: label above a large value with an optional unit. */
-const StatTile = ({
+/** One half of the rainfall card: a label over a large value, optionally
+ * flagging that the forecast trends above the current reading. */
+const RainfallStat = ({
     label,
     value,
-    unit,
+    rising,
 }: {
     label: string
     value: string
-    unit?: string
+    rising?: boolean
 }) => (
-    <Card size='sm' className='gap-1'>
-        <Label className='text-muted-foreground text-xs'>{label}</Label>
+    <div className='flex flex-1 flex-col gap-1'>
+        <span className='text-muted-foreground text-xs'>{label}</span>
         <div className='flex items-baseline gap-1'>
             <span className='text-2xl font-semibold tabular-nums'>{value}</span>
-            {unit && <span className='text-muted-foreground text-xs'>{unit}</span>}
+            <span className='text-muted-foreground text-xs'>mm/hr</span>
+            {rising && <TrendingUp className='text-amber-500 size-3.5' />}
         </div>
-    </Card>
+    </div>
 )
 
 const HazardHero = ({ data }: { data: BarangayRisk }) => {
@@ -124,12 +136,20 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
         data.rainfall_forecast_4hr,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
+    const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
 
     return (
-        <div className='grid grid-cols-2 gap-3'>
-            <StatTile label='Current rainfall' value={fmt(data.current_rainfall)} unit='mm/hr' />
-            <StatTile label='Peak forecast (4 hr)' value={fmt(peak)} unit='mm/hr' />
-        </div>
+        <Card className='gap-3'>
+            <div className='flex items-center gap-1.5'>
+                <CloudRain className='text-muted-foreground size-4' />
+                <Label className='font-medium'>Rainfall</Label>
+            </div>
+            <div className='flex items-stretch'>
+                <RainfallStat label='Current' value={fmt(data.current_rainfall)} />
+                <div className='bg-border mx-3 w-px' />
+                <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
+            </div>
+        </Card>
     )
 }
 
