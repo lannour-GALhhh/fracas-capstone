@@ -17,7 +17,7 @@ def rainfall_url(latitude: float, longitude: float) -> str:
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
         f"&current=precipitation&hourly=precipitation&minutely_15=precipitation"
-        f"&past_days=1&forecast_days=1"
+        f"&past_days=7&forecast_days=1"
     )
 
 
@@ -54,6 +54,7 @@ def parse_rainfall_data(data, barangay_name=None):
             'accumulated_6hr',
             'accumulated_12hr',
             'accumulated_24hr',
+            'accumulated_7day',
             ]}
 
     # 1 hand function to get the precipitation based on hour represented as index, which is 1, 2, 3, 4
@@ -74,6 +75,7 @@ def parse_rainfall_data(data, barangay_name=None):
         'accumulated_6hr': _accumulate(precipitation, index, 6),
         'accumulated_12hr': _accumulate(precipitation, index, 12),
         'accumulated_24hr': _accumulate(precipitation, index, 24),
+        'accumulated_7day': _accumulate(precipitation, index, 24 * 7),
     }
 
 @shared_task

@@ -33,6 +33,7 @@ class ParseRainfallTests(SimpleTestCase):
         self.assertEqual(result["forecast_strength_1hr"], 2)
         self.assertEqual(result["accumulated_6hr"], 14)  # indices 0..4 -> 1+1+1+1+10
         self.assertEqual(result["accumulated_24hr"], 14)
+        self.assertEqual(result["accumulated_7day"], 14)  # only 5 hours of history available
 
     def test_parses_half_hour_forecasts(self):
         result = parse_rainfall_data(self._payload())
@@ -46,5 +47,6 @@ class ParseRainfallTests(SimpleTestCase):
         data["current"]["time"] = "2026-07-01T23:00"  # not in hourly or minutely_15 times
         result = parse_rainfall_data(data)
         self.assertEqual(result["accumulated_24hr"], 0)
+        self.assertEqual(result["accumulated_7day"], 0)
         self.assertEqual(result["current_rainfall_strength"], 0)
         self.assertEqual(result["forecast_strength_30min"], 0)
