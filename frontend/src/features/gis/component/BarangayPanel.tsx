@@ -116,7 +116,6 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 }
 
 const Conditions = ({ data }: { data: BarangayRisk }) => {
-    const roc = data.rainfall_rate_change
     const forecasts = [
         data.rainfall_forecast_30min,
         data.rainfall_forecast_1hr,
@@ -132,13 +131,7 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
     return (
         <div className='grid grid-cols-2 gap-3'>
             <StatTile label='Current rainfall' value={fmt(data.current_rainfall)} unit='mm/hr' />
-            <StatTile
-                label='Rate of change'
-                value={roc == null ? '—' : `${roc > 0 ? '+' : ''}${fmt(roc)}`}
-                unit='mm/hr'
-            />
             <StatTile label='Peak forecast (4 hr)' value={fmt(peak)} unit='mm/hr' />
-            <StatTile label='Accumulated (24 hr)' value={fmt(data.accumulated_24hr)} unit='mm' />
         </div>
     )
 }

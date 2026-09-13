@@ -73,6 +73,7 @@ export interface BarangayRisk {
     rainfall_forecast_210min: number | null
     rainfall_forecast_4hr: number | null
     accumulated_24hr: number | null
+    accumulated_7day: number | null
     rainfall_rate_change: number | null
     recorded_at: string | null
 }
