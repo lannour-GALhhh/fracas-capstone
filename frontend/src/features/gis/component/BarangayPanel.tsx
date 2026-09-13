@@ -4,7 +4,6 @@ import {
     ChevronsRight,
     CloudRain,
     History,
-    Siren,
     TrendingUp,
     Waves,
     X,
@@ -16,6 +15,7 @@ import { Label } from '@/common/ui/label'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
+import { EvacuationPingIcon } from '@/features/evacuation/component/EvacuationPingIcon'
 import { useActiveEvacuations } from '@/features/evacuation/hooks/useActiveEvacuations'
 import { useRecentFloods } from '@/features/history/hooks/useRecentFloods'
 import { SEVERITY_COLORS, SEVERITY_LABELS } from '@/features/history/constants/floodEvents'
@@ -25,9 +25,10 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from '@/common/ui/chart'
-import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
+import { RAINFALL_CHART_FLOOR_MM_HR } from '../constants/rainfall'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
@@ -91,7 +92,18 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 
     return (
         <Card className='gap-3'>
-            <Label className='font-medium'>Flood Risk Analysis</Label>
+            <div className='flex items-center justify-between'>
+                <Label className='font-medium'>Flood Risk Analysis</Label>
+                {data.is_degraded && (
+                    <span
+                        className='text-destructive flex items-center gap-1 text-xs font-medium'
+                        title='Some inputs were stale; weights were redistributed.'
+                    >
+                        <AlertTriangle className='size-3.5 shrink-0' />
+                        Data Outdated
+                    </span>
+                )}
+            </div>
 
             <div className='flex flex-col items-center gap-1.5 py-1.5 text-center'>
                 <span
@@ -106,13 +118,6 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
                         : 'Risk level unavailable — no recent score for this barangay.'}
                 </p>
             </div>
-
-            {data.is_degraded && (
-                <div className='text-destructive flex items-center gap-1.5 text-xs'>
-                    <AlertTriangle className='size-3.5 shrink-0' />
-                    <span>Degraded — some inputs were stale; weights were redistributed.</span>
-                </div>
-            )}
 
             <div className='flex items-center justify-between border-t pt-2 text-xs'>
                 <span className='text-muted-foreground'>Hazard score</span>
@@ -235,6 +240,13 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                         <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 12 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
+                            {/* Floor the range at the "light rain" threshold so a jump
+                                between e.g. 0 and 0.1 mm/hr — both really "no rain" —
+                                doesn't fill the whole chart height. */}
+                            <YAxis
+                                domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR)]}
+                                hide
+                            />
                             <ChartTooltip
                                 cursor={false}
                                 content={
@@ -330,7 +342,7 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
                     className={`${tileClass} text-destructive`}
                     onClick={() => navigate('/evacuation')}
                 >
-                    <Siren className='size-4' />
+                    <EvacuationPingIcon className='size-4' />
                     Under evacuation
                 </Button>
             ) : (

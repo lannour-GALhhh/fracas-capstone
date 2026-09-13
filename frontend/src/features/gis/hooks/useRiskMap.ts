@@ -67,6 +67,7 @@ export const useRiskMap = (): RiskMap => {
                               category: entry?.category ?? null,
                               score: entry?.score ?? null,
                               is_degraded: entry?.is_degraded ?? false,
+                              current_rainfall: entry?.current_rainfall ?? null,
                           },
                       }
                   }),

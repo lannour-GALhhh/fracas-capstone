@@ -10,6 +10,8 @@ export interface RiskSnapshotEntry {
     score: number
     category: RiskCategory
     is_degraded: boolean
+    /** Latest reading, mm/hr — null when there's no fresh rainfall for this cycle. */
+    current_rainfall: number | null
 }
 
 /** GET /api/risk/snapshot/ — all barangays for the current cycle. */
@@ -133,6 +135,7 @@ export interface BarangayRiskProperties extends BarangayBaseProperties {
     category: RiskCategory | null
     score: number | null
     is_degraded: boolean
+    current_rainfall: number | null
 }
 
 export type BarangayGeometry = Polygon | MultiPolygon

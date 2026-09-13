@@ -55,6 +55,7 @@ def latest() -> dict:
     if cached is not None:
         return cached
 
+    from rainfall_fetch.models import Rainfall
     from risk_score.models import RiskScore
 
     rows = (
@@ -62,6 +63,10 @@ def latest() -> dict:
         .distinct("barangay_id")
         .select_related("barangay")
     )
+    latest_rainfall = (
+        Rainfall.objects.order_by("barangay_id", "-recorded_at").distinct("barangay_id")
+    )
+    rainfall_by_barangay = {r.barangay_id: r.current_rainfall_strength for r in latest_rainfall}
     entries = [
         {
             "id": r.barangay_id,
@@ -69,6 +74,7 @@ def latest() -> dict:
             "score": round(r.score, 2),
             "category": r.category,
             "is_degraded": r.is_degraded,
+            "current_rainfall": rainfall_by_barangay.get(r.barangay_id),
         }
         for r in rows
     ]

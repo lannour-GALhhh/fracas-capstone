@@ -35,7 +35,8 @@ def compute_risk_scores() -> dict:
     entries: list[dict] = []
     zone_entries: list[dict] = []
     for barangay in context.barangays:
-        data = FactorInput(barangay=barangay, rainfall=context.rainfall_for(barangay), context=context)
+        rain = context.rainfall_for(barangay)
+        data = FactorInput(barangay=barangay, rainfall=rain, context=context)
         scored = engine.score(data)
         rows.append(
             RiskScore(
@@ -55,6 +56,7 @@ def compute_risk_scores() -> dict:
                 "score": round(scored.score, 2),
                 "category": scored.category.value,
                 "is_degraded": scored.is_degraded,
+                "current_rainfall": rain.current_rainfall_strength if rain else None,
             }
         )
         for zone in scored.breakdown.get("zones", []):
