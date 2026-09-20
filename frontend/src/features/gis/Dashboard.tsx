@@ -88,14 +88,16 @@ const Dashboard = () => {
 
     return (
         <>
-            <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
-                {legendVisible && <Legend view={zoneColorMode} />}
-                <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
-                    <LayersControl layers={layers} onToggle={toggleLayer} />
-                    <span className='bg-border mx-0.5 h-5 w-px' />
-                    <MapViewToggle value={zoneColorMode} onChange={setZoneColorMode} />
+            {legendVisible && (
+                <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
+                    <Legend view={zoneColorMode} />
+                    <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+                        <LayersControl layers={layers} onToggle={toggleLayer} />
+                        <span className='bg-border mx-0.5 h-5 w-px' />
+                        <MapViewToggle value={zoneColorMode} onChange={setZoneColorMode} />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {cardsVisible && (
                 <div className='absolute top-20 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
