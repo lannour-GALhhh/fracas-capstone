@@ -1,8 +1,4 @@
-"""Analytics endpoint tests — deterministic and offline.
-
-Uses a local-memory cache (not Redis) and clears it per test so cached
-per-window payloads never leak between cases.
-"""
+"""Analytics endpoint tests — deterministic and offline."""
 
 from datetime import timedelta
 
@@ -143,11 +139,13 @@ class AnalyticsApiTests(APITestCase):
     def test_summary_blends_window_and_current_state(self):
         self._flood(self.brgy_a, people=100)
         self._flood(self.brgy_a, people=50, is_confirmed=False)  # excluded
-        # AlertState rows drive current high/critical counts.
-        from alert.models import AlertState
-
-        AlertState.objects.create(barangay=self.brgy_a, level=RiskCategory.CRITICAL)
-        AlertState.objects.create(barangay=self.brgy_b, level=RiskCategory.HIGH)
+        # Each barangay's latest RiskScore drives current high/critical counts.
+        RiskScore.objects.create(
+            barangay=self.brgy_a, score=90, category=RiskCategory.CRITICAL, computed_at=self.now
+        )
+        RiskScore.objects.create(
+            barangay=self.brgy_b, score=60, category=RiskCategory.HIGH, computed_at=self.now
+        )
         resp = self.client.get(reverse("analytics-summary"))
         self.assertEqual(resp.data["flood_events"], 1)
         self.assertEqual(resp.data["people_affected"], 100)

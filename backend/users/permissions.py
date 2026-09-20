@@ -1,15 +1,4 @@
-"""Web-console role gates.
-
-Two roles beyond a plain authenticated resident:
-
-- **Operator** (`is_operator`) — runs the DRRMO console (broadcasts, monitoring)
-  but is kept out of the Django admin site.
-- **Admin** (`is_staff`) — full system access, including `/admin/`.
-
-Admins are a superset of operators, so `IsOperator` also admits admins. These
-mirror `User.role`; the API stays the real, server-enforced gate (the JWT
-`role` claim is only a UX signal for the client).
-"""
+"""Web-console role gates."""
 
 from rest_framework.permissions import BasePermission
 

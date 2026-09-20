@@ -1,8 +1,4 @@
-"""Recorded real-world flood events — the ground truth for model validation.
-
-Also the data source for the flood-history UI. Populate from LGU/DRRMO
-records, news reports, or PAGASA advisories via load_flood_events.
-"""
+"""Recorded real-world flood events — the ground truth for model validation."""
 
 from django.conf import settings
 from django.db import models
@@ -49,8 +45,6 @@ class FloodEvent(models.Model):
     people_evacuated = models.PositiveIntegerField(null=True, blank=True)
 
     # --- origin + confirmation lifecycle ---
-    # Auto-detected events are created unconfirmed by the pipeline and await LGU
-    # confirmation; manually authored events are confirmed on creation.
     source_kind = models.CharField(
         max_length=10, choices=SourceKind.choices, default=SourceKind.MANUAL, db_index=True
     )
@@ -68,8 +62,6 @@ class FloodEvent(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     # --- who reported it ---
-    # OPERATOR → reported_by links the console user; THIRD_PARTY → `source` holds
-    # the free-text attribution (e.g. news outlet, PAGASA advisory).
     source_type = models.CharField(
         max_length=12, choices=SourceType.choices, default=SourceType.THIRD_PARTY
     )
@@ -148,10 +140,7 @@ class RiskThreshold(models.TextChoices):
 
 
 class AutoDetectConfig(models.Model):
-    """Singleton: whether the pipeline auto-drafts flood events, and at what risk.
-
-    Configured from the standalone operator/admin console (not Django /admin).
-    """
+    """Singleton: whether the pipeline auto-drafts flood events, and at what risk."""
 
     enabled = models.BooleanField(default=True)
     threshold_category = models.CharField(
@@ -175,12 +164,7 @@ def report_image_path(instance, filename):
 
 
 class FloodEventReport(models.Model):
-    """Operator-authored evidence report attached to a flood event.
-
-    Captures a narrative, a capture time, the reporting user, and photos stored
-    in the configured media bucket (local / S3 / Cloudinary — see settings). Used
-    as supporting evidence for the historical record.
-    """
+    """Operator-authored evidence report attached to a flood event."""
 
     flood_event = models.ForeignKey(
         FloodEvent, on_delete=models.CASCADE, related_name="reports"

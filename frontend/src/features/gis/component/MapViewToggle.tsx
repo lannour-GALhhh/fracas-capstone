@@ -13,11 +13,7 @@ const OPTIONS: { key: ZoneColorMode; label: string; icon: typeof Layers }[] = [
     { key: 'risk', label: 'Flood risk', icon: Waves },
 ]
 
-/**
- * Icon-only segmented control that flips the hazard-zone fill between the static
- * susceptibility classes and the computed flood risk. The names live in the
- * Legend's "Toggles" group.
- */
+/** Flips the hazard-zone fill between susceptibility class and computed risk. */
 const MapViewToggle = ({ value, onChange }: Props) => (
     <>
         {OPTIONS.map(({ key, label, icon: Icon }) => {

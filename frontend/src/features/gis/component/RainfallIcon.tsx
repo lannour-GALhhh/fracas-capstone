@@ -7,11 +7,7 @@ interface Props {
     className?: string
 }
 
-/**
- * A purple badge whose glyph escalates with rainfall intensity (PAGASA bands,
- * see constants/rainfall.ts) — a calm cloud at no rain, up to a tornado at
- * torrential. White icon on solid purple so contrast holds at every tier.
- */
+/** Purple badge whose glyph escalates with rainfall intensity (PAGASA bands). */
 const RainfallIcon = ({ mmPerHour, className = 'size-7' }: Props) => {
     const tier = rainfallTier(mmPerHour)
     const Icon = RAINFALL_TIER_ICONS[tier]

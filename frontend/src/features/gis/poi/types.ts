@@ -13,8 +13,7 @@ export interface EvacuationProperties {
 
 export type EvacuationCollection = FeatureCollection<Point, EvacuationProperties>
 
-/** Operator write payload for POST/PATCH /api/evacuation/centers/. The backend
- * accepts flat lat/lng and resolves the containing barangay by point-in-polygon. */
+/** Operator write payload for POST/PATCH /api/evacuation/centers/. */
 export interface EvacuationInput {
     name: string
     latitude: number

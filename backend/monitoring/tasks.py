@@ -1,9 +1,4 @@
-"""Maintenance tasks: prune high-volume time-series rows.
-
-Rainfall and RiskScore each gain ~100 rows every 15-min cycle. A daily job
-prunes rows past their retention window so the tables don't grow unbounded.
-Models are imported lazily to keep monitoring free of import-time coupling.
-"""
+"""Maintenance tasks: prune high-volume time-series rows past their retention window."""
 
 import logging
 from datetime import timedelta
@@ -31,8 +26,6 @@ def cleanup_old_data() -> dict:
         computed_at__lt=now - timedelta(days=policy.risk_score_retention_days)
     ).delete()
 
-    # Purge the per-resident working set of long-closed evacuations. The
-    # Evacuation row keeps the frozen final counts, so this loses no history.
     evac_status_deleted, _ = EvacuationStatus.objects.filter(
         evacuation__status=Evacuation.Status.STOOD_DOWN,
         evacuation__closed_at__lt=now

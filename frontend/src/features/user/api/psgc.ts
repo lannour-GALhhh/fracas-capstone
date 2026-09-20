@@ -1,13 +1,6 @@
 import axios from 'axios'
 
-/**
- * Philippine Standard Geographic Code (PSGC) lookup client.
- *
- * A standalone axios instance — NOT our `apiClient` — because these calls go to
- * the public PSGC API, must not carry our auth token, and don't need the 401
- * refresh interceptor. The data is effectively static, so callers cache it hard.
- * Cascade: province → city/municipality → barangay.
- */
+/** PSGC lookup client — a separate axios instance with no auth/refresh interceptor. */
 const psgc = axios.create({ baseURL: 'https://psgc.gitlab.io/api' })
 
 /** A selectable PSGC place: its 9-digit code and display name. */

@@ -1,19 +1,14 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/common/utils/utils'
 
-/**
- * The full-height right rail shared by the barangay detail panel.
- * Sits below the floating header (top-16) and runs to the bottom of the screen,
- * so a panel reads as a docked sidebar rather than a floating card.
- */
+/** Full-height right rail shared by the barangay detail panel. */
 const SidePanel = ({
     children,
     footer,
     className,
 }: {
     children: React.ReactNode
-    /** Rendered below the scrollable content, pinned outside the scroll area
-     * so it stays visible regardless of scroll position (e.g. action buttons). */
+    /** Pinned outside the scroll area, always visible. */
     footer?: React.ReactNode
     className?: string
 }) => {

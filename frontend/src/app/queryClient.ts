@@ -1,7 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 
-// The backend pipeline recomputes at most hourly, so data is fresh for minutes,
-// not seconds. Defaults here avoid refetch storms while keeping the console live.
+// Avoids refetch storms while keeping the console reasonably live.
 export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {

@@ -1,8 +1,4 @@
-"""Celery Beat schedule.
-
-Single source of truth for periodic tasks. As the ingest -> compute -> alert
-pipeline lands, add its entries here so scheduling stays in one place.
-"""
+"""Celery Beat schedule. Single source of truth for periodic tasks."""
 
 from celery.schedules import crontab
 

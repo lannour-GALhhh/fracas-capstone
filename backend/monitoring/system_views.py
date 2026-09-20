@@ -19,7 +19,7 @@ class SystemStatusView(APIView):
 
 
 class PipelineRunView(APIView):
-    """Kick the ingest -> score -> alert pipeline off-cycle (async)."""
+    """Kick the ingest -> score -> evacuation pipeline off-cycle (async)."""
 
     permission_classes = [IsAdmin]
 

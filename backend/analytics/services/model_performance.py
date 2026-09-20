@@ -1,9 +1,4 @@
-"""Validation recall / mean-score trend across hindcast runs.
-
-Proof the early-warning model actually works — the recall trend across recorded
-`ValidationRun`s (great for LGU reporting). Runs are infrequent, so we return
-the most recent completed ones as a trend rather than windowing by days.
-"""
+"""Validation recall / mean-score trend across hindcast runs."""
 
 from risk_score.models import ValidationRun
 

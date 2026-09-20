@@ -154,10 +154,6 @@ class AdminUserApiTests(APITestCase):
         )
 
     def test_last_active_admin_helper(self):
-        # With IsAdmin gating the endpoint, the only account that can ever act
-        # on "the last admin" is that admin itself (self-lockout, tested
-        # below) — so the last-admin guardrail's own accounting is verified
-        # directly here rather than through an unreachable API scenario.
         self.other_admin.delete()
         self.assertTrue(_is_last_active_admin(self.admin))
         User.objects.create_user("third", password="pw", is_staff=True)

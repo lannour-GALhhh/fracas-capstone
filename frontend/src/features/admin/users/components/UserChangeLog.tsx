@@ -8,8 +8,7 @@ import { useAdminUserChanges } from '../../hooks/useAdminUsers'
 
 const PAGE_SIZE = 25
 
-/** Friendly labels for the audited fields, including the role/status flags
- * that only an admin edit ever touches. */
+/** Friendly labels for the audited fields. */
 const FIELD_LABELS: Record<string, string> = {
     first_name: 'First name',
     last_name: 'Last name',

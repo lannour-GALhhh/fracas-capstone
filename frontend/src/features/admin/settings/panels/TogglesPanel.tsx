@@ -15,13 +15,6 @@ const TogglesForm = ({ initial }: { initial: OperationalToggles }) => {
                 checked={form.maintenance_mode}
                 onChange={(v) => setField('maintenance_mode', v)}
             />
-            <ToggleField
-                id='broadcast_enabled'
-                label='Operator broadcasts'
-                description='Kill-switch for operator-initiated broadcasts. Turn off to block all broadcasts.'
-                checked={form.broadcast_enabled}
-                onChange={(v) => setField('broadcast_enabled', v)}
-            />
             <TextField
                 id='announcement_banner'
                 label='Announcement banner'

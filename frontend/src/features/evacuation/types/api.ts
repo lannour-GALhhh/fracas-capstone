@@ -1,11 +1,7 @@
 /** What opened an evacuation: the automated pipeline or an operator ping. */
 export type EvacuationTrigger = 'automated' | 'operator'
 
-/**
- * One active evacuation's live aggregate (GET /evacuation/evacuations/active/).
- * The denominator `roster` is the barangay's subscriber count; `unaccounted` is
- * derived server-side as `roster − reporters`.
- */
+/** One active evacuation's live aggregate. */
 export interface EvacuationAggregate {
     evacuation_id: number
     barangay: { id: number; name: string }
@@ -18,12 +14,7 @@ export interface EvacuationAggregate {
     updated_at: string
 }
 
-/**
- * One closed evacuation (GET /evacuation/evacuations/history/).
- * The `final_*` counts are the aggregate frozen when it was marked safe — they survive the
- * retention purge of the per-resident rows. `null` means "never recorded", which
- * is distinct from a genuine zero, so render it as an em dash, not a 0.
- */
+/** One closed evacuation; `final_*` counts are null when never recorded. */
 export interface EvacuationHistoryEntry {
     id: number
     barangay: { id: number; name: string }

@@ -1,5 +1,4 @@
-"""Admin system-ops endpoints: the status report shape and the manual
-pipeline / retention triggers (with the Celery task .delay patched)."""
+"""Admin system-ops endpoints: status report shape and manual pipeline/retention triggers."""
 
 from unittest.mock import patch
 
@@ -29,7 +28,7 @@ class SystemStatusTests(APITestCase):
         # Base health fields plus the ops enrichments.
         self.assertIn("database", resp.data)
         self.assertIn("pipeline", resp.data)
-        self.assertEqual(set(resp.data["pipeline"]), {"rainfall", "scoring", "alerts"})
+        self.assertEqual(set(resp.data["pipeline"]), {"rainfall", "scoring", "evacuation"})
         self.assertIsInstance(resp.data["cadence"], list)
         # No scores yet -> scoring stage reports no last run and not fresh.
         self.assertIsNone(resp.data["pipeline"]["scoring"]["last_run"])

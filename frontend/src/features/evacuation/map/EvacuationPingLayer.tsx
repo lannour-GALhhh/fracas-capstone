@@ -69,11 +69,7 @@ const UnderEvacuationCard = ({ evac }: { evac: EvacuationAggregate }) => {
     )
 }
 
-/**
- * Overlays a pulsing evacuated/total badge on every barangay under an active
- * evacuation, anchored at its centroid. Clicking opens the "Under evacuation"
- * card. Reads the same shared aggregate as the /evacuation page.
- */
+/** Pulsing evacuated/total badge over every barangay under active evacuation. */
 const EvacuationPingLayer = ({ data }: Props) => {
     const { data: evacuations } = useActiveEvacuations()
 

@@ -8,12 +8,7 @@ interface Props {
     onToggle: (key: LayerKey) => void
 }
 
-/**
- * Minimal icon-only layer toggles for the top toolbar. An off layer is greyed
- * with a slash struck through its icon; hovering any icon names the layer.
- * Layers still surface their POIs for the focused barangay (handled per layer),
- * so this only governs the city-wide view.
- */
+/** Icon-only layer toggles for the top toolbar. */
 const LayersControl = ({ layers, onToggle }: Props) => (
     <ButtonGroup>
         {LAYERS.map(({ key, label, icon: Icon, color }) => {

@@ -1,8 +1,4 @@
-"""Phone-number verification via one-time SMS codes.
-
-Sent synchronously (the user is waiting for the code) using the configured
-SMS provider. A short resend cooldown limits abuse.
-"""
+"""Phone-number verification via one-time SMS codes."""
 
 import secrets
 from datetime import timedelta
@@ -10,8 +6,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from alert.senders import get_sms_provider
 from users.models import PhoneOTP
+from users.senders import get_sms_provider
 
 OTP_TTL = timedelta(minutes=10)
 RESEND_COOLDOWN = timedelta(seconds=60)

@@ -46,8 +46,7 @@ const toForm = (center?: EvacFeature): FormState => {
     }
 }
 
-/** Add (no `center`) or edit an evacuation center. Coordinates go in as flat
- * lat/lng; the backend resolves the containing barangay by point-in-polygon. */
+/** Add or edit an evacuation center; barangay resolves by point-in-polygon. */
 const EvacuationFormDialog = ({
     trigger,
     center,

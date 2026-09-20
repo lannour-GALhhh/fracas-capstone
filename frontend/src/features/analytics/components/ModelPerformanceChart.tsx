@@ -10,8 +10,7 @@ import {
 import { useModelPerformance } from '../hooks/useAnalytics'
 import PanelCard from './PanelCard'
 
-// One measure, one axis: recall (%) is the headline. Mean score lives on a
-// different scale, so it's reported as a caption stat, never a second y-axis.
+// Recall (%) is the headline axis; mean score is a caption stat instead.
 const RECALL_COLOR = '#2563eb'
 const chartConfig = { recall: { label: 'Recall', color: RECALL_COLOR } } satisfies ChartConfig
 

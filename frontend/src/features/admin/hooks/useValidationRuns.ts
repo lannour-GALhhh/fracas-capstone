@@ -16,8 +16,7 @@ export const useValidationRuns = (page: number) =>
             query.state.data?.results.some((r) => IN_FLIGHT.has(r.status)) ? 3000 : false,
     })
 
-/** Single run, polled until it leaves pending/running. `enabled` lets callers
- * (e.g. a detail dialog) skip fetching/polling while closed. */
+/** Single run, polled until it leaves pending/running. */
 export const useValidationRun = (id: number, enabled = true) =>
     useQuery({
         queryKey: adminKeys.validationRun(id),

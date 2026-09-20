@@ -8,12 +8,12 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
-from alert.models import AlertState
 from audit.models import ConfigChangeLog
 from barangays.models import Barangay
 from evacuation.models import Evacuation, EvacuationStatus
 from evacuation.services.lifecycle import reconcile
 from risk_score.constants import RiskCategory
+from risk_score.models import RiskScore
 from users.models import Subscription
 
 User = get_user_model()
@@ -28,17 +28,21 @@ def _barangay(name="Tumaga", code="T1"):
 
 class ReconcileTests(TestCase):
     def setUp(self):
-        cache.clear()  # AlertingPolicy + dashboard caches are process-global
+        cache.clear()  # dashboard cache is process-global
         self.barangay = _barangay()
+        self._tick = 0
         # A roster so the frozen final counts have a denominator.
         for i in range(3):
             u = User.objects.create_user(f"r{i}", password="pw")
             Subscription.objects.create(user=u, barangay=self.barangay)
 
-    def _set_level(self, level, *, suppressed=False):
-        AlertState.objects.update_or_create(
+    def _set_level(self, level):
+        self._tick += 1
+        RiskScore.objects.create(
             barangay=self.barangay,
-            defaults={"level": level, "is_suppressed": suppressed},
+            score=90 if level == RiskCategory.CRITICAL else 40,
+            category=level,
+            computed_at=timezone.now() + timedelta(seconds=self._tick),
         )
 
     def test_opens_automated_evacuation_for_barangay_in_band(self):
@@ -61,13 +65,8 @@ class ReconcileTests(TestCase):
         self.assertEqual(reconcile()["opened"], 0)  # already open — no duplicate
         self.assertEqual(Evacuation.objects.filter(barangay=self.barangay).count(), 1)
 
-    def test_suppressed_barangay_is_not_auto_opened(self):
-        self._set_level(RiskCategory.CRITICAL, suppressed=True)
-        self.assertEqual(reconcile()["opened"], 0)
-        self.assertFalse(Evacuation.objects.filter(status="active").exists())
-
     def test_below_band_opens_nothing(self):
-        self._set_level(RiskCategory.HIGH)  # default policy triggers on CRITICAL only
+        self._set_level(RiskCategory.HIGH)  # only CRITICAL triggers an automated evacuation
         self.assertEqual(reconcile()["opened"], 0)
 
     def test_hazard_clearing_stands_down_automated_evacuation(self):
@@ -100,7 +99,7 @@ class ReconcileTests(TestCase):
         )
 
     def test_opening_notifies_every_subscriber_in_app(self):
-        from alert.models import Notification
+        from users.models import Notification
 
         self._set_level(RiskCategory.CRITICAL)
         reconcile()
@@ -110,7 +109,7 @@ class ReconcileTests(TestCase):
         self.assertTrue(notes.first().title.startswith("Evacuate now"))
 
     def test_stand_down_sends_an_all_clear_to_subscribers(self):
-        from alert.models import Notification
+        from users.models import Notification
 
         self._set_level(RiskCategory.CRITICAL)
         reconcile()

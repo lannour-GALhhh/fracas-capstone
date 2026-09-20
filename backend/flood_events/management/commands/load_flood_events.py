@@ -1,21 +1,4 @@
-"""Import recorded flood events from a CSV (validation ground truth).
-
-CSV columns (header required):
-    barangay         barangay name (or use `code` for the PSGC code)
-    occurred_at      ISO datetime, e.g. 2024-07-15T14:00  (date-only -> local noon)
-    severity         minor | moderate | major   (default moderate)
-    water_depth_m    optional float
-    source           optional text
-    notes            optional text
-    ended_at         optional ISO datetime (recession time -> duration)
-    summary          optional narrative text
-    people_affected  optional int
-    people_evacuated optional int
-
-    python manage.py load_flood_events path/to/flood_events.csv
-
-See flood_events/fixtures/flood_events_sample.csv for the format.
-"""
+"""Import flood events from a CSV; see flood_events/fixtures/flood_events_sample.csv."""
 
 import csv
 from datetime import datetime, time

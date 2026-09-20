@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import Device, NotificationPreference, Subscription, User
 
-contact = ("Contact & alerting", {"fields": ("phone_number", "phone_verified")})
+contact = ("Contact & notifications", {"fields": ("phone_number", "phone_verified")})
 console_role = (
     "Console role",
     {

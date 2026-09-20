@@ -1,14 +1,4 @@
-"""Cached derived aggregate for the operator evacuation dashboard.
-
-Mirrors ``risk_score.services.snapshot``: every poller reads one cache key
-instead of the DB. The value is a memoized ``GROUP BY`` over the *reported*
-``EvacuationStatus`` rows plus the per-barangay subscriber roster, so it is
-self-healing (expire -> recompute the truth) and can never drift the way
-hand-maintained increment counters would.
-
-``unaccounted`` is derived here, not stored: ``roster - reporters`` are the
-subscribers we've heard nothing from.
-"""
+"""Cached derived aggregate for the operator evacuation dashboard."""
 
 from __future__ import annotations
 
@@ -67,8 +57,6 @@ def compute() -> list[dict]:
         moving = c.get(EvacuationStatus.Status.MOVING, 0)
         notified = c.get(EvacuationStatus.Status.NOTIFIED, 0)
         r = roster.get(e.barangay_id, 0)
-        # Everyone in the roster we haven't heard an informative report from.
-        # Clamp at 0 in case a non-subscriber ever reports.
         unaccounted = max(r - (safe + moving + notified), 0)
         updated = last_seen.get(e.id) or e.opened_at
         entries.append(

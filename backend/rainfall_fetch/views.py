@@ -12,18 +12,12 @@ from .serializers import RainfallSerializer
 
 MAX_HISTORY_DAYS = 30
 
-# Readings arrive on a 15-minute cadence (see tasks.fetch_rainfall_information),
-# so each reading's instantaneous mm/hr rate stands for a 15-minute slice when
-# integrating a bucket's accumulated total.
+# Readings arrive on a 15-minute cadence.
 READING_INTERVAL_HOURS = 0.25
 
 
 class RainfallViewset(viewsets.ReadOnlyModelViewSet):
-    """Read-only access to machine-generated rainfall readings.
-
-    Ordering comes from Rainfall.Meta (-recorded_at). Optionally filter to
-    one barangay's history with `?barangay=<id>`.
-    """
+    """Read-only access to rainfall readings. Filter with `?barangay=<id>`."""
 
     queryset = Rainfall.objects.all()
     serializer_class = RainfallSerializer
@@ -37,14 +31,7 @@ class RainfallViewset(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def history(self, request):
-        """One point per bucket over the trailing `days` window (default 7,
-        capped at `MAX_HISTORY_DAYS`): that bucket's peak intensity and an
-        accumulated total integrated from each reading's mm/hr rate.
-        `?granularity=hour` (default) buckets by clock hour, timestamped to
-        the hour boundary (e.g. 9:00, not the raw 9:01-ish 15-minute reading
-        time) so it plots like the forward-looking forecast; `?granularity=day`
-        buckets by calendar day for a 7-day-at-a-glance view.
-        """
+        """Peak + accumulated rainfall per bucket over the trailing `days` window."""
         barangay_id = request.query_params.get("barangay")
         if not barangay_id:
             return Response({"detail": "barangay query param is required."}, status=400)

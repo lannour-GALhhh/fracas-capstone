@@ -1,7 +1,4 @@
-"""Pure normalization helpers — no DB, easy to unit-test.
-
-All hazard values live on a 0.0-1.0 scale before the engine weights them.
-"""
+"""Pure normalization helpers — no DB, easy to unit-test."""
 
 
 def clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -27,11 +24,7 @@ def _as_points(curve) -> list[tuple[float, float]]:
 
 
 def normalize_rainfall(mm_per_hr: float, curve=None) -> float:
-    """Map a rainfall intensity (mm/hr) to a 0-1 hazard.
-
-    `curve` is a list of [mm_hr, hazard] breakpoints (from the active RiskConfig,
-    seeded from PAGASA intensity bands); falls back to the packaged default.
-    """
+    """Map a rainfall intensity (mm/hr) to a 0-1 hazard via the active RiskConfig curve."""
     from risk_score.constants import DEFAULT_RAINFALL_CURVE
 
     points = _as_points(curve or DEFAULT_RAINFALL_CURVE)
@@ -39,11 +32,7 @@ def normalize_rainfall(mm_per_hr: float, curve=None) -> float:
 
 
 def normalize_accumulation(mm: float, curve=None) -> float:
-    """Map accumulated rainfall (mm over ~24h) to a 0-1 saturation hazard.
-
-    Heavy 24h totals drive flooding even at moderate instantaneous intensity.
-    `curve` comes from the active RiskConfig; falls back to the default.
-    """
+    """Map accumulated rainfall (mm over ~24h) to a 0-1 saturation hazard."""
     from risk_score.constants import DEFAULT_ACCUMULATION_CURVE
 
     points = _as_points(curve or DEFAULT_ACCUMULATION_CURVE)
@@ -58,11 +47,7 @@ def normalize_position(value: float, low: float, high: float) -> float:
 
 
 def percentile_rank(value: float, sorted_values: list[float]) -> float:
-    """Rank of `value` within a sorted population, 0-1 (smallest -> 0, largest -> 1).
-
-    Rank-based, so extreme outliers (e.g. a lone 785m mountain barangay) don't
-    stretch the scale for the rest — unlike raw min-max normalization.
-    """
+    """Rank of `value` within a sorted population, 0-1 (rank-based, resists outliers)."""
     import bisect
 
     n = len(sorted_values)

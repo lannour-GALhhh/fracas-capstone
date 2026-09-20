@@ -1,9 +1,4 @@
-"""Admin-editable operational settings, as cached DB singletons.
-
-Each mirrors the `AutoDetectConfig.get_solo()` pattern via `SingletonModel`, lives
-here because monitoring owns (or is a neutral home for) the consumers, and defaults
-to today's hardcoded value so behavior is unchanged until an admin edits it.
-"""
+"""Admin-editable operational settings, as cached DB singletons."""
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -57,9 +52,6 @@ class OperationalToggles(SingletonModel):
     announcement_banner = models.CharField(
         max_length=280, blank=True, help_text="System-wide banner text shown in the console."
     )
-    broadcast_enabled = models.BooleanField(
-        default=True, help_text="Kill-switch for operator broadcasts."
-    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -67,15 +59,11 @@ class OperationalToggles(SingletonModel):
 
 
 class OrganizationSettings(SingletonModel):
-    """Branding + contact info shown in the console and appended to alerts."""
+    """Branding + contact info shown in the console."""
 
     org_name = models.CharField(max_length=120, default="FRACAS")
     system_title = models.CharField(max_length=120, default="FRACAS Console")
     contact_number = models.CharField(max_length=40, blank=True)
-    alert_footer = models.CharField(
-        max_length=160, blank=True,
-        help_text="Signature appended to alert/broadcast messages (e.g. — Zamboanga City DRRMO).",
-    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

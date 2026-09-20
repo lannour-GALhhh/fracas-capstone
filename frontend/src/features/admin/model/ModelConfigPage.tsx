@@ -2,8 +2,7 @@ import { Button } from '@/common/ui/button'
 import RiskConfigsTable from './components/RiskConfigsTable'
 import RiskConfigFormDialog from './components/RiskConfigFormDialog'
 
-/** Phase 2 admin console: calibrate scoring weights/thresholds and pick the
- * config the pipeline reads. Exactly one config is active at a time. */
+/** Admin console: calibrate scoring weights/thresholds and pick the active config. */
 const ModelConfigPage = () => {
     return (
         <div className='w-full'>

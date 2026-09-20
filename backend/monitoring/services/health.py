@@ -1,11 +1,4 @@
-"""Health checks behind the liveness / readiness / status endpoints.
-
-  - liveness  = the process is up and serving (checked implicitly by the view).
-  - readiness = its request-path dependencies (DB, cache) are reachable, so it
-    can actually serve traffic.
-  - status    = the full operational picture, including per-source ingestion
-    freshness, for dashboards and operators.
-"""
+"""Health checks behind the liveness / readiness / status endpoints."""
 
 from django.core.cache import cache
 from django.db import connection

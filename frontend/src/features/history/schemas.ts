@@ -1,10 +1,7 @@
 import { z } from 'zod'
 import { OptionalPositiveNumber, RequiredString } from '@/common/schema/schemas'
 
-/**
- * Flat validation view of the flood-event form. Dates are the datetime-picker's
- * local strings; `source`/`reported_by` are cross-validated against `source_type`.
- */
+/** Flat validation view of the flood-event form. */
 export const FloodEventSchema = z
     .object({
         barangay: RequiredString('Barangay'),

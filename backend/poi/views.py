@@ -1,5 +1,4 @@
-"""POI APIs: a reusable operator-editable + audited viewset base, and the
-unified POI audit-log feed."""
+"""POI APIs: a reusable operator-editable + audited viewset base."""
 
 from rest_framework import viewsets
 from rest_framework.generics import ListAPIView
@@ -21,13 +20,7 @@ def is_operator_user(user) -> bool:
 
 
 class PoiViewSet(viewsets.ModelViewSet):
-    """Base for map-POI resources edited from the GIS console.
-
-    Reads are open to any authenticated client (mobile downloads the active set);
-    writes are operator-only and every write is appended to the POI audit log.
-    Subclasses set `queryset`, the read/write serializers, `poi_type` and the
-    scalar `tracked_fields` diffed into the log.
-    """
+    """Base for map-POI resources edited from the GIS console."""
 
     read_serializer_class = None
     write_serializer_class = None
@@ -92,10 +85,7 @@ class PoiViewSet(viewsets.ModelViewSet):
 
 
 class PoiChangeLogView(ListAPIView):
-    """The 'when / where / what' feed of every POI edit, newest first.
-
-    Filter with `?poi_type=evacuation|hotspot` and `?poi_id=<n>`.
-    """
+    """The 'when / where / what' feed of every POI edit, newest first."""
 
     serializer_class = MapPoiChangeSerializer
     permission_classes = [IsOperator]

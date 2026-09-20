@@ -1,5 +1,4 @@
-"""Tests for the shared admin-console infrastructure: singleton base, change log,
-and the Settings serializer/view mix-ins that every group reuses."""
+"""Tests for the shared admin-console infrastructure."""
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -8,8 +7,6 @@ from django.test import TestCase
 from audit.models import ConfigChangeLog
 from audit.services import log_change, log_field_diffs
 
-# RetentionPolicy is a concrete SingletonModel with a clean() rule, so it is a
-# convenient stand-in for exercising the shared base behaviour.
 from monitoring.models import RetentionPolicy
 
 User = get_user_model()
@@ -17,8 +14,6 @@ User = get_user_model()
 
 class SingletonModelTests(TestCase):
     def setUp(self):
-        # Redis persists across tests; start each with an empty cache so `.cached()`
-        # reads reflect this test's DB state, not a prior test's saved singleton.
         cache.clear()
         self.addCleanup(cache.clear)
 

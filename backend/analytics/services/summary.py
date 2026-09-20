@@ -1,24 +1,16 @@
-"""KPI summary row for the operator analytics page.
+"""KPI summary row for the operator analytics page."""
 
-Blends *windowed* flood impact (events / people affected in the look-back) with
-*current* situational state (barangays presently high/critical, latest
-validation recall) into one cheap payload.
-"""
+from collections import Counter
 
-from django.db.models import Count, Sum
+from django.db.models import Sum
 
-from alert.models import AlertState
 from flood_events.models import FloodEvent
 from risk_score.constants import RiskCategory
-from risk_score.models import ValidationRun
+from risk_score.models import RiskScore, ValidationRun
 
 
 def _confirmed_events(since):
-    """Confirmed, not-soft-deleted flood events since `since`.
-
-    Auto-detected drafts awaiting LGU confirmation and soft-deleted rows are
-    excluded so operator-facing counts never overstate reality.
-    """
+    """Confirmed, not-soft-deleted flood events since `since`."""
     return FloodEvent.objects.filter(
         occurred_at__gte=since, deleted_at__isnull=True, is_confirmed=True
     )
@@ -42,11 +34,12 @@ def build_summary(since):
         people_affected=Sum("people_affected"),
         people_evacuated=Sum("people_evacuated"),
     )
-    # Current risk distribution comes from AlertState (one row per barangay,
-    # overwritten each cycle) — cheaper than re-deriving from RiskScore history.
-    level_counts = dict(
-        AlertState.objects.values_list("level").annotate(n=Count("pk"))
+    latest_categories = (
+        RiskScore.objects.order_by("barangay_id", "-computed_at")
+        .distinct("barangay_id")
+        .values_list("category", flat=True)
     )
+    level_counts = Counter(latest_categories)
     return {
         "flood_events": events.count(),
         "people_affected": impact["people_affected"] or 0,

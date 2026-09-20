@@ -1,9 +1,4 @@
-"""Latest risk snapshot cached in Redis.
-
-Clients read this one payload instead of hitting the DB/compute path, so map
-loads stay fast. Rewritten each compute cycle; carries a TTL as a safety net
-so a dead pipeline eventually surfaces as "no data" rather than stale data.
-"""
+"""Latest risk snapshot cached in Redis."""
 
 from __future__ import annotations
 
@@ -46,11 +41,7 @@ def read_zones() -> dict | None:
 
 
 def latest() -> dict:
-    """Cached snapshot, or one rebuilt from the newest RiskScore per barangay.
-
-    The fallback keeps the API serving right after a deploy/cache flush, before
-    the next compute cycle repopulates Redis.
-    """
+    """Cached snapshot, or one rebuilt from the newest RiskScore per barangay."""
     cached = read()
     if cached is not None:
         return cached

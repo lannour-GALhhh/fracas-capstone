@@ -10,17 +10,7 @@ interface Props {
 
 const MAX_RESULTS = 6
 
-/**
- * Top-center barangay finder: type a name, pick a suggestion, and the map
- * focuses it (reuses the same `onSelect` the choropleth/cards drive).
- *
- * Plain absolutely-positioned dropdown rather than the shared `Popover` —
- * that component moves DOM focus on open/close (fine for menus, but it
- * fights a live-typing input). `onMouseDown` + `preventDefault` on each
- * suggestion is what actually matters here: it stops the input's blur from
- * firing before the click is registered, so picking a result never steals
- * focus away from the search bar.
- */
+/** Barangay finder: type a name, pick a suggestion, map focuses it. */
 const BarangaySearch = ({ data, onSelect }: Props) => {
     const [query, setQuery] = useState('')
     const [open, setOpen] = useState(false)
@@ -64,7 +54,7 @@ const BarangaySearch = ({ data, onSelect }: Props) => {
                         <button
                             key={f.properties.id}
                             type='button'
-                            onMouseDown={(e) => e.preventDefault()}
+                            onMouseDown={(e) => e.preventDefault()} // keep input focus on click
                             onClick={() => handlePick(f.properties.id, f.properties.name)}
                             className='hover:bg-muted rounded-md px-2.5 py-1.5 text-left text-sm transition-colors'
                         >

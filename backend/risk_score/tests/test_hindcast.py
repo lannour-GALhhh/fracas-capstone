@@ -48,8 +48,7 @@ class HindcastScoreTests(TestCase):
 
         result = hindcast_score(barangay, when, susceptibility, fetcher=fetcher)
         self.assertGreater(result.score, 0)
-        # Susceptibility is static reference data (not a live feed), unlike the
-        # old dam factor — once loaded it's available for every hindcast.
+        # Susceptibility is static reference data, so it's never degraded here.
         self.assertFalse(result.is_degraded)
 
     def test_no_susceptibility_data_degrades(self):

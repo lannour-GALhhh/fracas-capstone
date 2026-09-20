@@ -1,10 +1,4 @@
-"""Validate the risk model against recorded flood events.
-
-    python manage.py validate_model
-
-Hindcasts each FloodEvent's barangay and reports whether the model would have
-raised a HIGH/CRITICAL warning, plus the overall detection rate.
-"""
+"""Validate the risk model against recorded flood events: `python manage.py validate_model`."""
 
 from django.core.management.base import BaseCommand
 

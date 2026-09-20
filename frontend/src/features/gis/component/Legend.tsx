@@ -30,8 +30,7 @@ const Swatch = ({ color, label }: { color: string; label: string }) => (
     </span>
 )
 
-/** Map key. The first section mirrors the active hazard-zone view (set by the
- * dashboard's Susceptibility / Flood-risk toggle). */
+/** Map key; mirrors the active hazard-zone view. */
 const Legend = ({ view }: { view: ZoneColorMode }) => (
     <Card size='sm' className='flex w-44 flex-col gap-2 px-2'>
         <div className='flex flex-col gap-1'>

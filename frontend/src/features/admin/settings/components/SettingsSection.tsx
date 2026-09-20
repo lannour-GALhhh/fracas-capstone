@@ -5,8 +5,7 @@ import ErrorState from '@/common/components/ErrorState'
 import { useSettings } from '../../hooks/useSettings'
 import type { SettingsByGroup, SettingsGroup } from '../../types/settings'
 
-/** Loads one settings group and hands its current values to a panel. Handles the
- * loading/error states so every panel stays a pure form over `initial`. */
+/** Loads one settings group and hands its values to a panel. */
 export function SettingsSection<G extends SettingsGroup>({
     group,
     title,

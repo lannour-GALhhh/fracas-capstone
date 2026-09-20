@@ -1,10 +1,4 @@
-"""Base serializer for Settings singletons.
-
-Runs the model's own field + `clean()` validation so per-field rules (positive
-windows, renotify >= 1, etc.) surface as DRF field errors, exactly as the Django
-admin form would — no duplicated validation. `validate_unique` is skipped since
-the row is a fixed pk=1 singleton.
-"""
+"""Base serializer for Settings singletons: runs the model's own validation."""
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers

@@ -7,8 +7,7 @@ from .serializers_jwt import RoleTokenObtainPairSerializer
 
 
 def _is_mobile(request) -> bool:
-    """React Native can't hold an HttpOnly refresh cookie, so mobile clients send
-    ``X-Client: mobile`` and get/return the refresh token in the body instead."""
+    """True when the client sent ``X-Client: mobile``."""
     return request.headers.get("X-Client", "").lower() == "mobile"
 
 
@@ -27,8 +26,6 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = RoleTokenObtainPairSerializer
 
     def finalize_response(self, request, response, *args, **kwargs):
-        # Web: refresh → HttpOnly cookie, stripped from the body.
-        # Mobile: refresh stays in the body (stored in expo-secure-store).
         if response.data.get("refresh") and not _is_mobile(request):
             _set_refresh_cookie(response)
             del response.data["refresh"]
@@ -38,8 +35,6 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 
 class CookieTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
-        # Prefer the HttpOnly cookie (web); fall back to a body-supplied refresh
-        # token (mobile) so React Native clients can refresh without cookies.
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"]) or request.data.get(
             "refresh"
         )

@@ -1,5 +1,4 @@
-"""Registration & Account Policy settings endpoint plus the consumers it
-re-points: the self-registration gate and the OTP time-to-live."""
+"""Registration & Account Policy settings endpoint and its consumers."""
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse

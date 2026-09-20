@@ -3,17 +3,10 @@ import { useAuth } from '@/features/auth/context/useAuth'
 import { getActiveEvacuations } from '../api/evacuationApi'
 import { evacuationKeys } from './queryKeys'
 
-// Matches the risk-snapshot cadence — the backend aggregate itself caches for
-// ~15s, so this only pulls fresh numbers roughly once per cache window.
+// Matches the risk-snapshot cadence; the backend aggregate caches for ~15s.
 const REFRESH_MS = 30_000
 
-/**
- * The one shared read behind both operator surfaces: the GIS ping badges and
- * the /evacuation page cards. A single query key means they never double-fetch.
- *
- * The endpoint is operator-only, and the GIS map is resident-visible, so the
- * query is disabled for non-operators (no fruitless 403 polling).
- */
+/** Shared active-evacuations read for both the GIS badges and the page cards. */
 export const useActiveEvacuations = () => {
     const { isOperator } = useAuth()
     return useQuery({

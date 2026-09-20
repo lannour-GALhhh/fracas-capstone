@@ -3,7 +3,6 @@ import {
     BarChart3,
     ChevronsRight,
     CloudRain,
-    History,
     LayoutGrid,
     TrendingUp,
     X,
@@ -21,7 +20,6 @@ import {
     DialogTrigger,
 } from '@/common/ui/dialog'
 import { useAuth } from '@/features/auth/context/useAuth'
-import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
 import { EvacuationPingIcon } from '@/features/evacuation/component/EvacuationPingIcon'
 import { useActiveEvacuations } from '@/features/evacuation/hooks/useActiveEvacuations'
@@ -79,8 +77,7 @@ const HeaderButton = ({
     </button>
 )
 
-/** One half of the rainfall card: a label over a large value, optionally
- * flagging that the forecast trends above the current reading. */
+/** One half of the rainfall card: a label over a large value. */
 const RainfallStat = ({
     label,
     value,
@@ -223,12 +220,7 @@ const ZoneRow = ({ zone }: { zone: ZoneScore }) => (
     </div>
 )
 
-/**
- * The rainfall-gated breakdown: rainfall is the trigger, and each susceptibility
- * zone scores `rainfall × susceptibility`. The barangay headline is the average
- * of these zone scores, so a high-susceptibility zone only lights up when it
- * actually rains.
- */
+/** Zone score = rainfall × susceptibility; the headline is their average. */
 const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
     if (!data.zones?.length) return null
     return (
@@ -250,8 +242,6 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 }
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
-    // Anchor the timeline to when the backend fetched this reading, not the
-    // viewer's clock — keeps the chart correct regardless of client tz/drift.
     const recordedAt = data.recorded_at ? new Date(data.recorded_at) : new Date()
     const atOffset = (minutes: number) => format(new Date(recordedAt.getTime() + minutes * 60_000), 'h:mm a')
 
@@ -275,8 +265,6 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
         { name: atOffset(240), rainfall: data.rainfall_forecast_240min },
     ].filter((d) => d.rainfall != null)
 
-    // The current reading's x-axis label — used to pick it out as "now" on
-    // the chart, since it's always the first (0-minute-offset) point.
     const nowLabel = data.current_rainfall != null ? atOffset(0) : undefined
 
     // The single highest tier reached by this forecast — see rainfallStrengthIndicator.
@@ -364,14 +352,10 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
-/** Pixel width budgeted per hourly point — wide enough that the chart is a
- * long horizontal strip you scroll through, not squeezed to fit the modal. */
+/** Pixel width per hourly point — scrolls rather than squeezing to fit. */
 const HISTORY_POINT_WIDTH = 44
 
-/** The barangay's rainfall record for the trailing 7 days, one point per
- * clock hour (peak reading that hour) — a look-back mirror of `RainfallTrend`'s
- * forward-looking forecast line. Wider than its container and horizontally
- * scrollable, opening scrolled to its right edge (the latest reading). */
+/** Trailing 7-day rainfall record, one peak reading per clock hour. */
 const RainfallHistory = ({ barangayId }: { barangayId: number }) => {
     const { data, isLoading } = useRainfallHistory(barangayId, 7)
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -483,9 +467,7 @@ const ZoneRiskTrigger = ({ data }: { data: BarangayRisk }) => (
     </Dialog>
 )
 
-/** Opens a single wide modal: current conditions + the 4-hour forecast trend
- * up top, and the 7-day rainfall record given the full modal width below —
- * its own horizontally scrollable strip, opening scrolled to the latest hour. */
+/** Wide modal: forecast trend up top, 7-day rainfall record below. */
 const RainfallDetailsTrigger = ({ data }: { data: BarangayRisk }) => (
     <Dialog>
         <DialogTrigger
@@ -513,8 +495,7 @@ const RainfallDetailsTrigger = ({ data }: { data: BarangayRisk }) => (
     </Dialog>
 )
 
-/** Operator-only actions for the selected barangay: broadcast, audit history,
- * and declaring an evacuation (or a link into one already active). */
+/** Operator-only: declare an evacuation, or link to one already active. */
 const Actions = ({ id, name }: { id: number; name: string }) => {
     const { isOperator } = useAuth()
     const navigate = useNavigate()
@@ -527,7 +508,7 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
     const tileClass = 'h-16 flex-1 flex-col gap-1 rounded-xl text-xs cursor-pointer'
 
     return (
-        <div className='grid grid-cols-3 gap-2'>
+        <div className='grid grid-cols-1 gap-2'>
             {underEvacuation ? (
                 <Button
                     variant='outline'
@@ -540,15 +521,6 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
             ) : (
                 <PingEvacuationDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
             )}
-            <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName={tileClass} />
-            <Button
-                variant='outline'
-                className={tileClass}
-                onClick={() => navigate(`/alerts?barangay=${id}`)}
-            >
-                <History className='size-4' />
-                Alert history
-            </Button>
         </div>
     )
 }

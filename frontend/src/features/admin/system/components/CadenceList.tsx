@@ -1,8 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/ui/card'
 import type { CadenceEntry } from '../../types/system'
 
-/** Read-only schedule from schedules.py. Runtime editing is deferred (needs the
- * django-celery-beat DB scheduler) — see docs/admin/SETTINGS.md. */
+/** Read-only schedule from schedules.py; runtime editing is deferred. */
 const CadenceList = ({ cadence }: { cadence: CadenceEntry[] }) => (
     <Card>
         <CardHeader>

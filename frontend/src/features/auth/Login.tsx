@@ -21,7 +21,7 @@ const humanizeLoginError = (err: unknown): string => {
 
 const FEATURES = [
 	{ icon: Map, title: 'Live risk map', desc: 'Barangay flood hazard, refreshed every 15 minutes.' },
-	{ icon: Megaphone, title: 'Instant advisories', desc: 'Broadcast alerts to subscribers the moment risk turns critical.' },
+	{ icon: Megaphone, title: 'Instant advisories', desc: 'Auto-evacuate and notify subscribers the moment risk turns critical.' },
 	{ icon: History, title: 'Flood history', desc: 'A searchable record of past events that validates the model.' },
 ]
 
@@ -30,8 +30,7 @@ const Login = () => {
 	const { isAuthenticated, login } = useAuth();
 	const navigate = useNavigate();
 
-	// Controlled fields: a form action resets uncontrolled inputs after it
-	// runs, so we own the values here to keep them on a failed attempt.
+	// Controlled so a failed submit doesn't reset the inputs.
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState<boolean>(false);

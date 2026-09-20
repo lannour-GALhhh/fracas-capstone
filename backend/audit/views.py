@@ -8,11 +8,7 @@ from .services import log_field_diffs
 
 
 class SingletonSettingsView(RetrieveUpdateAPIView):
-    """RetrieveUpdate over a SingletonModel; every save is diffed into the audit log.
-
-    Subclasses set `model` (a SingletonModel), `serializer_class`, and
-    `target_label` (the human name recorded in ConfigChangeLog).
-    """
+    """RetrieveUpdate over a SingletonModel; every save is diffed into the audit log."""
 
     permission_classes = [IsAdmin]
     model = None

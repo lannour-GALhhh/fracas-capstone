@@ -1,13 +1,4 @@
-"""Hindcasting for model validation.
-
-Reconstructs a barangay's rainfall at a past moment from Open-Meteo's archive
-API and scores it through the *same* engine used in production, so we can
-compare predictions against recorded flood events. Susceptibility is static
-reference data (not a live feed), so — unlike the old dam factor — it's
-available for every hindcast once loaded; only rainfall varies over time.
-
-The archive HTTP call is injectable (`fetcher`) so tests run offline.
-"""
+"""Hindcasting for model validation — scores past rainfall through the same production engine."""
 
 from __future__ import annotations
 
@@ -59,10 +50,7 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
     def at(i: int) -> float:
         return precip[i] if 0 <= i < len(precip) and precip[i] is not None else 0.0
 
-    # Archive data is hourly-only, so there's no sub-hourly reading to fill the
-    # 15/30/45-past-the-hour points with; they default to 0 and don't affect
-    # the peak-forecast max. Only the on-the-hour points (60/120/180/240min)
-    # get a real archive value.
+    # Archive data is hourly-only; only the on-the-hour points get a real value.
     hourly_forecasts = {
         m: at(index + m // 60) if m % 60 == 0 else 0.0
         for m in range(15, 241, 15)
@@ -89,8 +77,7 @@ def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None) 
         info = susceptibility_by_barangay.get(b.id)
         if not info:
             return []
-        # Production carries a per-level `zones` list; fall back to a single
-        # worst-case zone when a caller passes only the aggregate dict.
+        # Fall back to a single worst-case zone if only the aggregate dict is given.
         if info.get("zones"):
             return info["zones"]
         return [{"level": info["level"], "value": info["value"], "share": 1.0}]

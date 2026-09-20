@@ -1,23 +1,20 @@
 import { useState } from 'react'
 import { cn } from '@/common/utils/utils'
-import AlertingPanel from './panels/AlertingPanel'
 import OrganizationPanel from './panels/OrganizationPanel'
 import RegistrationPanel from './panels/RegistrationPanel'
 import RetentionPanel from './panels/RetentionPanel'
 import TogglesPanel from './panels/TogglesPanel'
 
 const TABS = [
-    { key: 'alerting', label: 'Alerting', Panel: AlertingPanel },
     { key: 'organization', label: 'Organization', Panel: OrganizationPanel },
     { key: 'toggles', label: 'Operational', Panel: TogglesPanel },
     { key: 'registration', label: 'Registration', Panel: RegistrationPanel },
     { key: 'retention', label: 'Retention', Panel: RetentionPanel },
 ] as const
 
-/** Phase 3 admin console: system configuration grouped into tabbed singletons.
- * Each tab is a small form over one `admin/settings/<group>/` endpoint. */
+/** Admin console: system configuration grouped into tabbed singletons. */
 const SettingsPage = () => {
-    const [active, setActive] = useState<(typeof TABS)[number]['key']>('alerting')
+    const [active, setActive] = useState<(typeof TABS)[number]['key']>('organization')
     const ActivePanel = TABS.find((t) => t.key === active)!.Panel
 
     return (

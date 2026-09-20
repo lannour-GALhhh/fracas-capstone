@@ -33,8 +33,7 @@ export const getHazardZones = async (): Promise<HazardZoneCollection> => {
     return data
 }
 
-/** Full-precision (unsimplified) zone geometry — fetched only once the map is
- * zoomed in far enough for the extra detail to be visible. */
+/** Full-precision zone geometry, fetched once the map is zoomed in far enough. */
 export const getHazardZonesDetailed = async (): Promise<HazardZoneCollection> => {
     const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/', {
         params: { detail: 'full' },
@@ -48,8 +47,7 @@ export const getZoneRiskSnapshot = async (): Promise<ZoneRiskSnapshot> => {
     return data
 }
 
-/** Named streets inside a barangay whose dominant susceptibility is high/very_high.
- * Empty for barangays below that threshold (or with no named roads in OSM yet). */
+/** Named streets in a barangay whose dominant susceptibility is high/very_high. */
 export const getBarangayHighRiskStreets = async (id: number): Promise<HighRiskStreet[]> => {
     const { data } = await apiClient.get<HighRiskStreet[]>('/api/high-risk-streets/', {
         params: { barangay: id },
@@ -57,8 +55,7 @@ export const getBarangayHighRiskStreets = async (id: number): Promise<HighRiskSt
     return data
 }
 
-/** Rainfall record for a barangay, oldest first — one point per clock hour
- * (default) or per calendar day (`granularity: 'day'`). */
+/** Rainfall record for a barangay, oldest first. */
 export const getRainfallHistory = async (
     id: number,
     days = 7,

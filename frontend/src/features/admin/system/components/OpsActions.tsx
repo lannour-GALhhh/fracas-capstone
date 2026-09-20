@@ -3,8 +3,7 @@ import { Button } from '@/common/ui/button'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useRunPipeline, useRunRetention } from '../../hooks/useSystem'
 
-/** Off-cycle manual triggers. Both queue async Celery tasks; results appear on
- * the next status refresh. */
+/** Off-cycle manual triggers for async Celery tasks. */
 const OpsActions = () => {
     const runPipeline = useRunPipeline()
     const runRetention = useRunRetention()
@@ -23,7 +22,7 @@ const OpsActions = () => {
                         </Button>
                     }
                     title='Run the scoring pipeline now?'
-                    description='Ingests rainfall, recomputes scores, and evaluates alerts immediately, off the 15-minute schedule.'
+                    description='Ingests rainfall, recomputes scores, and syncs evacuations immediately, off the 15-minute schedule.'
                     confirmLabel='Run pipeline'
                     isPending={runPipeline.isPending}
                     onConfirm={() => runPipeline.mutate()}

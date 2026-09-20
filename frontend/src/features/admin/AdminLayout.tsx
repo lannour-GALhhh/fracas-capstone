@@ -12,8 +12,7 @@ import {
     SidebarProvider,
 } from '@/common/ui/sidebar'
 
-// One entry per admin sub-page. Later phases (audit) add entries here — the
-// sidebar itself doesn't change.
+// One entry per admin sub-page.
 const NAV = [
     { name: 'Users', to: '/admin/users', icon: Users },
     { name: 'Model config', to: '/admin/model/config', icon: SlidersHorizontal },

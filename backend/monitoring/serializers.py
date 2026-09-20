@@ -21,23 +21,19 @@ class RetentionPolicySerializer(SingletonSerializer):
 class OperationalTogglesSerializer(SingletonSerializer):
     class Meta:
         model = OperationalToggles
-        fields = ["maintenance_mode", "announcement_banner", "broadcast_enabled", "updated_at"]
+        fields = ["maintenance_mode", "announcement_banner", "updated_at"]
         read_only_fields = ["updated_at"]
 
 
 class OrganizationSettingsSerializer(SingletonSerializer):
     class Meta:
         model = OrganizationSettings
-        fields = ["org_name", "system_title", "contact_number", "alert_footer", "updated_at"]
+        fields = ["org_name", "system_title", "contact_number", "updated_at"]
         read_only_fields = ["updated_at"]
 
 
 class PublicConfigSerializer(serializers.Serializer):
-    """Read-only branding + banner surfaced to every client (no auth).
-
-    One source of truth for the console header and the system-wide announcement
-    banner, so web and mobile render the same org identity.
-    """
+    """Read-only branding + banner surfaced to every client (no auth)."""
 
     def to_representation(self, instance):
         org = OrganizationSettings.cached()

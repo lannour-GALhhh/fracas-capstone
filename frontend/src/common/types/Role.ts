@@ -1,8 +1,4 @@
-/**
- * Canonical console role — the single source of truth, mirroring the backend
- * `User.role` and the JWT `role` claim. Reused as `UserRole` in
- * `@/app/decodeJwt` and surfaced via `useAuth()`.
- */
+/** Canonical console role, mirroring the backend `User.role` / JWT `role` claim. */
 export const ROLES = {
     resident: "resident",
     operator: "operator",

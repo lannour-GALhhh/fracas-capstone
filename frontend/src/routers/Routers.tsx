@@ -7,14 +7,11 @@ import AdminRoute from './AdminRoute'
 import Login from '@/features/auth/Login'
 import RouteFallback from '@/common/components/RouteFallback'
 
-// Heavy, route-only screens are code-split so their bundles (MapLibre on the
-// dashboard, Recharts on history) load on navigation instead of up front.
-// Login + the small guard/layout wrappers stay eager for a fast first paint.
+// Heavy route screens are code-split; login + guard/layout wrappers stay eager.
 const Dashboard = lazy(() => import('@/features/gis/Dashboard'))
 const FloodHistory = lazy(() => import('@/features/history/component/FloodHistory'))
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
 const AccountPage = lazy(() => import('@/features/user/AccountPage'))
-const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'))
 const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage'))
 const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
@@ -42,7 +39,6 @@ const Routers = () => {
           <Route path='/history' element={<FloodHistory />} />
           <Route path='/history/:id' element={<FloodEventDetail />} />
           <Route path='/me' element={<AccountPage />} />
-          <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
           <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
           <Route path='/analytics' element={<OperatorRoute><AnalyticsPage /></OperatorRoute>} />
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>

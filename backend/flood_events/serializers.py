@@ -81,12 +81,7 @@ class FloodEventChangeSerializer(serializers.ModelSerializer):
 
 
 class MyFloodActivitySerializer(serializers.ModelSerializer):
-    """One flood-event action by the signed-in operator, for the account feed.
-
-    Unlike the per-event `FloodEventChangeSerializer`, this carries the target
-    event's id and barangay name so a row reads standalone (e.g. "Confirmed
-    Rio Hondo").
-    """
+    """One flood-event action by the signed-in operator, for the account feed."""
 
     barangay_name = serializers.CharField(source="flood_event.barangay.name", read_only=True)
 
@@ -147,12 +142,7 @@ class FloodEventDetailSerializer(serializers.ModelSerializer):
 
 
 class FloodEventWriteSerializer(serializers.ModelSerializer):
-    """Operator create/update, with the response timeline written inline.
-
-    Timeline uses replace-all semantics: the entries in the payload become the
-    event's full timeline (simplest predictable behaviour for the form UI).
-    Scalar edits are recorded to the FloodEventChange audit trail.
-    """
+    """Operator create/update; timeline uses replace-all semantics."""
 
     timeline = FloodEventTimelineEntrySerializer(many=True, required=False)
 
@@ -236,8 +226,7 @@ class FloodEventReportImageSerializer(serializers.ModelSerializer):
 
 
 class FloodEventReportSerializer(serializers.ModelSerializer):
-    """An evidence report with its photos. Accepts multiple `uploaded_images`
-    (multipart) on create; `reporter` and `flood_event` are set by the view."""
+    """An evidence report with its photos."""
 
     images = FloodEventReportImageSerializer(many=True, read_only=True)
     reporter_name = serializers.SerializerMethodField()

@@ -1,9 +1,4 @@
-"""Per-cycle scoring context.
-
-Loads everything the factors need in a handful of queries (no N+1) and
-computes cross-barangay aggregates once. Built once per compute cycle and
-shared across all barangays.
-"""
+"""Per-cycle scoring context, built once and shared across all barangays."""
 
 from __future__ import annotations
 
@@ -41,9 +36,7 @@ class ScoringContext:
         # defer the heavy boundary geometry — scoring doesn't need it.
         barangays = list(Barangay.objects.defer("boundary"))
 
-        # Stale rainfall is dropped (treated as missing) so the engine degrades
-        # the score and redistributes weight, rather than trusting an old
-        # reading and emitting a false-low "all calm".
+        # Stale rainfall is treated as missing rather than trusted as "all calm".
         cutoff = timezone.now() - STALE_AFTER[SOURCE_RAINFALL]
 
         # Latest reading per barangay in a single query (Postgres DISTINCT ON).

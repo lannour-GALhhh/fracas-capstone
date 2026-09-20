@@ -1,16 +1,4 @@
-"""Composes factor contributions into a single hazard score.
-
-Two combination modes, selected by the active RiskConfig:
-
-- **rainfall_gated** (default) — the recalibrated model. Rainfall is the
-  *trigger*, susceptibility the *amplifier*: each of a barangay's
-  susceptibility zones scores `rainfall_hazard × susceptibility_value`, and the
-  barangay's headline number aggregates those zones (mean by default). No rain
-  → no risk, no matter how high the susceptibility map is.
-- **weighted_sum** (legacy) — additive `Σ wᵢ·valueᵢ` with weight
-  redistribution when a factor's input is unavailable. Kept for back-compat and
-  validation comparison.
-"""
+"""Composes factor contributions into a single hazard score (rainfall_gated or legacy weighted_sum)."""
 
 from __future__ import annotations
 
@@ -57,9 +45,7 @@ class RiskEngine:
         rainfall = self._factor(FACTOR_RAINFALL)
         rain = rainfall.evaluate(data) if rainfall else None
 
-        # No usable rainfall trigger -> cannot assert a flood risk. Score 0 but
-        # flag degraded so a data outage surfaces via monitoring, not as a false
-        # "all calm" that looks identical to genuinely dry weather.
+        # No usable rainfall -> score 0 but flag degraded, not a false "all calm".
         if rain is None or not rain.available:
             return ScoredResult(
                 score=0.0,

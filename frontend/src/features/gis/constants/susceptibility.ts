@@ -1,8 +1,7 @@
 import type { ExpressionSpecification } from 'maplibre-gl'
 import type { SusceptibilityLevel } from '../types/api'
 
-/** How the hazard-zone layer is colored — its static susceptibility class, or
- * the computed flood risk. Toggled from the dashboard. */
+/** How the hazard-zone layer is colored: susceptibility class or computed risk. */
 export type ZoneColorMode = 'susceptibility' | 'risk'
 
 /** Least-to-most severe — drives legend ordering. */
@@ -22,12 +21,7 @@ export const SUSCEPTIBILITY_LABELS: Record<SusceptibilityLevel, string> = {
     very_high: 'Very high',
 }
 
-/**
- * Green -> red hazard-map ramp (the ColorBrewer RdYlGn scale, reversed so red
- * reads as most severe). Deliberately its own scale, not `constants/risk.ts`'s
- * white -> red `RISK_COLORS` — susceptibility levels and computed risk
- * categories are different measurements and must not look interchangeable.
- */
+/** Green→red hazard ramp; deliberately separate from `RISK_COLORS` — different measurements. */
 export const SUSCEPTIBILITY_COLORS: Record<SusceptibilityLevel, string> = {
     very_low: '#1a9850',
     low: '#91cf60',

@@ -76,8 +76,7 @@ class RainfallHistoryApiTests(APITestCase):
         self.user = get_user_model().objects.create_user("resident", password="pw")
         self.client.force_authenticate(self.user)
         self.barangay = make_barangay()
-        # Anchor to a clean hour boundary, away from midnight, so small offsets
-        # land in predictable hour/day buckets regardless of wall-clock time.
+        # Anchor to a clean hour boundary for predictable bucketing.
         self.now = timezone.now().replace(hour=12, minute=0, second=0, microsecond=0)
 
     def _reading(self, offset, strength):

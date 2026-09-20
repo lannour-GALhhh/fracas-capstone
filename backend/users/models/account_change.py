@@ -3,12 +3,7 @@ from django.db import models
 
 
 class AccountChange(models.Model):
-    """Append-only audit trail of changes to a user's own account.
-
-    Profile edits are diffed field-by-field (old → new); a password change is a
-    single valueless row. `actor` is who made the change — the user themselves
-    for self-service now, a staff member once the admin page can edit accounts.
-    """
+    """Append-only audit trail of changes to a user's own account."""
 
     class Action(models.TextChoices):
         UPDATED = "updated", "Updated"

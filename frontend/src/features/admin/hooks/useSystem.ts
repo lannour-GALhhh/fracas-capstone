@@ -24,8 +24,7 @@ export const useAutoDetectConfig = () =>
         queryFn: getAutoDetectConfig,
     })
 
-/** Kick the ingest -> score -> alert pipeline off-cycle. Results land on the
- * next status refresh, so nudge the status query afterward. */
+/** Kick the pipeline off-cycle, then nudge the status query. */
 export const useRunPipeline = () => {
     const queryClient = useQueryClient()
     return useMutation({

@@ -19,11 +19,7 @@ interface PingEvacuationDialogProps {
     triggerClassName?: string
 }
 
-/**
- * Destructive "Ping Evacuation" action from the map panel. Declaring an
- * evacuation pushes an evacuate-now notice to every subscriber and starts
- * tracking who has reached safety — so it's gated behind an explicit confirm.
- */
+/** Destructive "Ping Evacuation" action, gated behind a confirm. */
 const PingEvacuationDialog = ({
     barangayId,
     barangayName,

@@ -235,8 +235,7 @@ class EvacuationHistoryApiTests(APITestCase):
         self.assertIsNone(row["triggered_by_name"])
 
     def test_unfrozen_counts_serialize_as_null(self):
-        """Retention purges the status rows — a row closed without freezing must
-        report null, not a zero that reads as 'nobody was evacuated'."""
+        """A row closed without freezing must report null, not a misleading zero."""
         self._closed(self.home, closed_at=timezone.now())
         row = self.client.get(reverse("evacuation-history")).data["results"][0]
         self.assertIsNone(row["final_roster"])

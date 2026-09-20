@@ -2,10 +2,7 @@ import { useMemo, useState } from 'react'
 import type { SettingsByGroup, SettingsGroup } from '../types/settings'
 import { useUpdateSettings } from './useSettings'
 
-/** Local form state for one settings group, seeded from the fetched singleton.
- *
- * `dirty` gates the Save button; `save` PATCHes the whole form (DRF ignores the
- * read-only `updated_at`). Panels stay declarative — one `setField` per input. */
+/** Local form state for one settings group; `save` PATCHes the whole form. */
 export function useSettingsForm<G extends SettingsGroup>(group: G, initial: SettingsByGroup[G]) {
     const [form, setForm] = useState<SettingsByGroup[G]>(initial)
     const update = useUpdateSettings(group)

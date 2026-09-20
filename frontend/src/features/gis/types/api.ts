@@ -123,8 +123,7 @@ export interface ZoneRiskSnapshot {
     zones: ZoneRiskEntry[]
 }
 
-/** Properties on each feature from GET /api/barangays/hazard-zones/.
- * `category`/`score` are joined client-side from the per-zone risk snapshot. */
+/** Properties on each feature from GET /api/barangays/hazard-zones/. */
 export interface HazardZoneProperties {
     id: number
     barangay: number

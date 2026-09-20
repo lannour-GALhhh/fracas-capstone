@@ -1,8 +1,4 @@
-"""Audit trail for flood events: diff a save into per-field FloodEventChange rows.
-
-Field edits are diffed field-by-field (old → new); whole-event lifecycle steps
-(created / confirmed / resolved / deleted / restored) are logged as single rows.
-"""
+"""Audit trail for flood events: diff a save into per-field FloodEventChange rows."""
 
 from ..models import FloodEventChange
 

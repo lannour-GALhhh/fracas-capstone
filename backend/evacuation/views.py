@@ -1,10 +1,4 @@
-"""Evacuation-center API.
-
-Reads are open to any authenticated client (the mobile app downloads the active
-set as one GeoJSON FeatureCollection to compute the nearest center locally).
-Writes are operator-only and edited straight from the GIS console; every write
-is recorded in the unified POI audit log via the shared PoiViewSet base.
-"""
+"""Evacuation-center API."""
 
 from poi.views import PoiViewSet
 
@@ -41,9 +35,7 @@ from .services import lifecycle, snapshot
 
 
 class EvacuationReportView(APIView):
-    """A resident's device reports its own status transition. Upserts the one
-    row for this (evacuation, user) — rows exist only for reporters — then warms
-    the dashboard cache. 'Already outside the FSA' arrives here as a `safe`."""
+    """A resident's device reports its own status transition."""
 
     def post(self, request):
         serializer = EvacuationReportSerializer(data=request.data)
@@ -93,15 +85,7 @@ class ActiveEvacuationsView(APIView):
 
 
 class MyEvacuationsView(APIView):
-    """Resident-facing: the active evacuations for the barangays this user is
-    subscribed to, plus the user's own reported status. Drives the mobile
-    evacuation banner and report flow.
-
-    Deliberately slim — no roster or per-resident aggregate counts (those stay
-    operator-only on ``active/``). A resident only ever learns about their own
-    barangays and their own status, so this needs no extra permission gate
-    beyond the default ``IsAuthenticated``.
-    """
+    """Resident-facing: the active evacuations for the barangays this user follows."""
 
     def get(self, request):
         from users.models import Subscription
@@ -164,13 +148,7 @@ def _parse_day(raw):
 
 
 class EvacuationHistoryView(ListAPIView):
-    """Operator archive: every evacuation that has been stood down.
-
-    The permanent record — each row carries the aggregate counts frozen at
-    stand-down, so it stays answerable long after retention purges the
-    per-resident status rows. Filterable by `barangay`, `trigger`, and an
-    inclusive `closed_after` / `closed_before` date range.
-    """
+    """Operator archive: every evacuation that has been stood down."""
 
     permission_classes = [IsOperator]
     serializer_class = EvacuationHistorySerializer
@@ -193,8 +171,7 @@ class EvacuationHistoryView(ListAPIView):
 
 
 class PingEvacuationView(APIView):
-    """Operator ping: open an operator-triggered evacuation for a barangay,
-    fire the evac push, and record the action for accountability."""
+    """Operator ping: open an operator-triggered evacuation for a barangay."""
 
     permission_classes = [IsOperator]
 
@@ -226,8 +203,7 @@ class PingEvacuationView(APIView):
 
 
 class StandDownView(APIView):
-    """Operator closes an evacuation. Freezes the final aggregate counts onto the
-    row (the permanent record) so the per-resident rows can later be purged."""
+    """Operator closes an evacuation and freezes the final aggregate counts."""
 
     permission_classes = [IsOperator]
 

@@ -13,22 +13,13 @@ from .models import Rainfall
 
 logger = logging.getLogger(__name__)
 
-# Open-Meteo supports batching many locations into one call via comma-separated
-# latitude/longitude lists (response order matches request order). Batching is
-# what actually matters here: one-request-per-barangay (~100+/cycle) hits
-# Open-Meteo's burst rate limit hard — back-to-back single-location calls
-# started timing out at a high rate under real traffic, while a handful of
-# batched calls, even spaced only a couple seconds apart, came back in ~1s
-# each. CHUNK_SIZE keeps each batch a safe size (a 101-location batch for
-# `hourly` alone was observed to time out) while still cutting total calls
-# per cycle by ~95%.
+# Batched multi-location calls avoid Open-Meteo's per-request burst rate limit.
 CHUNK_SIZE = 25
 CHUNK_DELAY = 2  # seconds between chunk requests, to avoid bursting the rate limit
 REQUEST_TIMEOUT = 20
 RETRY_BACKOFF = 5
 
-# Forecast horizon: every 15-minute step out to 4 hours (16 points), matching
-# Open-Meteo's native minutely_15 resolution.
+# Every 15-minute step out to 4 hours (16 points).
 FORECAST_STEPS_MIN = [15 * n for n in range(1, 17)]
 
 
@@ -42,11 +33,7 @@ def hourly_url(latitudes: str, longitudes: str) -> str:
 
 
 def minutely_url(latitudes: str, longitudes: str) -> str:
-    # minutely_15 is only ever read forward (short-term forecast), never
-    # backward, so it needs no history. Requesting past_days here alongside
-    # hourly's 7-day window makes Open-Meteo's minutely archive query
-    # pathologically slow — observed timeouts (>25s) once past_days >= 4 —
-    # so this stays a separate, shallow call.
+    # Kept separate from hourly_url: past_days + minutely_15 together times out.
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
@@ -60,8 +47,7 @@ def _chunked(items, size):
 
 
 def _get_with_retry(url, *, retries=1):
-    """GET with one retry on failure, backing off so a transient throttle
-    doesn't cost this chunk's barangays the whole cycle."""
+    """GET with one backed-off retry on failure."""
     last_exc = None
     for attempt in range(retries + 1):
         try:
@@ -76,11 +62,7 @@ def _get_with_retry(url, *, retries=1):
 
 
 def _accumulate(precipitation, index, hours):
-    """Sum the `hours` hourly buckets ending at (and including) `index`.
-
-    Open-Meteo can report `null` for a bucket at the edge of its forecast
-    window, so missing values are treated as 0 rather than propagated.
-    """
+    """Sum the `hours` hourly buckets ending at (and including) `index`."""
     start = max(0, index - hours + 1)
     return round(sum(v or 0 for v in precipitation[start:index + 1]), 2)
 
@@ -108,8 +90,7 @@ def parse_rainfall_data(data, barangay_name=None):
             'accumulated_7day',
             ]}
 
-    # 15-minute resolution: `x` is a count of 15-minute buckets ahead of now.
-    # (Open-Meteo can report `null` for an edge bucket, so `or 0` covers that too.)
+    # `x` is a count of 15-minute buckets ahead of now.
     forecast_quarter = lambda x: (quarter_precipitation[quarter_index + x] or 0) if quarter_index + x < len(quarter_precipitation) else 0
 
     return {
@@ -139,8 +120,7 @@ def fetch_rainfall_information():
         try:
             hourly_batch = _get_with_retry(hourly_url(lats, lons)).json()
             minutely_batch = _get_with_retry(minutely_url(lats, lons)).json()
-            # Open-Meteo returns a single object (not a list) when the batch
-            # is exactly one location, e.g. a trailing chunk.
+            # A single-location batch comes back as an object, not a list.
             if isinstance(hourly_batch, dict):
                 hourly_batch = [hourly_batch]
             if isinstance(minutely_batch, dict):
@@ -169,7 +149,6 @@ def fetch_rainfall_information():
         if chunk_num < len(chunks) - 1:
             time.sleep(CHUNK_DELAY)
 
-    # store data using model
     if readings:
         Rainfall.objects.bulk_create(readings)
         logger.info(f"Stored {len(readings)} rainfall readings.")

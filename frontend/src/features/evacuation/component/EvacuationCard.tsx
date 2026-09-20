@@ -27,10 +27,7 @@ interface EvacuationCardProps {
     evac: EvacuationAggregate
 }
 
-/**
- * One active evacuation: headline, roster progress, and the aggregate counts.
- * Deliberately aggregate-only — the per-resident roster is never rendered here.
- */
+/** One active evacuation: headline + aggregate roster progress. */
 const EvacuationCard = ({ evac }: EvacuationCardProps) => {
     const remaining = Math.max(evac.roster - evac.safe, 0)
 

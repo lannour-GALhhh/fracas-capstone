@@ -1,10 +1,4 @@
-"""Per-source ingestion health.
-
-One row per data source (rainfall). Each ingestion task records its outcome
-here so the readiness/status endpoints and the scoring engine can tell when a
-source has gone stale and react — degrade the score, surface "no data" in a
-dashboard — instead of trusting old readings.
-"""
+"""Per-source ingestion health: one row per data source."""
 
 from django.db import models
 

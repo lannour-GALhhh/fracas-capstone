@@ -75,9 +75,7 @@ const toForm = (config?: RiskConfig): FormState =>
               critical: '75',
           }
 
-/** Create or edit a scoring config. Editing never touches `is_active` —
- * that's the separate activate action, since it has side effects (deactivates
- * the current config) that deserve their own confirmation. */
+/** Create or edit a scoring config; activation is a separate action. */
 const RiskConfigFormDialog = ({
     trigger,
     config,
@@ -87,8 +85,7 @@ const RiskConfigFormDialog = ({
 }) => {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<FormState>(() => toForm(config))
-    // Curves are arrays, managed outside the flat zod form; backend validates
-    // strict ordering/bounds and surfaces any error on save.
+    // Curves are managed outside the flat zod form; backend validates them.
     const [rainfallCurve, setRainfallCurve] = useState<Curve>(
         () => config?.rainfall_curve ?? DEFAULT_RAINFALL_CURVE,
     )

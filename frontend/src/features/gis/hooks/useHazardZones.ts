@@ -2,8 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getHazardZones, getHazardZonesDetailed } from '../api/gisApi'
 import { gisKeys } from './queryKeys'
 
-/** Hazard-zone geometries. Derived from a static government shapefile, so
- * cache them for the session same as barangay boundaries. */
+/** Hazard-zone geometries, cached for the session like barangay boundaries. */
 export const useHazardZones = () =>
     useQuery({
         queryKey: gisKeys.hazardZones,
@@ -12,9 +11,7 @@ export const useHazardZones = () =>
         gcTime: Infinity,
     })
 
-/** Full-precision hazard-zone geometries. Only fetched once `enabled` (the
- * caller gates this on zoom level — see `HazardZoneLayer`), then cached for
- * the session like the simplified variant. */
+/** Full-precision hazard-zone geometries; only fetched once `enabled`. */
 export const useHazardZonesDetailed = (enabled: boolean) =>
     useQuery({
         queryKey: gisKeys.hazardZonesDetailed,

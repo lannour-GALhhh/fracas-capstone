@@ -8,10 +8,7 @@ interface EvacProgressProps {
     className?: string
 }
 
-/**
- * Stacked bar of an evacuation's roster: safe (evacuated) · moving · unaccounted.
- * Widths are shares of the roster; a zero roster renders an empty track.
- */
+/** Stacked roster bar: safe · moving · unaccounted. */
 const EvacProgress = ({ roster, safe, moving, unaccounted, className }: EvacProgressProps) => {
     const pct = (n: number) => (roster > 0 ? (n / roster) * 100 : 0)
     const segments = [

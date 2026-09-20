@@ -17,11 +17,7 @@ const centroidOf = (
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
-/**
- * Overlays a purple rainfall-intensity badge on every barangay that currently
- * has measurable rainfall, anchored at its centroid. Calm barangays (no rain)
- * get no marker, keeping the map legible.
- */
+/** Overlays a rainfall-intensity badge on every barangay currently getting rain. */
 const RainfallLayer = ({ data, visible }: Props) => {
     if (!data || !visible) return null
 

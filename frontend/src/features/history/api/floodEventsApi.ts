@@ -91,8 +91,7 @@ export const getFloodEventReports = async (
     return data
 }
 
-/** Create an evidence report (operator-only). `form` carries description,
- * occurred_at and one or more `uploaded_images` files (multipart). */
+/** Create an evidence report (operator-only, multipart). */
 export const createFloodEventReport = async (
     id: number,
     form: FormData,

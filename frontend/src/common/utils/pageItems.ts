@@ -1,8 +1,4 @@
-/**
- * Page numbers to render, with `'ellipsis'` gaps. Always shows the first and
- * last page plus a window around the current one, e.g.
- * `1 … 4 5 6 … 20`. Returns `[1..total]` when it all fits (≤ 7 pages).
- */
+/** Page numbers with `'ellipsis'` gaps, e.g. `1 … 4 5 6 … 20`. */
 export const getPageItems = (
     page: number,
     total: number,

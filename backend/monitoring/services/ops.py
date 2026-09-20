@@ -1,9 +1,4 @@
-"""System-ops report for the admin console: pipeline freshness + cadence.
-
-Extends the operator health report with per-stage last-run/staleness for the
-ingest -> score -> alert pipeline, and a read-only view of the Celery Beat
-cadence (runtime editing is deferred — see docs/admin/SETTINGS.md).
-"""
+"""System-ops report for the admin console: pipeline freshness + cadence."""
 
 from django.utils import timezone
 
@@ -28,7 +23,7 @@ def _stage(last_run, threshold=None):
 
 
 def _pipeline_stages() -> dict:
-    from alert.models import AlertEvent
+    from evacuation.models import Evacuation
     from rainfall_fetch.models import Rainfall
     from risk_score.models import RiskScore
 
@@ -39,7 +34,9 @@ def _pipeline_stages() -> dict:
         Rainfall.objects.order_by("-recorded_at").values_list("recorded_at", flat=True).first()
     )
     last_score = RiskScore.objects.order_by("-computed_at").values_list("computed_at", flat=True).first()
-    last_alert = AlertEvent.objects.order_by("-created_at").values_list("created_at", flat=True).first()
+    last_evacuation = (
+        Evacuation.objects.order_by("-opened_at").values_list("opened_at", flat=True).first()
+    )
 
     # Scoring runs every 15 min; allow a cycle of slack before calling it stale.
     from datetime import timedelta
@@ -47,8 +44,7 @@ def _pipeline_stages() -> dict:
     return {
         "rainfall": _stage(last_rainfall, STALE_AFTER.get(SOURCE_RAINFALL)),
         "scoring": _stage(last_score, timedelta(minutes=30)),
-        # Alerts only fire on a transition, so absence isn't staleness — show last run only.
-        "alerts": _stage(last_alert),
+        "evacuation": _stage(last_evacuation),
     }
 
 

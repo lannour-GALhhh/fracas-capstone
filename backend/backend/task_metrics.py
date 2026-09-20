@@ -1,9 +1,4 @@
-"""Lightweight Celery task metrics via signals.
-
-Logs every task outcome under the ``celery.metrics`` logger so pipeline
-failures are visible (and scrapeable) instead of vanishing silently. Connected
-once from ``backend.celery``.
-"""
+"""Lightweight Celery task metrics via signals."""
 
 import logging
 

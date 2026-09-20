@@ -1,8 +1,7 @@
 import UsersTable from './components/UsersTable'
 import CreateUserDialog from './components/CreateUserDialog'
 
-/** Phase 1 admin console: list, search and provision operator/admin accounts.
- * Resident accounts are out of scope here and excluded server-side. */
+/** Admin console: list, search and provision operator/admin accounts. */
 const UsersPage = () => {
     return (
         <div className='w-full'>

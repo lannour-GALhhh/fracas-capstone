@@ -1,17 +1,4 @@
-"""Integration tests for `load_flood_susceptibility` geoprocessing correctness.
-
-Builds a small synthetic source layer in-process (mirroring the real
-ZAM_FLOOD.shp schema: `Flood` numeric + `susc_level` string, stored in
-EPSG:32651) rather than shipping a binary fixture, so the test doubles as
-documentation of the expected input shape.
-
-The fixture is written as GeoJSON rather than a shapefile so the test suite
-needs no `ogr2ogr` binary (GDAL's CLI package pulls ~120MB of Debian Python
-into the image). The command reads its input through `gdal.DataSource`, which
-is driver-agnostic, and stamps srid=32651 on the raw WKT itself -- so a
-GeoJSON layer carrying pre-projected EPSG:32651 coordinates exercises exactly
-the same code path.
-"""
+"""Integration tests for `load_flood_susceptibility` geoprocessing correctness."""
 
 import json
 import tempfile
@@ -33,11 +20,7 @@ def make_barangay(name, code, coords):
 
 
 def build_source_layer(path: Path, features: list[dict]) -> Path:
-    """Write `features` (each {geometry, Flood, susc_level}) to `path`,
-    reprojecting the WGS84 input coordinates to EPSG:32651 — matching how the
-    real ZAM_FLOOD.shp is stored. Reprojection goes through GEOS/PROJ in
-    process, replacing the `ogr2ogr -s_srs EPSG:4326 -t_srs EPSG:32651` shell
-    out this fixture used to do."""
+    """Write `features` to `path`, reprojecting WGS84 input to EPSG:32651."""
     out_features = []
     for f in features:
         geom = GEOSGeometry(json.dumps(f["geometry"]), srid=4326)
@@ -53,8 +36,6 @@ def build_source_layer(path: Path, features: list[dict]) -> Path:
         json.dumps(
             {
                 "type": "FeatureCollection",
-                # Declared so the layer is self-describing; the command stamps
-                # srid=32651 itself, so this is documentation, not load-bearing.
                 "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:EPSG::32651"}},
                 "features": out_features,
             }

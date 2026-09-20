@@ -19,11 +19,7 @@ interface PanelCardProps {
     children: ReactNode
 }
 
-/**
- * Consistent card shell for every analytics panel: header + loading skeleton,
- * inline error with retry, and an empty state — so each chart component only
- * has to render its data.
- */
+/** Consistent card shell: header, loading skeleton, error, empty state. */
 const PanelCard = ({
     title,
     description,
