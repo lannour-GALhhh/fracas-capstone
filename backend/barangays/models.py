@@ -2,7 +2,7 @@ from django.contrib.gis.db import models
 
 from .constants import SusceptibilityLevel
 
-# Create your models here.
+
 class Barangay(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
@@ -24,9 +24,7 @@ class Barangay(models.Model):
 
 
 class BarangaySusceptibility(models.Model):
-    """One row per Barangay x SusceptibilityLevel intersection, derived from the
-    authoritative ZCDRRMO/DOST/PAGASA (via Manila Observatory) flood-susceptibility
-    shapefile. See `barangays/management/commands/load_flood_susceptibility.py`."""
+    """One row per Barangay x SusceptibilityLevel intersection."""
 
     barangay = models.ForeignKey(Barangay, on_delete=models.CASCADE, related_name="susceptibility_zones")
     level = models.CharField(max_length=12, choices=SusceptibilityLevel.choices, db_index=True)
@@ -47,11 +45,7 @@ class BarangaySusceptibility(models.Model):
 
 
 class Street(models.Model):
-    """A named street inside a barangay whose dominant flood-susceptibility
-    level (see `barangays.services.dominant_susceptibility_by_barangay`) is
-    high/very_high, sourced from OpenStreetMap. See
-    `barangays/management/commands/load_high_risk_streets.py`. Only covers
-    high-risk barangays by design — this isn't a general street directory."""
+    """A named street in a high/very_high susceptibility barangay, from OpenStreetMap."""
 
     name = models.CharField(max_length=255)
     barangay = models.ForeignKey(Barangay, on_delete=models.CASCADE, related_name="streets")

@@ -1,9 +1,4 @@
-"""Admin-editable operational settings, as cached DB singletons.
-
-Each mirrors the `AutoDetectConfig.get_solo()` pattern via `SingletonModel`, lives
-here because monitoring owns (or is a neutral home for) the consumers, and defaults
-to today's hardcoded value so behavior is unchanged until an admin edits it.
-"""
+"""Admin-editable operational settings, as cached DB singletons."""
 
 from django.core.exceptions import ValidationError
 from django.db import models

@@ -21,18 +21,13 @@ const ROLE_PATCH: Record<Role, UpdateUserPayload> = {
     admin: { is_operator: false, is_staff: true },
 }
 
-/** Pick a target role and apply it behind a confirm dialog.
- *
- * "Resident" is the revoke path: it strips console access, and because the
- * console only manages operators/admins, the account then disappears from this
- * section entirely — so the dialog says so and we return to the list after. */
+/** Pick a target role and apply it behind a confirm dialog. */
 const RoleControl = ({ user }: { user: AdminUser }) => {
     const navigate = useNavigate()
     const [target, setTarget] = useState<Role>(user.role)
     const update = useUpdateAdminUser(user.id)
 
-    // Adjust-during-render: re-sync the pending selection once the mutation
-    // resolves and the detail query refetches with the new role.
+    // Re-sync the pending selection once the role mutation resolves.
     const [lastRole, setLastRole] = useState(user.role)
     if (user.role !== lastRole) {
         setLastRole(user.role)

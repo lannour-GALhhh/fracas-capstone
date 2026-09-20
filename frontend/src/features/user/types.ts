@@ -1,9 +1,6 @@
 import type { Role } from '@/common/types/Role'
 
-/**
- * Personal home address, sourced from the PSGC API (not our Barangay table).
- * `*_code` are PSGC codes kept so the edit form can re-select the dropdowns.
- */
+/** Personal home address, sourced from the PSGC API (not our Barangay table). */
 export interface Address {
     unit: string
     province: string

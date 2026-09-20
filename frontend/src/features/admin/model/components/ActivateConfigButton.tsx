@@ -3,9 +3,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { useActivateRiskConfig } from '../../hooks/useModelMutations'
 import type { RiskConfig } from '../../types/model'
 
-/** Make this config the one the scoring pipeline reads. Deactivates whichever
- * config is currently active — surfaced explicitly since the next pipeline
- * run (≤15 min) and any hindcast validation immediately reflect the switch. */
+/** Make this config the one the scoring pipeline reads. */
 const ActivateConfigButton = ({ config }: { config: RiskConfig }) => {
     const activate = useActivateRiskConfig()
 

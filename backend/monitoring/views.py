@@ -1,9 +1,4 @@
-"""Health endpoints.
-
-Liveness and readiness are unauthenticated so an orchestrator / uptime monitor
-can probe them; they expose no sensitive data. The detailed status report
-(includes ingestion internals) is operator-gated.
-"""
+"""Health endpoints."""
 
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response

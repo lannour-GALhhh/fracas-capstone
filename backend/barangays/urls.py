@@ -15,8 +15,7 @@ router.register(r'hazard-zones', HazardZoneListView, basename="hazard-zone")
 router.register(r'high-risk-streets', HighRiskStreetListView, basename="high-risk-street")
 
 urlpatterns = [
-    # Explicit path BEFORE the router so `barangays/public/` isn't swallowed by
-    # the router's `barangays/{pk}/` detail route (pk='public' → 404).
+    # Explicit path BEFORE the router so it isn't swallowed by `barangays/{pk}/`.
     path(
         "barangays/public/",
         BarangayPublicView.as_view({"get": "list"}),

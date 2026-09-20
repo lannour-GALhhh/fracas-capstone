@@ -33,8 +33,7 @@ const emptyForm = {
     phone_number: '',
 }
 
-/** Provision a new operator/admin account. No email flow exists yet, so the
- * admin sets an initial password directly and relays it to the new user. */
+/** Provision a new operator/admin account with an initial password. */
 const CreateUserDialog = () => {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState(emptyForm)

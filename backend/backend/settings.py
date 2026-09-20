@@ -19,9 +19,7 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# True while the Django test runner is active. Used to isolate side-effecting
-# infrastructure (e.g. the shared Redis cache) so tests never touch — or
-# pollute — the running app's data.
+# True while the Django test runner is active.
 TESTING = "test" in sys.argv
 
 
@@ -65,8 +63,7 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
-# Djoser: expose the console profile (name/email + derived role) on
-# `/api/auth/users/me/`; password change stays on djoser's `set_password`.
+# Djoser: expose the console profile on `/api/auth/users/me/`.
 DJOSER = {
     "SERIALIZERS": {
         "current_user": "users.serializers.CurrentUserSerializer",
@@ -171,19 +168,14 @@ CACHES = {
     }
 }
 
-# Tests must never read from or write to the shared Redis — a test that calls
-# compute_risk_scores() would otherwise overwrite the live risk snapshot with
-# its fixture barangays (the "Highland/Lowland on the cards" bug). Use an
-# isolated, per-process in-memory cache instead.
+# Tests never touch the shared Redis; use an isolated in-memory cache instead.
 if TESTING:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
-# Lenient policy: residents register from the mobile app with a low-friction
-# password. We keep only a short minimum length and drop the numeric/common/
-# similarity validators (this also loosens operator password changes).
+# Lenient policy: mobile registration only enforces a short minimum length.
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
@@ -213,11 +205,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# --- Pluggable media storage backend (report evidence images, etc.) ---------
-# Selected by env so the deployment can choose a bucket without code changes.
-#   MEDIA_STORAGE=local       -> local filesystem (default; dev/tests, offline)
-#   MEDIA_STORAGE=s3          -> S3 / any S3-compatible bucket (django-storages)
-#   MEDIA_STORAGE=cloudinary  -> Cloudinary (django-cloudinary-storage)
+# Pluggable media storage backend, selected by env: local/s3/cloudinary.
 MEDIA_STORAGE = config("MEDIA_STORAGE", default="local")
 
 STORAGES = {
@@ -252,10 +240,7 @@ CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cas
 
 LOG_LEVEL = config("LOG_LEVEL", default="INFO")
 
-# --- OTP dev/presentation bypass -------------------------------------------
-# When set, this code always passes phone verification (no real SMS needed), so
-# the registration flow can be demoed without an SMS provider. Defaults to
-# "123456" in DEBUG and is disabled (empty) in production. Override via env.
+# Dev/demo bypass: this code always passes phone verification. Empty in production.
 OTP_BYPASS_CODE = config("OTP_BYPASS_CODE", default="123456" if DEBUG else "")
 
 LOGGING = {
@@ -278,8 +263,7 @@ LOGGING = {
     },
 }
 
-# --- Production security posture (only when DEBUG is off) ---
-# Kept out of the way in development; enforced automatically in production.
+# Production security posture, enforced only when DEBUG is off.
 if not DEBUG:
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
     SESSION_COOKIE_SECURE = True

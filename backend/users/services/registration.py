@@ -1,15 +1,4 @@
-"""Phone-first resident registration (mobile app), in three phases.
-
-1. ``start``        — phone number + home address → create an INACTIVE account
-                      (``username = normalized phone``) and send an OTP.
-2. ``verify``       — OTP code → mark the phone verified + stamp terms acceptance.
-3. ``set_password`` — set a (lenient) password and activate the account.
-
-The account is kept ``is_active=False`` with an unusable password until phase 3,
-so a half-finished registration can neither log in nor receive notifications. Phone is
-the login identity: ``username`` is stored as the normalized phone so the existing
-username-based JWT login works unchanged for residents.
-"""
+"""Phone-first resident registration (mobile app), in three phases: start, verify, set_password."""
 
 import re
 
@@ -26,11 +15,7 @@ class RegistrationError(Exception):
 
 
 def normalize_phone(raw: str) -> str:
-    """Coerce a PH mobile number into E.164 ``+639XXXXXXXXX`` or raise.
-
-    Accepts ``09171234567``, ``9171234567``, ``639171234567``, ``+639171234567``
-    with optional spaces/dashes.
-    """
+    """Coerce a PH mobile number into E.164 ``+639XXXXXXXXX`` or raise."""
     digits = re.sub(r"[\s\-()]", "", raw or "")
     if digits.startswith("+63"):
         digits = digits[3:]
@@ -79,11 +64,7 @@ def verify_code(raw_phone: str, code: str) -> User:
 
 
 def set_password(raw_phone: str, password: str) -> User:
-    """Phase 3: set the password and activate the account.
-
-    Guarded so it only completes a verified, not-yet-activated registration.
-    Django's configured (lenient) validators run in the serializer before this.
-    """
+    """Phase 3: set the password and activate the account."""
     user = _pending_user(normalize_phone(raw_phone))
     if not user.phone_verified:
         raise RegistrationError("Verify your phone number before setting a password.")

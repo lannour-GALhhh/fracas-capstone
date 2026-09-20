@@ -1,8 +1,4 @@
-"""Per-barangay hazard result for one computation cycle.
-
-History is retained (feeds the flood-history view and future model
-validation); the latest per barangay is what clients read via the cache.
-"""
+"""Per-barangay hazard result for one computation cycle."""
 
 from django.db import models
 

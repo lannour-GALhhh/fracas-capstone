@@ -1,9 +1,4 @@
-"""Contract every risk factor implements (Strategy pattern).
-
-A factor turns one barangay's inputs into a 0-1 hazard contribution. New
-factors (dam gates, tide, historical flood frequency...) plug in by
-implementing this Protocol — the engine never changes (Open/Closed).
-"""
+"""Contract every risk factor implements (Strategy pattern)."""
 
 from __future__ import annotations
 

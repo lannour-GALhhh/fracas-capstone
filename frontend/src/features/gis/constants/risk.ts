@@ -19,11 +19,7 @@ export const CATEGORY_DESCRIPTIONS: Record<RiskCategory, string> = {
     critical: 'Risk of flooding is critical. Evacuate immediately if directed by local authorities.',
 }
 
-/**
- * Legible foreground (text) counterpart to `RISK_COLORS`, which is tuned for
- * fills, not contrast against a light card background. Same severity ramp,
- * calibrated so each level reads clearly as text.
- */
+/** Text-contrast counterpart to `RISK_COLORS`, which is tuned for fills. */
 export const RISK_TEXT_COLORS: Record<RiskCategory, string> = {
     low: '#f87171',
     medium: '#ef4444',
@@ -31,11 +27,7 @@ export const RISK_TEXT_COLORS: Record<RiskCategory, string> = {
     critical: '#991b1b',
 }
 
-/**
- * White → red intensity ramp. Danger reads as saturation/darkness of red:
- * low is nearly white (calm), critical is deep red. Single source of truth for
- * the map fill, the legend, and category badges/dots.
- */
+/** White → red intensity ramp; single source of truth for fill/legend/badges. */
 export const RISK_COLORS: Record<RiskCategory, string> = {
     low: '#fdeaea',
     medium: '#f2a1a1',

@@ -65,8 +65,6 @@ const Dashboard = () => {
     // Whether the hazard zones show their susceptibility class or computed risk.
     const [zoneColorMode, setZoneColorMode] = useState<ZoneColorMode>('susceptibility')
 
-    // The susceptibility levels currently switched on — filters the hazard-zone
-    // layer so toggling e.g. the green circle hides the low-susceptibility zones.
     const visibleLevels = useMemo<SusceptibilityLevel[]>(
         () => SUSCEPTIBILITY_LAYER_KEYS.filter((level) => layers[level]),
         [layers],

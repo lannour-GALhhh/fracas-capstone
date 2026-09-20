@@ -11,8 +11,7 @@ import {
 } from '@/common/ui/dialog'
 import { Button } from '@/common/ui/button'
 
-/** A trigger that opens a confirm-then-act dialog. Closes immediately on
- * confirm; the action's own toast reports success/failure. */
+/** A trigger that opens a confirm-then-act dialog. */
 const ConfirmDialog = ({
     trigger,
     title,

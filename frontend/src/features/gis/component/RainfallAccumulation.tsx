@@ -17,10 +17,7 @@ const chartConfig = {
 const fmtMm = (v: number | null | undefined): string =>
     v == null ? '—' : `${Math.round(v * 100) / 100}`
 
-/** The gauge's 100% mark — the dangerous accumulation level, not just a display
- * scale. 200mm is the backend's `DEFAULT_ACCUMULATION_CURVE` saturation point
- * for 24hr hazard; 400mm is our best "dangerous week" read until the backend
- * has a real 7-day curve to mirror. */
+/** Gauge's 100% mark: mirrors the backend's accumulation-curve saturation point. */
 const DAILY_MAX_MM = 200
 const WEEKLY_MAX_MM = 400
 

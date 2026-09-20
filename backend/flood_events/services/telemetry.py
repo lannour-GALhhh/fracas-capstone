@@ -1,12 +1,4 @@
-"""Derive real telemetry for a flood event from retained time-series history.
-
-The `FloodEvent` row itself is sparse (validation ground truth). The rich
-detail view is reconstructed at read time by looking at the worst rainfall /
-risk readings recorded *around* the event — no telemetry is duplicated onto
-the event, and no numbers are fabricated. Every block is None-safe: a source
-with no readings in the window is reported as unavailable rather than zeroed,
-mirroring the risk engine's `available` convention.
-"""
+"""Derive real telemetry for a flood event from retained time-series history."""
 
 from datetime import timedelta
 
@@ -56,11 +48,7 @@ def _centroid(barangay):
 
 
 def build_event_telemetry(event, window_hours: int = DEFAULT_WINDOW_HOURS) -> dict:
-    """Peak rainfall / risk readings in a window around `event.occurred_at`.
-
-    Each block is None when no reading exists in the window. `location` is the
-    barangay centroid so the detail view can frame the affected area.
-    """
+    """Peak rainfall / risk readings in a window around `event.occurred_at`."""
     lo = event.occurred_at - timedelta(hours=window_hours)
     hi = event.occurred_at + timedelta(hours=window_hours)
     return {

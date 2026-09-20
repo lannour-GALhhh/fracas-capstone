@@ -12,8 +12,7 @@ import { useRainfallTimeline } from '../hooks/useAnalytics'
 import type { AnalyticsWindow, FloodSeverity } from '../types/api'
 import PanelCard from './PanelCard'
 
-// Avg + peak are the same measure (24h accumulation, one mm axis); a light→dark
-// single-hue pair reads them as a band, not two unrelated series.
+// Avg + peak share one mm axis, so they get a light→dark hue pair.
 const AVG_COLOR = '#93b4f5'
 const PEAK_COLOR = '#2563eb'
 

@@ -3,22 +3,15 @@ from django.db import models
 
 
 class User(AbstractUser):
-    """Project user tied to JWT auth.
-
-    Extends AbstractUser with the fields the notification subsystem needs.
-    Subscriptions, devices, and preferences are separate related models.
-    """
+    """Project user tied to JWT auth."""
 
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     phone_verified = models.BooleanField(default=False)
 
-    # When the resident accepted the privacy policy + terms of use during the
-    # phone-first mobile registration (phase 2). Null for accounts created another way.
+    # Null for accounts created outside phone-first mobile registration.
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
 
-    # Personal home address as a self-contained blob (unit, PSGC barangay/city/
-    # province + codes, country, zip). Deliberately NOT linked to the operational
-    # `Barangay` table — this is the user's residence, sourced from the PSGC API.
+    # Self-contained address blob (PSGC), deliberately not linked to Barangay.
     address = models.JSONField(default=dict, blank=True)
 
     is_operator = models.BooleanField(
@@ -32,9 +25,7 @@ class User(AbstractUser):
 
     @property
     def role(self) -> str:
-        """Web-console role, derived from Django's auth flags (single source of
-        truth). `is_staff` is the admin-site gate, so admins are staff; operators
-        are intentionally non-staff to stay out of `/admin/`."""
+        """Web-console role, derived from Django's auth flags."""
         if self.is_staff or self.is_superuser:
             return "admin"
         if self.is_operator:

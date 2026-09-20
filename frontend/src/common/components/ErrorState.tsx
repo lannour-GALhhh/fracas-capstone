@@ -8,7 +8,7 @@ interface ErrorStateProps {
     title?: string
     /** Reassuring, plain-language explanation of what failed. */
     message: string
-    /** Retry handler (e.g. a react-query `refetch`). Omit to fall back to a full page reload. */
+    /** Omit to fall back to a full page reload. */
     onRetry?: () => void
     /** Overrides the action button label. */
     retryLabel?: string
@@ -17,11 +17,7 @@ interface ErrorStateProps {
     className?: string
 }
 
-/**
- * Consistent, friendly failure state with a recovery action. Use `page` for a
- * whole screen that couldn't load and `inline` for a widget within one. When no
- * `onRetry` is given the button reloads the page.
- */
+/** Friendly failure state with a recovery action. */
 const ErrorState = ({
     title = 'Something went wrong',
     message,

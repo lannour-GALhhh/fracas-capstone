@@ -11,10 +11,7 @@ export const CreateUserSchema = z.object({
     phone_number: PhoneProp,
 })
 
-/** Scoring config form: a flat shape so field-level errors map 1:1 to inputs.
- * Mirrors RiskConfig.clean() on the backend — thresholds strictly ordered
- * medium < high < critical; weights sum to 1.0 only in the legacy weighted_sum
- * mode (the rainfall-gated default ignores them). */
+/** Scoring config form: mirrors RiskConfig.clean() ordering/weight rules. */
 export const RiskConfigSchema = z
     .object({
         name: RequiredString('Name'),

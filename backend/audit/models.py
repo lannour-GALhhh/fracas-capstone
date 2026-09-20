@@ -1,13 +1,4 @@
-"""Shared admin-console infrastructure: a singleton base and a config audit log.
-
-`SingletonModel` generalizes the `AutoDetectConfig.get_solo()` pattern already in
-`flood_events` so every admin Settings group is a typed, single-row table with a
-cached read that busts on save (some sit on the 15-min hot path).
-
-`ConfigChangeLog` is the append-only trail for changes that have no per-domain log
-of their own — RiskConfig activation, Settings edits, manual ops actions. It feeds
-the Phase 4 unified Audit page.
-"""
+"""Shared admin-console infrastructure: a singleton base and a config audit log."""
 
 from django.conf import settings
 from django.core.cache import cache
@@ -15,12 +6,7 @@ from django.db import models
 
 
 class SingletonModel(models.Model):
-    """Abstract single-row table (pk always 1) with a cached accessor.
-
-    Subclasses live in the app that owns their consumer (locality), so no new
-    cross-app dependency is introduced. Use `cached()` on hot paths and
-    `get_solo()` when you need the live row (e.g. the admin RetrieveUpdate view).
-    """
+    """Abstract single-row table (pk always 1) with a cached accessor."""
 
     class Meta:
         abstract = True
@@ -36,11 +22,7 @@ class SingletonModel(models.Model):
 
     @classmethod
     def cached(cls):
-        """Read the singleton from cache, populating it on a miss.
-
-        Busted on every save, so it can back consumers on the 15-min pipeline
-        without serving stale config.
-        """
+        """Read the singleton from cache, populating it on a miss."""
         obj = cache.get(cls._cache_key())
         if obj is None:
             obj = cls.get_solo()
@@ -54,12 +36,7 @@ class SingletonModel(models.Model):
 
 
 class ConfigChangeLog(models.Model):
-    """Append-only audit of config/settings/ops changes lacking a domain log.
-
-    `target` is a human label for the touched surface (e.g. "Retention Policy",
-    "risk-config #4"); `field`/`old_value`/`new_value` are blank for whole-object
-    actions like a manual pipeline run.
-    """
+    """Append-only audit of config/settings/ops changes lacking a domain log."""
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True

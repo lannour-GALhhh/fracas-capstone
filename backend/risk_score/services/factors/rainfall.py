@@ -1,9 +1,4 @@
-"""Rainfall hazard: peak short-term intensity blended with saturation.
-
-Leans cautious for early warning — takes the greater of raw intensity hazard
-and an intensity+accumulation blend, so either torrential rain now or a
-saturated multi-hour total raises the score.
-"""
+"""Rainfall hazard: peak short-term intensity blended with saturation."""
 
 from risk_score.constants import FACTOR_RAINFALL
 from risk_score.services.normalization import clamp, normalize_accumulation, normalize_rainfall

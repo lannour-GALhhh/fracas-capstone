@@ -1,8 +1,4 @@
-"""Analytics endpoint tests — deterministic and offline.
-
-Uses a local-memory cache (not Redis) and clears it per test so cached
-per-window payloads never leak between cases.
-"""
+"""Analytics endpoint tests — deterministic and offline."""
 
 from datetime import timedelta
 

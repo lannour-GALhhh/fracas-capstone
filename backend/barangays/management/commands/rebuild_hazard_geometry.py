@@ -1,11 +1,4 @@
-"""Regenerate the hazard-zone display geometry (`geom_simplified`) from the
-authoritative full-precision `geom`, shrinking the /api/hazard-zones/ payload
-~4x (see `barangays.geometry`). Safe to re-run; does not touch `geom` or any
-risk-engine input. Run after `load_flood_susceptibility` (which already calls
-this) or on demand to re-tune the generalization.
-
-    python manage.py rebuild_hazard_geometry
-"""
+"""Regenerate the hazard-zone display geometry (`geom_simplified`) from the authoritative `geom`."""
 
 from django.core.management.base import BaseCommand
 

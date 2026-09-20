@@ -1,12 +1,4 @@
-"""Load evacuation centers from a CSV.
-
-Columns: ``name, latitude, longitude`` (required) and optional ``capacity``,
-``contact``, ``barangay_code``. The barangay is resolved from ``barangay_code``
-(matching ``Barangay.code``) when given, otherwise by point-in-polygon over the
-loaded boundaries. Idempotent on ``(name, location)``.
-
-    python manage.py load_evacuation_centers evacuation_centers.csv
-"""
+"""Load evacuation centers from a CSV: python manage.py load_evacuation_centers <path>."""
 
 import csv
 

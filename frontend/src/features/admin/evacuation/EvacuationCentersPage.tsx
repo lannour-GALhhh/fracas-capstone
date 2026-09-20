@@ -3,8 +3,7 @@ import { Button } from '@/common/ui/button'
 import EvacuationTable from './components/EvacuationTable'
 import EvacuationFormDialog from './components/EvacuationFormDialog'
 
-/** Admin console: list, add, edit and delete evacuation centers. Centers are
- * read-only on the GIS map; this is where they're managed. */
+/** Admin console: list, add, edit and delete evacuation centers. */
 const EvacuationCentersPage = () => {
     return (
         <div className='w-full'>

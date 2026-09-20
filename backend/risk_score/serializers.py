@@ -32,9 +32,7 @@ class RiskConfigSerializer(serializers.ModelSerializer):
     )
 
     def validate(self, attrs):
-        # Build a transient instance (merging existing values on update) so
-        # RiskConfig.clean() can enforce weight-sum/threshold-order/curve rules
-        # exactly as it does for the Django admin form.
+        # Merge onto a transient instance so RiskConfig.clean() enforces its rules.
         instance = self.instance or RiskConfig()
         merged = {**{f: getattr(instance, f) for f in self._CLEAN_FIELDS}, **attrs}
         candidate = RiskConfig(**merged)
@@ -75,8 +73,6 @@ class BarangayRiskSerializer(serializers.Serializer):
             "name": b.name,
             "status": s.category if s else None,
             "risk_score": round(s.score, 2) if s else None,
-            # `average` is the barangay headline number (mean of its zone scores);
-            # `zones` carries the per-zone localized scores for the side panel.
             "average": round(s.score, 2) if s else None,
             "zones": zones,
             "is_degraded": s.is_degraded if s else None,

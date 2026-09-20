@@ -1,10 +1,4 @@
-"""Seed a handful of demo evacuation centers so the map has markers to show.
-
-Coordinates are approximate placeholders within Zamboanga City; the barangay is
-resolved by point-in-polygon. Idempotent on the center name.
-
-    python manage.py seed_demo_evacuation_centers
-"""
+"""Seed a handful of demo evacuation centers: python manage.py seed_demo_evacuation_centers."""
 
 from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand

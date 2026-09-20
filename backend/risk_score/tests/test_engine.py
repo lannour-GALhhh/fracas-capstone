@@ -78,8 +78,7 @@ class RainfallGatedTests(SimpleTestCase):
         return engine.score(gated_input(rainfall_value, available, zones))
 
     def test_no_rain_gives_zero_despite_high_susceptibility(self):
-        # The core bug fix: a very-high susceptibility barangay with zero rain
-        # must score ~0, not ~50.
+        # Zero rain must score ~0 even at very-high susceptibility, not ~50.
         result = self._score(0.0, [{"level": "very_high", "value": 1.0, "share": 1.0}])
         self.assertEqual(result.score, 0.0)
         self.assertEqual(result.category, RiskCategory.LOW)
@@ -104,8 +103,7 @@ class RainfallGatedTests(SimpleTestCase):
         self.assertAlmostEqual(result.score, 30.0)
 
     def test_area_weighted_is_default_and_weights_by_share(self):
-        # 90% of the land is very-low, 10% very-high. The area-weighted default
-        # must pull the barangay score toward the dominant zone (not the mean).
+        # Area-weighted default should pull toward the dominant zone, not the mean.
         result = self._score(
             1.0,
             [

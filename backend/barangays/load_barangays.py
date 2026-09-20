@@ -6,25 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-
-This is a data cleaning/storage code. 
-This will fetch barangays only assigned to Zamboanga City using the provincial code PH0907332. 
-This will fetch the geopackage, assign it as a DataSource from gis.gdal, then only get the layer 4
-which is for individual barangays.
-
-We will get Zamboanga City's barangay features and assign them into an array by matching their provincial code (pcode).
-
-We will iterate through each of the barangays. We will use the get_or_create feature of Django objects
-to either iterate if exisiting or create using the required features (excluding land_height) if not, 
-removing redundancy errors if we run this again. We will store them in our Barangay models through iterations.
-
-We will run this script/code through: 
-
-docker exec -it django_backend python3 manage.py shell < /backend/barangays/load_barangays.py
-
-"""
-
+# Loads Zamboanga City barangays (province code PH0907332) from the GDB, layer 4.
 def load_barangays():
     path = '/backend/phl_admin_boundaries.gdb'
     ds = DataSource(path)

@@ -4,8 +4,7 @@ import { PageTransition } from '@/common/motion'
 
 const Layout = () => {
   const { pathname } = useLocation()
-  // The dashboard map runs full-bleed under a floating header; every other
-  // page keeps a normal scroll area that clears the header with top padding.
+  // The dashboard map runs full-bleed under a floating header.
   const fullBleed = pathname === '/'
 
   return (

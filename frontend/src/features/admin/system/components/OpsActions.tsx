@@ -3,8 +3,7 @@ import { Button } from '@/common/ui/button'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useRunPipeline, useRunRetention } from '../../hooks/useSystem'
 
-/** Off-cycle manual triggers. Both queue async Celery tasks; results appear on
- * the next status refresh. */
+/** Off-cycle manual triggers for async Celery tasks. */
 const OpsActions = () => {
     const runPipeline = useRunPipeline()
     const runRetention = useRunRetention()

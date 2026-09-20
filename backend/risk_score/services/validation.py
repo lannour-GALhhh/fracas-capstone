@@ -1,11 +1,4 @@
-"""Validate the risk model against recorded flood events (via hindcasting).
-
-For each FloodEvent we reconstruct and score the barangay at the event time,
-then check whether the model would have flagged it HIGH/CRITICAL. Recall
-(detection rate) is the headline metric: of real floods, how many did the
-model catch. False-alarm rate needs verified no-flood periods and is left for
-operational validation once the system accrues live history.
-"""
+"""Validate the risk model against recorded flood events via hindcasting; recall is the headline metric."""
 
 from __future__ import annotations
 

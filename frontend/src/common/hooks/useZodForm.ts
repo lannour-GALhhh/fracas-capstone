@@ -4,15 +4,7 @@ import type { z } from 'zod'
 /** Shape consumed by the `FieldError` primitive. */
 type FieldErrors = { message: string }[]
 
-/**
- * Lightweight Zod validation for controlled forms, matching the on-blur + on-submit
- * UX used across the app. Pass a **flat** values object (decoupled from the submit
- * payload) so error keys line up with input names.
- *
- * - errors surface only after a field is blurred/touched or the form is submitted
- * - `fieldError(name)` feeds `<FieldError errors={...} />`
- * - `handleSubmit(fn)` runs `fn(parsedData)` only when the whole form is valid
- */
+/** Zod validation for controlled forms: on-blur + on-submit error reveal. */
 export function useZodForm<S extends z.ZodType>(schema: S, values: unknown) {
     const [touched, setTouched] = useState<Record<string, boolean>>({})
     const [submitted, setSubmitted] = useState(false)

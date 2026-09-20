@@ -14,14 +14,10 @@ const SOURCE = 'hazard-zones'
 const FILL = 'hazard-zone-fill'
 const LINE = 'hazard-zone-line'
 
-/** Zoom level at which the layer swaps the simplified geometry for the
- * full-precision one. Below this, the generalized shapes read fine at a
- * fraction of the payload; above it, the extra vertices become visible. */
+/** Zoom level at which the layer swaps to full-precision geometry. */
 const DETAIL_ZOOM_THRESHOLD = 13
 
-/** Color each zone by its *computed* localized risk (rainfall-gated), keyed on
- * the `category` joined into each feature. Falls back to grey before scores load
- * or when the pipeline hasn't run. */
+/** Colors each zone by its computed risk category; grey before scores load. */
 const riskColorExpression: ExpressionSpecification = [
     'match',
     ['get', 'category'],
@@ -47,12 +43,7 @@ interface Props {
 const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
     map.getStyle().layers?.find((l) => l.type === 'symbol')?.id
 
-/**
- * The authoritative flood-susceptibility zones, colored by the **computed
- * per-zone risk** for the current cycle (`rainfall × susceptibility`) rather
- * than the static susceptibility class — so a high-susceptibility zone reads as
- * calm when it isn't raining and lights up only when rain actually arrives.
- */
+/** Flood-susceptibility zones, colored by computed per-cycle risk. */
 const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { map, isLoaded } = useMap()
     const [zoom, setZoom] = useState(() => map?.getZoom() ?? 0)
@@ -61,8 +52,6 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { data: detailed } = useHazardZonesDetailed(showDetailed)
     const { data: zoneRisk } = useZoneRisk()
 
-    // Track zoom so we know when to swap to the full-precision geometry. Fires
-    // continuously during a zoom gesture; cheap since it's just a number compare.
     useEffect(() => {
         if (!map) return
         const handleZoom = () => setZoom(map.getZoom())
@@ -73,8 +62,6 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
         }
     }, [map])
 
-    // Prefer the detailed geometry once zoomed in and it has loaded; fall back
-    // to simplified otherwise (zoomed out, or detailed still fetching).
     const data = showDetailed && detailed ? detailed : simplified
 
     // Key on the sorted level set so the filter effect only re-runs on a real change.
@@ -95,9 +82,7 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
         }
     }, [data, zoneRisk])
 
-    // Add the source + layers ONCE (empty), tied only to the map lifecycle. The
-    // actual features/colors are pushed via setData below — re-adding the layers
-    // whenever scores refresh is what caused the flicker + freeze.
+    // Add source + layers once (empty); re-adding them on refresh caused flicker/freeze.
     useEffect(() => {
         if (!map || !isLoaded) return
         const beforeId = firstSymbolLayerId(map)
@@ -127,20 +112,15 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
             for (const id of [FILL, LINE]) if (map.getLayer(id)) map.removeLayer(id)
             if (map.getSource(SOURCE)) map.removeSource(SOURCE)
         }
-        // colorBy is applied on add here and updated by its own effect below.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map, isLoaded])
 
-    // Push features + risk colors by updating the source data in place — cheap,
-    // and it never removes/re-adds the layer (no flicker).
     useEffect(() => {
         if (!map || !isLoaded || !joined) return
         const source = map.getSource(SOURCE) as GeoJSONSource | undefined
         source?.setData(joined)
     }, [map, isLoaded, joined])
 
-    // Swap the fill palette when the view toggles — a paint-property change, so
-    // no layer churn.
     useEffect(() => {
         if (!map || !isLoaded || !map.getLayer(FILL)) return
         map.setPaintProperty(FILL, 'fill-color', colorExpressionFor(colorBy))
@@ -151,7 +131,6 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
         if (!map || !isLoaded || !map.getLayer(FILL)) return
         const filter: ExpressionSpecification = ['in', ['get', 'level'], ['literal', visibleLevels]]
         for (const id of [FILL, LINE]) if (map.getLayer(id)) map.setFilter(id, filter)
-        // levelKey captures the level set; visibleLevels itself is a fresh array each render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map, isLoaded, levelKey])
 

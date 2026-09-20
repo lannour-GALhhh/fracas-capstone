@@ -38,8 +38,7 @@ import type { ConsoleRole } from '../../types/user'
 const PAGE_SIZE = 25
 const COLS = 5
 
-/** Operator/admin accounts only — residents are never listed here (see
- * `ConsoleRole`); the backend excludes them from the endpoint too. */
+/** Operator/admin accounts only; residents are excluded server-side. */
 const UsersTable = () => {
     const navigate = useNavigate()
     const [search, setSearch] = useState('')

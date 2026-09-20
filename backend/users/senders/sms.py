@@ -1,8 +1,4 @@
-"""SMS providers. Select one with the SMS_PROVIDER env var (see registry).
-
-Add a new gateway by writing a class with `send(to, message)` and registering
-it — nothing else in the system changes.
-"""
+"""SMS providers. Select one with the SMS_PROVIDER env var (see registry)."""
 
 import logging
 

@@ -3,12 +3,7 @@ import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
 import type { Curve } from '../../types/model'
 
-/**
- * A compact editor for a piecewise curve — a list of `[input, hazard]`
- * breakpoints. Used for the admin-tunable rainfall/accumulation scaling: the
- * `x` is mm (or mm/hr), the `y` is the 0–1 hazard it maps to. Points are kept
- * in ascending-x order by the backend; this just captures the values.
- */
+/** Editor for a piecewise curve: a list of [input, hazard] breakpoints. */
 const CurveEditor = ({
     label,
     description,

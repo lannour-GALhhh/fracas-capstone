@@ -20,13 +20,7 @@ class OperatorSerializer(serializers.ModelSerializer):
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
-    """Full user record for the admin console: profile + role/status flags.
-
-    `is_superuser` is deliberately absent — that's a Django-`/admin/`-only,
-    break-glass flag, never editable through this API. Every save is diffed
-    into `AccountChange` (the flags are tracked fields too), same as
-    self-service profile edits.
-    """
+    """Full user record for the admin console: profile + role/status flags."""
 
     role = serializers.CharField(read_only=True)
 
@@ -65,9 +59,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
-    """Provision a new operator/admin account. No email flow exists in this
-    system (SMS is the only channel), so the admin sets an initial password
-    directly, validated by Django's configured password validators."""
+    """Provision a new operator/admin account with an admin-set initial password."""
 
     password = serializers.CharField(write_only=True, validators=[validate_password])
     role = serializers.CharField(read_only=True)
@@ -88,8 +80,6 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        # The console only lists operators/admins, so provisioning a plain
-        # resident here would create an account it can never show again.
         if not (attrs.get("is_operator") or attrs.get("is_staff")):
             raise serializers.ValidationError(
                 "Pick a console role — this endpoint provisions operators and admins only."
@@ -104,8 +94,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
-# Keys kept from a submitted address; anything else is dropped. `*_code` are the
-# PSGC codes the client stores so the edit form can re-select the dropdowns.
+# Keys kept from a submitted address; anything else is dropped.
 ADDRESS_KEYS = [
     "unit",
     "province",
@@ -129,13 +118,7 @@ def normalize_address(raw) -> dict:
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
-    """The signed-in user's own profile, for djoser's `/users/me/` (GET + PATCH).
-
-    Operators self-edit their name, email, phone and home address; `username`,
-    activation and the derived `role` stay read-only (identity/authorization are
-    managed elsewhere, not self-service from the console). Every edit is diffed
-    into an `AccountChange` audit row so the account page (and a future admin
-    page) can show a history."""
+    """The signed-in user's own profile, for djoser's `/users/me/` (GET + PATCH)."""
 
     role = serializers.CharField(read_only=True)
     address = serializers.JSONField(required=False)

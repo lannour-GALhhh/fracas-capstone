@@ -35,10 +35,7 @@ export const pingEvacuation = async (barangayId: number): Promise<PingResult> =>
     return data
 }
 
-/**
- * Mark safe: close an active evacuation and freeze its final counts.
- * The backend route is still `stand-down/` — only the operator-facing wording changed.
- */
+/** Mark safe: close an active evacuation and freeze its final counts. */
 export const markEvacuationSafe = async (evacuationId: number): Promise<MarkSafeResult> => {
     const { data } = await apiClient.post<MarkSafeResult>(
         `/api/evacuation/evacuations/${evacuationId}/stand-down/`,

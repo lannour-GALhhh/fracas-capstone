@@ -45,8 +45,7 @@ class ComputeRiskScoresTests(TestCase):
         self.assertEqual(result["count"], 2)
         self.assertEqual(RiskScore.objects.count(), 2)
 
-        # Every score is flagged degraded because no BarangaySusceptibility fixture
-        # is loaded in this test, so the susceptibility factor is unavailable.
+        # No BarangaySusceptibility fixture is loaded, so every score is degraded.
         self.assertTrue(all(rs.is_degraded for rs in RiskScore.objects.all()))
 
         # The rainy lowland barangay must outrank the dry highland one.

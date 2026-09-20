@@ -7,8 +7,7 @@ import HealthOverview from './components/HealthOverview'
 import OpsActions from './components/OpsActions'
 import PipelineStages from './components/PipelineStages'
 
-/** Phase 3 admin console: operational health, manual pipeline triggers, the
- * read-only schedule, and auto-detection config. Status auto-refreshes. */
+/** Admin console: operational health, manual pipeline triggers, schedule, auto-detect config. */
 const SystemPage = () => {
     const { data, isLoading, isError, refetch } = useSystemStatus()
 

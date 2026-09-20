@@ -3,10 +3,7 @@ import { toast } from 'sonner'
 import { markEvacuationSafe } from '../api/evacuationApi'
 import { evacuationKeys } from './queryKeys'
 
-/**
- * Operator "mark as safe". Closes an evacuation, refreshes the live aggregate,
- * and invalidates the archive — the row it just closed now belongs to the history.
- */
+/** Operator "mark as safe": closes an evacuation and refreshes both queries. */
 export const useMarkSafe = () => {
     const queryClient = useQueryClient()
     return useMutation({

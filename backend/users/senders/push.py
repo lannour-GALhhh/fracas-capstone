@@ -15,10 +15,7 @@ class ConsolePushProvider:
 
 
 class FcmProvider:
-    """Firebase Cloud Messaging (React Native). Needs firebase-admin + credentials.
-
-    firebase-admin is imported lazily so it is only required when PUSH_PROVIDER=fcm.
-    """
+    """Firebase Cloud Messaging (React Native). Needs firebase-admin + credentials."""
 
     def __init__(self):
         try:

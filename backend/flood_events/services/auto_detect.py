@@ -1,9 +1,4 @@
-"""Auto-draft unconfirmed flood events from high risk scores.
-
-Kept dependency-clean: this reads no risk_score internals — the caller (the
-scoring pipeline) passes in already-computed scores as plain duck-typed objects,
-so flood_events never imports risk_score.
-"""
+"""Auto-draft unconfirmed flood events from high risk scores (no risk_score import)."""
 
 from datetime import timedelta
 
@@ -34,12 +29,7 @@ def _category_str(value) -> str:
 
 
 def draft_events(scores) -> dict:
-    """Create unconfirmed auto flood events for barangays at/above the configured
-    risk threshold.
-
-    `scores` is any iterable of objects exposing `.barangay`, `.barangay_id`,
-    `.category`, `.score`, `.computed_at`. Deduped per barangay over a 24h window.
-    """
+    """Create unconfirmed auto flood events for barangays at/above the configured risk threshold."""
     config = AutoDetectConfig.get_solo()
     if not config.enabled:
         return {"created": 0, "reason": "disabled"}

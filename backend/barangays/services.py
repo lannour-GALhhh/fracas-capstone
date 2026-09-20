@@ -5,14 +5,7 @@ from .models import BarangaySusceptibility
 
 
 def dominant_susceptibility_by_barangay() -> dict[int, dict]:
-    """Each barangay's max()-aggregated susceptibility — worst-case, never
-    averaged (life-safety early-warning system). One query, no N+1.
-
-    Also carries a `levels` breakdown (area share per level present) so
-    callers can explain *why* a barangay scored the way it did when it spans
-    more than one susceptibility zone, without changing the worst-case
-    aggregation used for `value`/`level` itself.
-    """
+    """Each barangay's max()-aggregated susceptibility — worst-case, never averaged."""
     by_barangay = defaultdict(list)
     for row in BarangaySusceptibility.objects.values("barangay_id", "level", "area_sqm"):
         by_barangay[row["barangay_id"]].append(row)
@@ -27,9 +20,6 @@ def dominant_susceptibility_by_barangay() -> dict[int, dict]:
         for row in rows:
             area_by_level[row["level"]] += row["area_sqm"]
 
-        # One entry per distinct level present, worst-first, each carrying its
-        # 0-1 susceptibility value + area share. The rainfall-gated engine scores
-        # each of these zones and averages them for the barangay headline number.
         zones = [
             {
                 "level": level,

@@ -11,10 +11,7 @@ const Coordinate = (label: string, min: number, max: number) =>
         `Enter a valid ${label.toLowerCase()} (${min} to ${max})`,
     )
 
-/**
- * Flat validation view of the evacuation-center form. Coordinates and capacity
- * are the raw input strings; the dialog converts them to numbers on submit.
- */
+/** Flat validation view of the evacuation-center form. */
 export const EvacuationSchema = z.object({
     name: RequiredString('Name'),
     latitude: Coordinate('Latitude', -90, 90),

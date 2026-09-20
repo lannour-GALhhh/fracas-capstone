@@ -7,12 +7,7 @@ const REFRESH_MS = 5 * 60_000 // match the barangay risk snapshot cadence
 
 export type ZoneRiskLookup = Map<string, { score: number; category: RiskCategory }>
 
-/**
- * Module-level (stable reference) so React Query memoizes it — an *inline*
- * select re-runs every render and returns a fresh Map each time, which thrashes
- * every downstream memo/effect. Keeping it stable means the lookup only rebuilds
- * when the snapshot actually changes.
- */
+/** Module-level so React Query memoizes it; an inline select thrashes downstream effects. */
 const toZoneLookup = (snapshot: ZoneRiskSnapshot): ZoneRiskLookup => {
     const byKey: ZoneRiskLookup = new Map()
     for (const z of snapshot.zones) {

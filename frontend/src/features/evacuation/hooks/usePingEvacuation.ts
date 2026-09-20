@@ -3,11 +3,7 @@ import { toast } from 'sonner'
 import { pingEvacuation } from '../api/evacuationApi'
 import { evacuationKeys } from './queryKeys'
 
-/**
- * Operator ping. Opens an evacuation for a barangay, fires the resident push,
- * and records the action for accountability — then refreshes the shared
- * aggregate so the map badge + page card appear at once.
- */
+/** Operator ping: opens an evacuation and refreshes the shared aggregate. */
 export const usePingEvacuation = () => {
     const queryClient = useQueryClient()
     return useMutation({

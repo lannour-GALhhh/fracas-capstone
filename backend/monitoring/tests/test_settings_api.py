@@ -1,6 +1,4 @@
-"""Admin Settings endpoints owned by monitoring: retention, toggles, organization,
-plus the public config read. Covers gating, defaults, validation, audit trail,
-cache invalidation, and that consumers honour edited values."""
+"""Admin Settings endpoints owned by monitoring: retention, toggles, organization."""
 
 from datetime import timedelta
 

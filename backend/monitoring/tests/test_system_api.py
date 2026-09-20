@@ -1,5 +1,4 @@
-"""Admin system-ops endpoints: the status report shape and the manual
-pipeline / retention triggers (with the Celery task .delay patched)."""
+"""Admin system-ops endpoints: status report shape and manual pipeline/retention triggers."""
 
 from unittest.mock import patch
 

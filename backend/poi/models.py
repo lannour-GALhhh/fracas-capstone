@@ -1,10 +1,4 @@
-"""Map points-of-interest shared plumbing.
-
-Holds the **unified POI audit log** (`MapPoiChange`) that records every operator
-edit to a map POI as an append-only "when / where / what" trail. The concrete
-POI model lives in its own app (`evacuation.EvacuationCenter`), but logs
-through this single table so the console can show one activity feed.
-"""
+"""Map points-of-interest shared plumbing: the unified POI audit log."""
 
 from django.conf import settings
 from django.contrib.gis.db import models
@@ -12,9 +6,7 @@ from django.contrib.gis.db import models
 
 class PoiType(models.TextChoices):
     EVACUATION = "evacuation", "Evacuation center"
-    # Flood hotspots were removed (superseded by the authoritative
-    # BarangaySusceptibility hazard-zone layer); kept here so old audit rows
-    # (MapPoiChange.poi_type="hotspot") remain a valid choice for display.
+    # Removed as a POI type; kept so old audit rows remain a valid choice.
     HOTSPOT = "hotspot", "Flood hotspot"
 
 

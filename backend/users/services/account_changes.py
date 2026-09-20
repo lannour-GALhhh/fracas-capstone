@@ -1,18 +1,10 @@
-"""Audit trail for account edits: diff a profile save into AccountChange rows.
-
-Mirrors ``flood_events/services/changes.py``. Scalar fields are diffed
-old → new; a password change is logged as a single valueless row.
-"""
+"""Audit trail for account edits: diff a profile save into AccountChange rows."""
 
 import json
 
 from ..models import AccountChange
 
-# Profile fields worth an audit trail. `address` is a JSON blob compared as a
-# whole and shown as a one-line address. `is_operator`/`is_staff`/`is_active`
-# are only ever written through the admin console (self-edit never touches
-# them), so tracking them here also gives the admin user API its audit trail
-# for free.
+# Profile fields worth an audit trail.
 TRACKED_FIELDS = [
     "first_name",
     "last_name",

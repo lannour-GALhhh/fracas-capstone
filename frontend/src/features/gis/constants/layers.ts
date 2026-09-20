@@ -15,8 +15,7 @@ export interface LayerVisibility {
 
 export type LayerKey = keyof LayerVisibility
 
-/** The layer toggles that map 1:1 onto a susceptibility level (used to filter
- * the hazard-zone layer by level). Order is least → most severe. */
+/** Layer toggles for the hazard-zone susceptibility levels, least → most severe. */
 export const SUSCEPTIBILITY_LAYER_KEYS: SusceptibilityLevel[] = [
     'very_low',
     'low',

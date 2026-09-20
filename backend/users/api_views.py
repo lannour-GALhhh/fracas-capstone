@@ -37,18 +37,12 @@ class AccountChangeListView(ListAPIView):
         return AccountChange.objects.filter(user=self.request.user).select_related("actor")
 
 
-# A *console* account — operator or admin. Residents are ordinary members of
-# the public whose profiles carry personal data (name, phone, home barangay)
-# with no operational reason to be browsable by staff, so they are excluded
-# from every staff-facing account endpoint at the queryset level.
+# A *console* account — operator or admin; excludes ordinary residents.
 CONSOLE_ACCOUNT = Q(is_operator=True) | Q(is_staff=True) | Q(is_superuser=True)
 
 
 class OperatorListView(ListAPIView):
-    """Operators + admins as {id, name}, for the flood-report source picker.
-
-    Unpaginated — the client filters this small list in-memory.
-    """
+    """Operators + admins as {id, name}, for the flood-report source picker."""
 
     serializer_class = OperatorSerializer
     permission_classes = [IsOperator]
@@ -77,22 +71,7 @@ class AdminUserViewSet(
     mixins.UpdateModelMixin,
     GenericViewSet,
 ):
-    """Admin console: list/create/edit **console** accounts (no delete).
-
-    Scope is operators and admins only — `CONSOLE_ACCOUNT` filters the base
-    queryset, so residents are invisible to *every* route here (list, detail,
-    update, reset-password, audit trail), not just hidden from the list. Their
-    accounts are personal data, and nothing in the console's job requires
-    browsing them. Demoting a console account to resident therefore drops it
-    out of this API for good; re-promotion is a Django `/admin/` operation.
-
-    Deactivating (`is_active=False`) is the removal path, not deletion. Three
-    guardrails, enforced server-side:
-    - the last active admin can't be demoted or deactivated;
-    - an admin can't remove their own admin access or deactivate themselves;
-    - `is_superuser` is never exposed by the serializer, so it's never
-      settable here — that flag stays a Django `/admin/` break-glass path.
-    """
+    """Admin console: list/create/edit **console** accounts (no delete)."""
 
     permission_classes = [IsAdmin]
     queryset = User.objects.filter(CONSOLE_ACCOUNT).order_by("-date_joined")
@@ -121,8 +100,6 @@ class AdminUserViewSet(
         elif role == "operator":
             qs = qs.filter(is_operator=True, is_staff=False, is_superuser=False)
         elif role == "resident":
-            # Out of scope for this endpoint — never leak residents, even if a
-            # stale client (or a hand-rolled request) still asks for them.
             qs = qs.none()
 
         is_active = params.get("is_active")
@@ -152,11 +129,7 @@ class AdminUserViewSet(
 
     @action(detail=True, methods=["post"], url_path="reset-password")
     def reset_password(self, request, pk=None):
-        """Generate a new random password for this account and return it once.
-
-        No email/SMS password-reset flow exists in this system yet, so the
-        admin relays the generated password to the user out-of-band.
-        """
+        """Generate a new random password for this account and return it once."""
         user = self.get_object()
         new_password = secrets.token_urlsafe(9)
         user.set_password(new_password)

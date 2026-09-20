@@ -1,10 +1,4 @@
-"""Susceptibility hazard: authoritative flood-susceptibility hazard map.
-
-Replaces the old dam-proxy + elevation-percentile blend. The value comes
-straight from the ZCDRRMO/DOST/PAGASA (Manila Observatory) hazard
-classification, worst-case (max()) aggregated per barangay across its
-susceptibility zones — see `barangays.services.dominant_susceptibility_by_barangay`.
-"""
+"""Susceptibility hazard: authoritative flood-susceptibility hazard map, max-aggregated per barangay."""
 
 from risk_score.constants import FACTOR_SUSCEPTIBILITY
 

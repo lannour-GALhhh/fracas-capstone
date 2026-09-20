@@ -1,9 +1,4 @@
-"""A recorded run of the hindcast validation harness.
-
-Persisting runs (rather than relying on a Celery result backend) keeps results
-durable and queryable, and lets the admin poll status while the async task
-works through the flood events.
-"""
+"""A recorded run of the hindcast validation harness."""
 
 from django.conf import settings
 from django.db import models

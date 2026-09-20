@@ -1,10 +1,6 @@
 import type { Role } from '@/common/types/Role'
 
-/**
- * The roles this console manages. Residents are deliberately absent: their
- * accounts are personal data with no operational reason to be browsable by
- * staff, and the backend filters them out of `/api/admin/users/` entirely.
- */
+/** Console-managed roles; residents are excluded server-side. */
 export type ConsoleRole = Exclude<Role, 'resident'>
 
 /** One row of GET /api/admin/users/ (mirrors AdminUserSerializer). */

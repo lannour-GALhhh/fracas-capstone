@@ -23,11 +23,7 @@ export const SEVERITY_LABELS: Record<FloodSeverity, string> = {
     major: 'Major',
 }
 
-/**
- * White → red intensity ramp for severity, echoing the risk map's convention
- * (calm near-white → deep red for the worst). Single source of truth for the
- * table badge/dot and the detail header.
- */
+/** White → red severity ramp, echoing the risk map's convention. */
 export const SEVERITY_COLORS: Record<FloodSeverity, string> = {
     minor: '#f2a1a1',
     moderate: '#dd4b4b',

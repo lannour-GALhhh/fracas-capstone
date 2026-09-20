@@ -19,10 +19,7 @@ interface DeleteEventDialogProps {
     onDeleted: (id: number) => void
 }
 
-/**
- * Destructive delete with a two-step confirm. The delete is soft on the server
- * (recoverable for 6 hours), so `onDeleted` surfaces an undo affordance.
- */
+/** Destructive delete with a two-step confirm; server-side delete is soft (6h undo). */
 const DeleteEventDialog = ({ eventId, barangayName, onDeleted }: DeleteEventDialogProps) => {
     const [open, setOpen] = useState(false)
     const [stage, setStage] = useState<1 | 2>(1)

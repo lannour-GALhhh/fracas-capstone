@@ -9,10 +9,7 @@ import ModelPerformanceChart from './components/ModelPerformanceChart'
 import RainfallFloodTimeline from './components/RainfallFloodTimeline'
 import WindowSelector from './components/WindowSelector'
 
-/**
- * Operator analytics: situational KPI strip + hotspot leaderboard beside the
- * rainfall / dam / model panels. One window selector drives every query.
- */
+/** Operator analytics: KPI strip + hotspot leaderboard + rainfall/dam/model panels. */
 const AnalyticsPage = () => {
     const [days, setDays] = useState<AnalyticsWindow>(DEFAULT_WINDOW)
 

@@ -1,8 +1,4 @@
-"""Channel sender contracts.
-
-Senders are dumb: they push one message to one destination and raise SendError
-on failure. Recipient resolution, dedup, and prefs live in the dispatcher.
-"""
+"""Channel sender contracts."""
 
 from typing import Protocol
 

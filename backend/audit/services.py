@@ -16,10 +16,7 @@ def log_change(actor, target, *, action="", field="", old_value="", new_value=""
 
 
 def log_field_diffs(actor, target, before: dict, after: dict):
-    """Write one ConfigChangeLog row per field whose value actually changed.
-
-    `before`/`after` are field->value maps captured around a settings save.
-    """
+    """Write one ConfigChangeLog row per field whose value actually changed."""
     rows = []
     for field, new in after.items():
         old = before.get(field)

@@ -1,12 +1,4 @@
-"""Hotspot leaderboard: barangays ranked by time-spent-in-danger.
-
-The headline operator view. For each barangay in the window we count how many
-15-min scoring cycles landed in `critical`/`high`, and join confirmed flood
-counts + people affected. Ranked by critical cycles (then high, then floods).
-
-Two batch queries (never per-barangay) joined in Python, per the scoring
-context pattern in CLAUDE.md.
-"""
+"""Hotspot leaderboard: barangays ranked by time-spent-in-danger."""
 
 from django.db.models import Count, Q, Sum
 
@@ -19,8 +11,6 @@ from .summary import _confirmed_events
 
 
 def build_hotspots(since, limit=None):
-    # Restrict to danger cycles up front: a barangay that only ever scored
-    # low/medium is not a hotspot and must not surface as a zero-row.
     cycle_rows = (
         RiskScore.objects.filter(
             computed_at__gte=since,
@@ -41,8 +31,6 @@ def build_hotspots(since, limit=None):
     )
     floods_by_brgy = {r["barangay"]: r for r in flood_rows}
 
-    # Only barangays that registered a high/critical cycle or a flood in the
-    # window make the leaderboard — no dumping every quiet barangay as a zero.
     brgy_ids = set(cycles_by_brgy) | set(floods_by_brgy)
     barangays = Barangay.objects.filter(id__in=brgy_ids).values("id", "name")
     susceptibility_by_brgy = dominant_susceptibility_by_barangay()

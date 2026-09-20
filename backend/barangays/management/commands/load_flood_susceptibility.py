@@ -1,19 +1,4 @@
-"""Load flood-susceptibility zones from the authoritative ZCDRRMO/DOST/PAGASA
-(Manila Observatory) hazard-classification shapefile, intersected against
-barangay boundaries.
-
-The shapefile has exactly 5 features — one MultiPolygon per ordinal
-`susc_level` class, covering all disjoint areas of that class citywide (not
-pre-split per barangay). This command intersects each class against every
-barangay boundary, storing one row per non-trivial Barangay x
-SusceptibilityLevel pair (bounded at <=101 barangays x 5 levels = <=505 rows).
-
-Full delete+recreate each run, wrapped in a single transaction — bounded row
-count makes this simpler and safer than diffing.
-
-    python manage.py load_flood_susceptibility
-    python manage.py load_flood_susceptibility --shapefile /path/to/ZAM_FLOOD.shp --simplify-tolerance-m 10
-"""
+"""Load flood-susceptibility zones from the hazard shapefile, intersected against barangay boundaries."""
 
 from pathlib import Path
 
@@ -38,9 +23,7 @@ def _normalize_level(raw: str) -> str | None:
 
 
 def _to_multipolygon(geom):
-    """Coerce an Intersection() result down to a MultiPolygon, or None if
-    nothing polygonal survived (boundary-touching edges intersect as bare
-    points/lines, which GeometryCollection results can carry alongside area)."""
+    """Coerce an Intersection() result down to a MultiPolygon, or None."""
     if geom is None or geom.empty:
         return None
     if geom.geom_type == "MultiPolygon":
@@ -139,10 +122,6 @@ class Command(BaseCommand):
         with transaction.atomic():
             deleted, _ = BarangaySusceptibility.objects.all().delete()
             BarangaySusceptibility.objects.bulk_create(rows)
-            # Overwrite the per-row simplify above with the aggressive display
-            # generalization (dissolve + sliver-drop + grid-snap), so the map
-            # payload is ~4x smaller. Kept in `barangays.geometry` so the
-            # rebuild_hazard_geometry command can re-tune it without a reload.
             rebuilt = rebuild_simplified_geometry()
 
         self.stdout.write(

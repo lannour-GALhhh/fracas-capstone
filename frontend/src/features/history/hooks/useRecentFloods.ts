@@ -11,10 +11,7 @@ const daysAgo = (days: number): string => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/**
- * Recent flood events for one barangay (most recent first). Reuses the list
- * endpoint's barangay + date filters; callers slice to the count they show.
- */
+/** Recent flood events for one barangay, most recent first. */
 export const useRecentFloods = (barangayId: number | undefined, withinDays = 7) => {
     const filters: FloodEventFilters = {
         barangay: barangayId,

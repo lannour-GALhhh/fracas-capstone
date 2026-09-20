@@ -1,9 +1,4 @@
-"""City-wide rainfall trend with actual flood events overlaid.
-
-Answers "is a storm building, and did it flood?" — the core operational story.
-We bucket every barangay's 24h accumulation into a time series (avg + max
-across the city) and return confirmed flood events as markers to overlay.
-"""
+"""City-wide rainfall trend with actual flood events overlaid."""
 
 from django.db.models.functions import Trunc
 
@@ -13,8 +8,7 @@ from rainfall_fetch.models import Rainfall
 
 from .summary import _confirmed_events
 
-# Hourly buckets read well for a week; longer windows switch to daily so the
-# chart stays legible and the GROUP BY stays cheap.
+# Longer windows switch to daily buckets so the chart stays legible.
 HOURLY_MAX_DAYS = 7
 
 

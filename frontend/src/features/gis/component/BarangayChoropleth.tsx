@@ -18,10 +18,7 @@ const OUTLINE = 'barangay-selected'
 const BASE_WASH = 'basemap-wash'
 const NONE_ID = -1
 
-/**
- * A white wash over the basemap so its roads/buildings fade back without
- * darkening the map — keeps the light look while letting the choropleth lead.
- */
+/** Fades basemap roads/buildings without darkening the map. */
 const BASE_WASH_COLOR = '#ffffff'
 const BASE_WASH_OPACITY = 0.5
 
@@ -64,24 +61,15 @@ const BarangayChoropleth = ({
         disabledRef.current = disabled
     }, [disabled])
 
-    // Create source + layers once the style is ready.
     useEffect(() => {
         if (!map || !isLoaded) return
-        // Anchor below the hazard fill when it already exists, so the hazard
-        // zones always stay on top regardless of which of the two independently
-        // loaded layers wins the network race (else the choropleth's white wash
-        // lands on top and washes the susceptibility colours out). When the
-        // hazard layer isn't up yet it anchors to the labels and HazardZoneLayer,
-        // added later, lands on top on its own.
+        // Anchor below the hazard fill if present, so it always stays on top.
         const beforeId = map.getLayer('hazard-zone-fill')
             ? 'hazard-zone-fill'
             : firstSymbolLayerId(map)
 
         map.addSource(SOURCE, { type: 'geojson', data, promoteId: 'id' })
 
-        // Wash the basemap so its roads/buildings recede behind the choropleth.
-        // Sits below the fills (added next) but above every basemap layer, so it
-        // fades the map detail without muddying the risk colours or the labels.
         map.addLayer(
             {
                 id: BASE_WASH,
@@ -94,9 +82,6 @@ const BarangayChoropleth = ({
             beforeId,
         )
 
-        // Thinner than v1: the hazard-zone layer is now the primary hazard
-        // geometry (rendered above this), so the choropleth reads as a lighter
-        // administrative/orientation wash rather than competing for attention.
         map.addLayer(
             {
                 id: FILL,
@@ -155,8 +140,6 @@ const BarangayChoropleth = ({
                 map.setFeatureState({ source: SOURCE, id: hoveredRef.current }, { hover: false })
             hoveredRef.current = id
             if (id != null) map.setFeatureState({ source: SOURCE, id }, { hover: true })
-            // Only fires on an actual change (guarded above), so the tooltip
-            // re-renders per barangay, not per mouse-move pixel.
             onHoverRef.current(id)
         }
         const handleMove = (e: MapLayerMouseEvent) => {
@@ -208,9 +191,7 @@ const BarangayChoropleth = ({
         map.setPaintProperty(DIM, 'fill-opacity', selectedId != null ? 0.5 : 0)
         map.setFilter(OUTLINE, ['==', ['id'], id])
 
-        // Only zoom IN to frame the newly selected barangay. Deliberately no
-        // else-branch zooming back out on unselect — that camera snap read as
-        // janky; the city-wide view is reachable via the explicit reset button.
+        // Only zoom in on select; zooming out on unselect read as janky.
         if (selectedId != null) {
             const box = featureBoundsById(data, selectedId)
             if (box) fitBox(map, box, panelWidth, 800)

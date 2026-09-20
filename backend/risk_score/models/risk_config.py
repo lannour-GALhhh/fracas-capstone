@@ -1,8 +1,4 @@
-"""Tunable risk-scoring configuration (weights + category thresholds).
-
-Kept in the DB so an LGU operator can recalibrate the model via the admin
-without a redeploy. Exactly one row is active at a time.
-"""
+"""Tunable risk-scoring configuration (weights + category thresholds)."""
 
 from django.core.exceptions import ValidationError
 from django.db import models

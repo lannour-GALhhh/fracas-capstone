@@ -1,8 +1,4 @@
-"""Risk-scoring Celery tasks and the ingest -> compute pipeline.
-
-The pipeline lives here (not in an ingestion app) so feature apps stay
-decoupled: risk_score depends on rainfall_fetch, never the reverse.
-"""
+"""Risk-scoring Celery tasks and the ingest -> compute pipeline."""
 
 import logging
 
@@ -113,12 +109,7 @@ def run_validation_task(run_id: int) -> dict:
 
 @shared_task
 def draft_auto_flood_events() -> dict:
-    """Draft unconfirmed flood events for barangays over the auto-detect threshold.
-
-    Reads the just-computed cycle's scores and hands them to flood_events, which
-    owns the drafting rules. One-way dependency (risk_score -> flood_events) so
-    flood_events stays free of risk_score imports.
-    """
+    """Draft unconfirmed flood events for barangays over the auto-detect threshold."""
     from flood_events.services.auto_detect import draft_events
 
     latest = (
@@ -134,12 +125,7 @@ def draft_auto_flood_events() -> dict:
 
 @shared_task
 def run_scoring_pipeline():
-    """Ingest rainfall, then compute scores on the fresh data.
-
-    Sequential chain (no result backend needed); each step feeds the next
-    cycle's inputs. Ingestion failures are swallowed inside their tasks, so
-    the pipeline still reaches compute and degrades gracefully.
-    """
+    """Ingest rainfall, then compute scores on the fresh data."""
     chain(
         fetch_rainfall_information.si(),
         compute_risk_scores.si(),

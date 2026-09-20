@@ -1,14 +1,13 @@
 from django.db import models
 from barangays.models import Barangay
 
-# Create your models here.
+
 class Rainfall(models.Model):
     barangay = models.ForeignKey(Barangay,on_delete=models.CASCADE, related_name="rainfall_readings", null=True, blank=True)
 
     current_rainfall_strength = models.FloatField(default=0)
 
-    # Forecast points at every 15-minute step out to 4 hours, all sourced from
-    # Open-Meteo's minutely_15 series (not mixed with coarser hourly totals).
+    # Forecast points every 15 min out to 4 hours (Open-Meteo minutely_15).
     forecast_strength_15min = models.FloatField(default=0)
     forecast_strength_30min = models.FloatField(default=0)
     forecast_strength_45min = models.FloatField(default=0)
@@ -27,7 +26,6 @@ class Rainfall(models.Model):
     forecast_strength_240min = models.FloatField(default=0)
 
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
-    # Reflects soil saturation, a stronger flood driver than instantaneous rate.
     accumulated_6hr = models.FloatField(default=0)
     accumulated_12hr = models.FloatField(default=0)
     accumulated_24hr = models.FloatField(default=0)

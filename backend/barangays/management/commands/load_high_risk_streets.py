@@ -1,17 +1,4 @@
-"""Load named streets located inside high/very_high flood-susceptibility
-barangays, sourced from OpenStreetMap's Overpass API.
-
-One Overpass query fetches every named `highway` way in Zamboanga City's
-bounding box (with each way's center point, not its full geometry — cheap and
-enough for barangay assignment). Each point is then tested against the
-boundaries of barangays whose dominant susceptibility
-(`barangays.services.dominant_susceptibility_by_barangay`) is high/very_high;
-matches are stored as `Street` rows, deduped by (barangay, name).
-
-Full delete+recreate each run, wrapped in a single transaction.
-
-    python manage.py load_high_risk_streets
-"""
+"""Load named streets inside high/very_high flood-susceptibility barangays, from OSM Overpass."""
 
 import requests
 from django.contrib.gis.geos import Point
@@ -24,9 +11,7 @@ from barangays.services import dominant_susceptibility_by_barangay
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 HIGH_RISK_LEVELS = {"high", "very_high"}
 REQUEST_TIMEOUT_S = 180
-# Overpass's usage policy requires an identifying User-Agent; requests without
-# one (or with the bare python-requests default) get a 406 from its Apache
-# front end regardless of query validity.
+# Overpass requires an identifying User-Agent or it 406s.
 REQUEST_HEADERS = {"User-Agent": "FRACAS-FloodEarlyWarning/1.0 (Zamboanga City; github.com/GetALifehahaha/FRACAS)"}
 
 

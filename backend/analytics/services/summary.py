@@ -1,9 +1,4 @@
-"""KPI summary row for the operator analytics page.
-
-Blends *windowed* flood impact (events / people affected in the look-back) with
-*current* situational state (barangays presently high/critical, latest
-validation recall) into one cheap payload.
-"""
+"""KPI summary row for the operator analytics page."""
 
 from collections import Counter
 
@@ -15,11 +10,7 @@ from risk_score.models import RiskScore, ValidationRun
 
 
 def _confirmed_events(since):
-    """Confirmed, not-soft-deleted flood events since `since`.
-
-    Auto-detected drafts awaiting LGU confirmation and soft-deleted rows are
-    excluded so operator-facing counts never overstate reality.
-    """
+    """Confirmed, not-soft-deleted flood events since `since`."""
     return FloodEvent.objects.filter(
         occurred_at__gte=since, deleted_at__isnull=True, is_confirmed=True
     )

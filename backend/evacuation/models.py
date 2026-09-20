@@ -3,14 +3,11 @@ from django.contrib.gis.db import models
 
 
 class EvacuationCenter(models.Model):
-    """A designated evacuation center. Shipped to the mobile app as GeoJSON so it
-    can compute the nearest center to the resident client-side (no per-user geo
-    work on the backend)."""
+    """A designated evacuation center. Shipped to the mobile app as GeoJSON."""
 
     name = models.CharField(max_length=255)
     location = models.PointField(srid=4326)
-    # Which barangay it sits in (nullable — a center may be unmapped or just outside
-    # a loaded boundary). Kept loose on purpose; the app resolves "nearest" by distance.
+    # Nullable — a center may be unmapped or just outside a loaded boundary.
     barangay = models.ForeignKey(
         "barangays.Barangay",
         on_delete=models.SET_NULL,
@@ -58,8 +55,7 @@ class Evacuation(models.Model):
     opened_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
-    # Frozen at stand-down — the permanent historical record. ``final_roster`` is
-    # the subscriber count (the denominator) at close.
+    # Frozen at stand-down — the permanent historical record.
     final_roster = models.PositiveIntegerField(null=True, blank=True)
     final_safe = models.PositiveIntegerField(null=True, blank=True)
     final_moving = models.PositiveIntegerField(null=True, blank=True)
@@ -82,10 +78,7 @@ class Evacuation(models.Model):
 
 
 class EvacuationStatus(models.Model):
-    """One resident's status within an active evacuation. A row exists *only for
-    subscribers whose app has reported* — never one per subscriber — so the write
-    target stays tiny. ``unaccounted`` is derived on read (roster minus reporters),
-    not stored, so we never fan out a row per resident."""
+    """One resident's status within an active evacuation."""
 
     class Status(models.TextChoices):
         NOTIFIED = "notified", "Notified"
@@ -128,9 +121,6 @@ class EvacuationStatus(models.Model):
                 fields=["evacuation", "user"], name="uniq_evacuation_user"
             )
         ]
-        # Queries are always scoped to a specific (active) evacuation id, so this
-        # composite index gives hot-set performance without a partial index that
-        # would have to reference the parent's status column.
         indexes = [models.Index(fields=["evacuation", "status"])]
 
     def __str__(self):

@@ -1,5 +1,4 @@
-"""Tests for `load_high_risk_streets`. The Overpass HTTP call is mocked
-(offline, deterministic) — see CLAUDE.md conventions for this repo's tests."""
+"""Tests for `load_high_risk_streets`. The Overpass HTTP call is mocked."""
 
 from unittest.mock import patch
 

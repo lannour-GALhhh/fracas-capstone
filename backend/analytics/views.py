@@ -1,10 +1,4 @@
-"""Operator-only, read-only analytics endpoints.
-
-Each view is a thin wrapper: parse the window, serve from a short-TTL cache, and
-delegate the actual aggregation to a `services.*` function. The pipeline only
-writes fresh data every 15 min, so caching per (endpoint, window) for a few
-minutes avoids recomputing heavy history scans on every poll.
-"""
+"""Operator-only, read-only analytics endpoints."""
 
 from django.core.cache import cache
 from rest_framework.response import Response
@@ -20,8 +14,6 @@ from .services import (
 )
 from .services.window import parse_window
 
-# Comfortably shorter than the 15-min pipeline cadence: fresh enough, but the
-# heavy hotspot/timeline scans run at most once per window per few minutes.
 CACHE_TTL = 300
 
 

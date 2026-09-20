@@ -1,8 +1,4 @@
-"""Provider selection by env var — swap SMS/push backends without code changes.
-
-    SMS_PROVIDER=console|twilio|semaphore   (default: console)
-    PUSH_PROVIDER=console|fcm               (default: console)
-"""
+"""Provider selection by env var — swap SMS/push backends without code changes."""
 
 from decouple import config
 

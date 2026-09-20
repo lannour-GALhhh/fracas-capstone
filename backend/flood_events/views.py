@@ -88,11 +88,7 @@ class FloodEventChangesView(ListAPIView):
 
 
 class MyFloodActivityView(ListAPIView):
-    """The signed-in operator's own flood-event actions, newest first.
-
-    Powers the account page's activity feed. Scoped to `request.user`, so an
-    operator only ever sees the changes they made.
-    """
+    """The signed-in operator's own flood-event actions, newest first."""
 
     permission_classes = [IsOperator]
     serializer_class = MyFloodActivitySerializer
@@ -187,11 +183,7 @@ def _parse_dt(raw):
 
 
 class FloodEventReportsView(_OperatorWriteMixin, ListCreateAPIView):
-    """Evidence reports (photos + narrative) for a flood event.
-
-    Reads: any authenticated user. Create: operator — the reporter is the signed-
-    in user, and the report is recorded on the event's audit trail.
-    """
+    """Evidence reports (photos + narrative) for a flood event."""
 
     serializer_class = FloodEventReportSerializer
 

@@ -1,8 +1,4 @@
-"""Phone-number verification via one-time SMS codes.
-
-Sent synchronously (the user is waiting for the code) using the configured
-SMS provider. A short resend cooldown limits abuse.
-"""
+"""Phone-number verification via one-time SMS codes."""
 
 import secrets
 from datetime import timedelta

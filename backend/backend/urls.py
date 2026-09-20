@@ -19,8 +19,7 @@ from django.urls import path, re_path, include
 from users.views import CookieTokenObtainPairView, CookieTokenRefreshView
 
 urlpatterns = [
-    # Mounted off /admin/ so it doesn't collide with the SPA's /admin console
-    # routes (both sit behind the same nginx host).
+    # Mounted off /admin/ so it doesn't collide with the SPA's /admin console.
     path('django-admin/', admin.site.urls),
 
     # CUSTOM AUTH

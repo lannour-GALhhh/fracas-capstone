@@ -12,8 +12,7 @@ const TABS = [
     { key: 'retention', label: 'Retention', Panel: RetentionPanel },
 ] as const
 
-/** Phase 3 admin console: system configuration grouped into tabbed singletons.
- * Each tab is a small form over one `admin/settings/<group>/` endpoint. */
+/** Admin console: system configuration grouped into tabbed singletons. */
 const SettingsPage = () => {
     const [active, setActive] = useState<(typeof TABS)[number]['key']>('organization')
     const ActivePanel = TABS.find((t) => t.key === active)!.Panel

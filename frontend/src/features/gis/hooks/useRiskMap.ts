@@ -27,19 +27,13 @@ const emptyGroups = (): Record<RiskCategory, CategoryGroup> =>
         return acc
     }, {} as Record<RiskCategory, CategoryGroup>)
 
-/**
- * The core dashboard data layer: joins `/barangays/` geometry with the
- * `/risk/snapshot/` by barangay id (the snapshot is NOT GeoJSON) and derives
- * the category summary in a single memoized pass.
- */
+/** Joins `/barangays/` geometry with `/risk/snapshot/` by barangay id. */
 export const useRiskMap = (): RiskMap => {
     const barangays = useBarangays()
     const snapshot = useRiskSnapshot()
     const geo = barangays.data
     const snap = snapshot.data
 
-    // Keyed on the stable query `.data` so the joined collection is only rebuilt
-    // when geometry or the snapshot actually changes (not on every render).
     const derived = useMemo(() => {
         const byId = new Map<number, RiskSnapshotEntry>()
         snap?.barangays.forEach((entry) => byId.set(entry.id, entry))

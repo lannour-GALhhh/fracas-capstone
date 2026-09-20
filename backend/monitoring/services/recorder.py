@@ -1,8 +1,4 @@
-"""Record ingestion outcomes — called by the dam and rainfall tasks.
-
-These helpers must never raise: health tracking observes the pipeline, it must
-not be able to break it. Any error is logged and swallowed.
-"""
+"""Record ingestion outcomes — called by the dam and rainfall tasks."""
 
 import logging
 

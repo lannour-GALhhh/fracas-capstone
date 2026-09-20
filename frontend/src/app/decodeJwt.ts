@@ -1,11 +1,4 @@
-/**
- * Minimal, dependency-free reader for the *payload* of a JWT.
- *
- * The access token is signed and verified server-side; the client only reads
- * its claims (e.g. `role`) to drive UI gating, never to make a trust decision —
- * the API stays the real gate. Returns `null` for anything that isn't a
- * well-formed token so callers can treat it as "no claims".
- */
+/** Minimal, dependency-free reader for the *payload* of a JWT (UI gating only, never trust). */
 import type { Role } from '@/common/types/Role'
 
 /** Alias of the canonical {@link Role} for token-facing call sites. */

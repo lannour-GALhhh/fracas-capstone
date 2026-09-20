@@ -33,11 +33,7 @@ class OrganizationSettingsSerializer(SingletonSerializer):
 
 
 class PublicConfigSerializer(serializers.Serializer):
-    """Read-only branding + banner surfaced to every client (no auth).
-
-    One source of truth for the console header and the system-wide announcement
-    banner, so web and mobile render the same org identity.
-    """
+    """Read-only branding + banner surfaced to every client (no auth)."""
 
     def to_representation(self, instance):
         org = OrganizationSettings.cached()

@@ -4,11 +4,7 @@ interface Props {
     className?: string
 }
 
-/**
- * Bare siren glyph ringed by a pulsing halo — for inline use (buttons, panel
- * rows) where a solid badge would be too heavy. Red + `animate-ping`, the
- * same pattern as `EvacuationPingBadge`.
- */
+/** Pulsing siren glyph for inline use (buttons, panel rows). */
 export const EvacuationPingIcon = ({ className = 'size-4' }: Props) => (
     <span className='relative inline-flex items-center justify-center'>
         <span className='bg-destructive/40 absolute inline-flex size-full animate-ping rounded-full' />
@@ -16,10 +12,7 @@ export const EvacuationPingIcon = ({ className = 'size-4' }: Props) => (
     </span>
 )
 
-/**
- * Solid red badge version — for map markers, where the pulse needs to read
- * clearly against arbitrary basemap colors underneath it.
- */
+/** Solid pulsing badge version for map markers. */
 export const EvacuationPingBadge = ({ className = 'size-7' }: Props) => (
     <span className='relative inline-flex items-center justify-center'>
         <span className='bg-destructive/40 absolute inline-flex h-full w-full animate-ping rounded-full' />

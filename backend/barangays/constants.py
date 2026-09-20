@@ -9,9 +9,7 @@ class SusceptibilityLevel(models.TextChoices):
     VERY_HIGH = "very_high", "Very High"
 
 
-# Even 0-1 mapping, keyed by the shapefile's categorical `susc_level` label (not
-# its numeric `Flood` field, kept only as `source_flood_value` for traceability —
-# deriving from the numeric field would silently break if authorities re-code it).
+# Keyed by the categorical `susc_level` label, not the numeric `Flood` field.
 SUSCEPTIBILITY_VALUES = {
     SusceptibilityLevel.VERY_LOW: 0.2,
     SusceptibilityLevel.LOW: 0.4,

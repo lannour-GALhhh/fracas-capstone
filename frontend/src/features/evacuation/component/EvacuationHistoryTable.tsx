@@ -52,10 +52,7 @@ const toDay = (date: Date): string => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-/**
- * Frozen counts as a bar plus an "n of m" readout. Counts are null on a record
- * closed without a freeze, which must read as "not recorded" rather than zero.
- */
+/** Frozen counts as a bar plus an "n of m" readout; null renders as not recorded. */
 const OutcomeCell = ({ evac }: { evac: EvacuationHistoryEntry }) => {
     const { final_roster: roster, final_safe: safe } = evac
     if (roster == null || safe == null) {
@@ -78,11 +75,7 @@ const OutcomeCell = ({ evac }: { evac: EvacuationHistoryEntry }) => {
     )
 }
 
-/**
- * The archive of closed evacuations: when each one ran, what triggered it,
- * who declared it, and the roster outcome frozen when it was marked safe. Filterable by
- * barangay, trigger, and the date the evacuation closed.
- */
+/** Archive of closed evacuations, filterable by barangay/trigger/close date. */
 const EvacuationHistoryTable = () => {
     const [page, setPage] = useState(1)
     const [barangayId, setBarangayId] = useState<number | undefined>()

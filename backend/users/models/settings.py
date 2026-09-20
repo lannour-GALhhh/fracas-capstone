@@ -1,8 +1,4 @@
-"""Admin-editable registration & account policy (cached singleton).
-
-Re-points the self-registration gate and the OTP time-to-live. Defaults match
-today's constants so behavior is unchanged until an admin edits it.
-"""
+"""Admin-editable registration & account policy (cached singleton)."""
 
 from datetime import timedelta
 

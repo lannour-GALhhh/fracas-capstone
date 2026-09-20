@@ -43,8 +43,7 @@ export const featureBoundsById = (
     return feature ? geometryBounds(feature.geometry) : null
 }
 
-/** Fits the map to `box`, padded on the right for the side panel. Shared
- * between the auto-fit-on-select behaviour and the manual "zoom to city" button. */
+/** Fits the map to `box`, padded on the right for the side panel. */
 export const fitBox = (
     map: MapLibreMap,
     box: BBox,

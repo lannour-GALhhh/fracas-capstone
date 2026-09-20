@@ -6,11 +6,7 @@ import ErrorState from '@/common/components/ErrorState'
 import { useActiveEvacuations } from '../hooks/useActiveEvacuations'
 import EvacuationCard from './EvacuationCard'
 
-/**
- * Live cards for every open evacuation: roster progress (evacuated / moving /
- * unaccounted of the subscriber roster). Reads the one shared cached aggregate
- * the GIS ping badges use — aggregate counts only, never per-resident rows.
- */
+/** Live cards for every open evacuation's roster progress. */
 const ActiveEvacuationsList = () => {
     const { data, isLoading, isError, refetch } = useActiveEvacuations()
     const evacuations = data ?? []

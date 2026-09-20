@@ -1,5 +1,4 @@
-/** Admin Settings groups. Each maps to one `admin/settings/<group>/` singleton
- * endpoint (mirrors the backend SingletonSerializer for that group). */
+/** Admin settings groups, each mapped to one singleton endpoint. */
 
 export type SettingsGroup =
     | 'retention'

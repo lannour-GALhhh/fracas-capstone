@@ -22,8 +22,7 @@ class NormalizationTests(SimpleTestCase):
         self.assertAlmostEqual(piecewise_linear(5, pts), 0.5)
 
     def test_normalize_rainfall_pagasa_bands(self):
-        # Default curve: steep low end so drizzle barely registers, full hazard
-        # at torrential (65 mm/hr). See DEFAULT_RAINFALL_CURVE.
+        # See DEFAULT_RAINFALL_CURVE.
         self.assertEqual(normalize_rainfall(0), 0.0)
         self.assertAlmostEqual(normalize_rainfall(7.5), 0.25)
         self.assertAlmostEqual(normalize_rainfall(15), 0.55)

@@ -58,11 +58,7 @@ def freeze_final_counts(evac: Evacuation) -> None:
 
 
 def stand_down(evac: Evacuation, *, actor=None) -> Evacuation:
-    """Close an active evacuation: freeze counts, mark stood-down, audit it.
-
-    ``actor`` is the operator for a manual stand-down, ``None`` when the
-    pipeline closes it automatically (recorded as a system action).
-    """
+    """Close an active evacuation: freeze counts, mark stood-down, audit it."""
     freeze_final_counts(evac)
     evac.status = Evacuation.Status.STOOD_DOWN
     evac.closed_at = timezone.now()
@@ -76,11 +72,7 @@ def stand_down(evac: Evacuation, *, actor=None) -> Evacuation:
 
 
 def open_automated(barangay) -> Evacuation | None:
-    """Open an automated evacuation for a barangay, firing the push once.
-
-    Returns the row only when it was newly created (so callers can count opens);
-    the unique active-per-barangay constraint makes this a no-op if one is open.
-    """
+    """Open an automated evacuation for a barangay, firing the push once."""
     evac, created = Evacuation.objects.get_or_create(
         barangay=barangay,
         status=Evacuation.Status.ACTIVE,

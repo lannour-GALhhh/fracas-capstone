@@ -8,15 +8,10 @@ import {
     type LucideIcon,
 } from 'lucide-react'
 
-/**
- * PAGASA rainfall-intensity bands (mm/hr). Mirrors the breakpoints seeded
- * into `DEFAULT_RAINFALL_CURVE` on the backend (backend/risk_score/constants.py) —
- * light <2.5, moderate 2.5–7.5, heavy 7.5–15, intense 15–30, torrential >30.
- */
+/** PAGASA rainfall-intensity bands (mm/hr); mirrors backend/risk_score/constants.py. */
 export type RainfallTier = 'none' | 'light' | 'moderate' | 'heavy' | 'intense' | 'torrential'
 
-/** Most-severe last — for consistency with `CATEGORY_ORDER`'s most-severe-first,
- * consumers that need severity-first order should call `.slice().reverse()`. */
+/** Most-severe last; reverse for severity-first order. */
 export const RAINFALL_TIER_ORDER: RainfallTier[] = [
     'none',
     'light',
@@ -53,9 +48,7 @@ const TIER_UPPER_BOUNDS: [RainfallTier, number][] = [
     ['intense', 30],
 ]
 
-/** Floor for a rainfall chart's y-axis, mm/hr — keeps sub-drizzle noise (e.g.
- * 0 vs 0.1) from filling the whole chart height when nothing is really
- * happening; real rain above this scales normally. */
+/** Floor for a rainfall chart's y-axis, mm/hr; keeps sub-drizzle noise flat. */
 export const RAINFALL_CHART_FLOOR_MM_HR = TIER_UPPER_BOUNDS[0][1]
 
 /** Classifies a mm/hr reading into a PAGASA rainfall-intensity tier. */
@@ -74,14 +67,7 @@ export interface RainfallStrengthIndicator {
     at: number
 }
 
-/**
- * The one tier-boundary line to draw on a rainfall chart, given the highest
- * reading in view: the ceiling of whichever tier that reading falls into, so
- * crossing a ceiling promotes the indicator to the next tier up. Below the
- * lightest ceiling, `light`'s own ceiling is shown as the baseline. Torrential
- * has no ceiling of its own, so it reuses intense's (30mm/hr) as the point
- * where the reading crossed into it.
- */
+/** The tier-boundary line to draw given the highest reading in view. */
 export const rainfallStrengthIndicator = (maxMmPerHour: number): RainfallStrengthIndicator => {
     const tier = rainfallTier(maxMmPerHour)
     const ceiling = TIER_UPPER_BOUNDS.find(([t]) => t === tier)

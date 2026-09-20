@@ -12,11 +12,7 @@ export const DEFAULT_WINDOW: AnalyticsWindow = 30
 /** All panels refetch on this cadence (matches the dashboard's poll). */
 export const REFRESH_MS = 60_000
 
-/**
- * Rainfall is its own measure (not a risk category), so it gets a single
- * distinct blue hue — kept away from the reserved white→red risk ramp
- * (`RISK_COLORS`) that every category chip/map fill uses.
- */
+/** Rainfall gets its own blue hue, kept off the white→red risk ramp. */
 export const RAINFALL_COLOR = '#2563eb'
 
 /** Flood-event marker colour by severity (amber → red status ramp). */

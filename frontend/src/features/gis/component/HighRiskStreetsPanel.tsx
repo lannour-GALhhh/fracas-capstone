@@ -8,12 +8,7 @@ interface HighRiskStreetsPanelProps {
     barangayId: number
 }
 
-/**
- * Floating companion to `BarangayPanel`, docked directly to its left —
- * `right` mirrors that panel's own `w-1/4 min-w-80` so the two line up
- * regardless of viewport width. Fixed at a fifth of viewport height per
- * design: this is a quick-glance list, not another data-dense breakdown.
- */
+/** Floating companion to `BarangayPanel`, docked to its left. */
 const HighRiskStreetsPanel = ({ barangayId }: HighRiskStreetsPanelProps) => {
     const { data: streets, isLoading, isError, refetch } = useBarangayHighRiskStreets(barangayId)
     const level = streets?.[0]?.susceptibility_level

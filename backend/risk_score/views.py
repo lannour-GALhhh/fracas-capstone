@@ -32,12 +32,7 @@ class RiskZonesSnapshotView(APIView):
 
 
 class LocalizedRiskView(APIView):
-    """Pinpoint flood risk for a lat/lng (mobile).
-
-    Resolves the resident's exact susceptibility zone by point-in-polygon and
-    returns that zone's localized score, alongside the containing barangay's
-    per-zone scores and headline average.
-    """
+    """Pinpoint flood risk for a lat/lng (mobile)."""
 
     def get(self, request):
         from django.contrib.gis.geos import Point
@@ -96,11 +91,7 @@ class BarangayRiskView(RetrieveAPIView):
 
 
 class RiskConfigViewSet(ModelViewSet):
-    """Admin-only CRUD over scoring configs, plus an activate action.
-
-    No destroy — history of past configs stays around since `RiskScore.config`
-    references them (audit trail of which config produced a given score).
-    """
+    """Admin-only CRUD over scoring configs, plus an activate action."""
 
     queryset = RiskConfig.objects.all()
     serializer_class = RiskConfigSerializer

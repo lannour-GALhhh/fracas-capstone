@@ -33,11 +33,7 @@ const HazardBadge = ({ category }: { category: BarangayRiskProperties['category'
     )
 }
 
-/**
- * A byte-sized readout anchored to a barangay: name and hazard level.
- * Rendered on hover, and pinned (kept anchored, with a close button) when
- * the barangay is selected.
- */
+/** A small readout anchored to a barangay: name and hazard level. */
 const BarangayTooltip = ({ data, id, lngLat, pinned = false, onClose }: Props) => {
     const p = propsById(data, id)
     if (!p) return null

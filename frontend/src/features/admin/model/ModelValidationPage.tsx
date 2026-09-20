@@ -2,8 +2,7 @@ import { Button } from '@/common/ui/button'
 import { useCreateValidationRun } from '../hooks/useModelMutations'
 import ValidationRunsTable from './components/ValidationRunsTable'
 
-/** Phase 2 admin console: trigger hindcast validation runs against the active
- * config and browse recall/hits/mean-score history. */
+/** Admin console: trigger hindcast validation runs and browse their history. */
 const ModelValidationPage = () => {
     const createRun = useCreateValidationRun()
 

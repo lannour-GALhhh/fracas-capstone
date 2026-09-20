@@ -1,29 +1,16 @@
-"""Monitoring constants: ingestion source names and staleness thresholds.
-
-The thresholds are shared by two consumers:
-  - the readiness/status health checks (is a source still fresh?), and
-  - the scoring engine, which treats a reading older than its threshold as
-    missing so a stale input degrades the score instead of silently emitting a
-    false-low "everything is calm".
-"""
+"""Monitoring constants: ingestion source names and staleness thresholds."""
 
 from datetime import timedelta
 
 SOURCE_RAINFALL = "rainfall"
 INGESTION_SOURCES = (SOURCE_RAINFALL,)
 
-# A reading older than this is treated as stale. Rainfall is re-fetched every
-# 15-min cycle.
+# A reading older than this is treated as stale.
 STALE_AFTER = {
     SOURCE_RAINFALL: timedelta(hours=1),
 }
 
-# Retention windows for high-volume time series (pruned by the daily cleanup
-# task). RiskScore is kept longer because it feeds flood history / validation.
+# Retention windows for high-volume time series, pruned by the daily cleanup task.
 RAINFALL_RETENTION_DAYS = 30
 RISK_SCORE_RETENTION_DAYS = 90
-
-# Per-resident EvacuationStatus rows are the ephemeral working set of an
-# evacuation; once it stands down the Evacuation row carries the frozen final
-# counts, so the per-user rows can be purged a short grace period later.
 EVACUATION_STATUS_RETENTION_DAYS = 7

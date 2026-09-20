@@ -10,8 +10,7 @@ from .models import Evacuation, EvacuationCenter, EvacuationStatus
 class EvacuationCenterSerializer(GeoFeatureModelSerializer):
     """GeoJSON read representation (also what the mobile app downloads)."""
 
-    # Method field (not source="barangay.name") so a null barangay serializes as
-    # None instead of raising SkipField inside rest_framework_gis' get_properties.
+    # Method field so a null barangay serializes as None, not SkipField.
     barangay_name = serializers.SerializerMethodField()
 
     def get_barangay_name(self, obj):
@@ -26,11 +25,7 @@ class EvacuationCenterSerializer(GeoFeatureModelSerializer):
 
 
 class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
-    """Operator write form: plain lat/lng in, GeoJSON Feature back out.
-
-    Accepting flat coordinates keeps the in-map editor simple; the barangay is
-    resolved by point-in-polygon when the operator doesn't set it explicitly.
-    """
+    """Operator write form: plain lat/lng in, GeoJSON Feature back out."""
 
     latitude = serializers.FloatField(write_only=True)
     longitude = serializers.FloatField(write_only=True)
@@ -61,11 +56,7 @@ class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
 
 
 class EvacuationReportSerializer(serializers.Serializer):
-    """Validates one device's status transition report.
-
-    The device targets the active evacuation either by id or by its barangay;
-    everything else describes the resident's own computed status.
-    """
+    """Validates one device's status transition report."""
 
     evacuation_id = serializers.IntegerField(required=False)
     barangay_id = serializers.IntegerField(required=False)
@@ -114,14 +105,7 @@ class PingEvacuationSerializer(serializers.Serializer):
 
 
 class EvacuationHistorySerializer(serializers.ModelSerializer):
-    """One closed evacuation, answered from the row alone.
-
-    Reads only the counts frozen at stand-down — never the per-resident
-    ``EvacuationStatus`` rows, which retention purges once an evacuation is old
-    enough. Counts are therefore nullable: a row closed before freezing (or one
-    whose barangay had no roster) reports ``null``, which the console renders as
-    "not recorded" rather than a misleading zero.
-    """
+    """One closed evacuation, answered from the row alone."""
 
     barangay = serializers.SerializerMethodField()
     triggered_by_name = serializers.SerializerMethodField()

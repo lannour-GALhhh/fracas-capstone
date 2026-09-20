@@ -7,9 +7,7 @@ import AdminRoute from './AdminRoute'
 import Login from '@/features/auth/Login'
 import RouteFallback from '@/common/components/RouteFallback'
 
-// Heavy, route-only screens are code-split so their bundles (MapLibre on the
-// dashboard, Recharts on history) load on navigation instead of up front.
-// Login + the small guard/layout wrappers stay eager for a fast first paint.
+// Heavy route screens are code-split; login + guard/layout wrappers stay eager.
 const Dashboard = lazy(() => import('@/features/gis/Dashboard'))
 const FloodHistory = lazy(() => import('@/features/history/component/FloodHistory'))
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))

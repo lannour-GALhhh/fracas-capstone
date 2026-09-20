@@ -1,9 +1,4 @@
-"""Anonymous, phone-first resident registration API (mobile app).
-
-Three phases (see ``services/registration.py``): start → verify → set-password.
-All ``AllowAny`` and anon-throttled; abuse is bounded by the OTP resend cooldown
-and by refusing phone numbers that already have an active account.
-"""
+"""Anonymous, phone-first resident registration API (mobile app)."""
 
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -84,8 +79,7 @@ class RegisterSetPasswordView(_AnonView):
         except registration.RegistrationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Land the app logged in: return access + refresh in the body (the mobile
-        # client stores the refresh token in expo-secure-store).
+        # Land the app logged in: return access + refresh in the body.
         refresh = RoleTokenObtainPairSerializer.get_token(user)
         return Response(
             {"access": str(refresh.access_token), "refresh": str(refresh)},
