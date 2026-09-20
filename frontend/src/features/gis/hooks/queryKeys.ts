@@ -4,6 +4,8 @@ export const gisKeys = {
     snapshot: ['gis', 'risk', 'snapshot'] as const,
     barangayRisk: (id: number) => ['gis', 'risk', 'barangay', id] as const,
     barangayHighRiskStreets: (id: number) => ['gis', 'high-risk-streets', 'barangay', id] as const,
+    rainfallHistory: (id: number, days: number, granularity: 'hour' | 'day' = 'hour') =>
+        ['gis', 'rainfall', 'history', id, days, granularity] as const,
     hazardZones: ['gis', 'hazard-zones'] as const,
     hazardZonesDetailed: ['gis', 'hazard-zones', 'detailed'] as const,
     zoneRisk: ['gis', 'risk', 'zones'] as const,

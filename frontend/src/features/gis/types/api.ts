@@ -100,6 +100,14 @@ export interface HighRiskStreet {
     susceptibility_level: SusceptibilityLevel
 }
 
+/** One bucket's rainfall record from GET /api/rainfall/history/?barangay=<id>. */
+export interface RainfallHistoryPoint {
+    /** ISO datetime (hour granularity) or date-only string (day granularity). */
+    recorded_at: string
+    peak_mm_hr: number
+    accumulated_mm: number
+}
+
 /** One entry from GET /api/risk/zones/snapshot/ — a barangay×level's computed risk. */
 export interface ZoneRiskEntry {
     barangay_id: number
