@@ -25,10 +25,10 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from '@/common/ui/chart'
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
-import { RAINFALL_CHART_FLOOR_MM_HR } from '../constants/rainfall'
+import { RAINFALL_CHART_FLOOR_MM_HR, rainfallStrengthIndicator } from '../constants/rainfall'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
@@ -246,6 +246,20 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
         { name: atOffset(240), rainfall: data.rainfall_forecast_240min },
     ].filter((d) => d.rainfall != null)
 
+    // The current reading's x-axis label — used to pick it out as "now" on
+    // the chart, since it's always the first (0-minute-offset) point.
+    const nowLabel = data.current_rainfall != null ? atOffset(0) : undefined
+
+    // The single highest tier reached by this forecast — see rainfallStrengthIndicator.
+    const maxRainfall = chartData.reduce((max, d) => Math.max(max, d.rainfall ?? 0), 0)
+    const indicator = rainfallStrengthIndicator(maxRainfall)
+
+    const RainfallDot = ({ cx, cy, payload }: DotItemDotProps) => {
+        if (cx == null || cy == null) return null
+        const isNow = payload?.name === nowLabel
+        return <circle cx={cx} cy={cy} r={isNow ? 3.5 : 2.7} fill={isNow ? 'var(--color-foreground)' : 'var(--color-rainfall)'} />
+    }
+
     return (
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
@@ -255,15 +269,38 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
                     <ChartContainer config={chartConfig}>
-                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 12 }}>
+                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 56 }}>
                             <CartesianGrid vertical={false} />
-                            <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
+                            <XAxis
+                                dataKey='name'
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tickFormatter={(value: string) => (value === nowLabel ? 'NOW' : value)}
+                            />
                             {/* Floor the range at the "light rain" threshold so a jump
                                 between e.g. 0 and 0.1 mm/hr — both really "no rain" —
-                                doesn't fill the whole chart height. */}
+                                doesn't fill the whole chart height. Also floored/ceilinged
+                                to keep the tier-boundary reference line below in view. */}
                             <YAxis
-                                domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR)]}
-                                hide
+                                domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR, indicator.at)]}
+                                tickLine={false}
+                                axisLine={false}
+                                width={32}
+                                tickFormatter={(v: number) => `${v}`}
+                            />
+                            {/* Only the highest tier the forecast actually reaches gets a
+                                line — see rainfallStrengthIndicator. */}
+                            <ReferenceLine
+                                y={indicator.at}
+                                stroke='var(--color-muted-foreground)'
+                                strokeDasharray='4 4'
+                                label={{
+                                    value: indicator.tier[0].toUpperCase() + indicator.tier.slice(1),
+                                    position: 'right',
+                                    fontSize: 10,
+                                    fill: 'var(--color-muted-foreground)',
+                                }}
                             />
                             <ChartTooltip
                                 cursor={false}
@@ -285,8 +322,8 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                 type='natural'
                                 stroke='var(--color-rainfall)'
                                 strokeWidth={2}
-                                dot={{ fill: 'var(--color-rainfall)' }}
-                                activeDot={{ r: 6 }}
+                                dot={RainfallDot}
+                                activeDot={{ r: 5.4 }}
                             />
                         </LineChart>
                     </ChartContainer>
