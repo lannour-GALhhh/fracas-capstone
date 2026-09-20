@@ -25,10 +25,10 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from '@/common/ui/chart'
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
-import { RAINFALL_CHART_FLOOR_MM_HR } from '../constants/rainfall'
+import { RAINFALL_CHART_FLOOR_MM_HR, rainfallStrengthIndicator } from '../constants/rainfall'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
@@ -131,14 +131,22 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 
 const Conditions = ({ data }: { data: BarangayRisk }) => {
     const forecasts = [
+        data.rainfall_forecast_15min,
         data.rainfall_forecast_30min,
-        data.rainfall_forecast_1hr,
+        data.rainfall_forecast_45min,
+        data.rainfall_forecast_60min,
+        data.rainfall_forecast_75min,
         data.rainfall_forecast_90min,
-        data.rainfall_forecast_2hr,
+        data.rainfall_forecast_105min,
+        data.rainfall_forecast_120min,
+        data.rainfall_forecast_135min,
         data.rainfall_forecast_150min,
-        data.rainfall_forecast_3hr,
+        data.rainfall_forecast_165min,
+        data.rainfall_forecast_180min,
+        data.rainfall_forecast_195min,
         data.rainfall_forecast_210min,
-        data.rainfall_forecast_4hr,
+        data.rainfall_forecast_225min,
+        data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
     const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
@@ -213,39 +221,86 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 }
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
-    const now = new Date()
-    const atOffset = (minutes: number) => format(new Date(now.getTime() + minutes * 60_000), 'h:mm a')
+    // Anchor the timeline to when the backend fetched this reading, not the
+    // viewer's clock — keeps the chart correct regardless of client tz/drift.
+    const recordedAt = data.recorded_at ? new Date(data.recorded_at) : new Date()
+    const atOffset = (minutes: number) => format(new Date(recordedAt.getTime() + minutes * 60_000), 'h:mm a')
 
     const chartData = [
         { name: atOffset(0), rainfall: data.current_rainfall },
+        { name: atOffset(15), rainfall: data.rainfall_forecast_15min },
         { name: atOffset(30), rainfall: data.rainfall_forecast_30min },
-        { name: atOffset(60), rainfall: data.rainfall_forecast_1hr },
+        { name: atOffset(45), rainfall: data.rainfall_forecast_45min },
+        { name: atOffset(60), rainfall: data.rainfall_forecast_60min },
+        { name: atOffset(75), rainfall: data.rainfall_forecast_75min },
         { name: atOffset(90), rainfall: data.rainfall_forecast_90min },
-        { name: atOffset(120), rainfall: data.rainfall_forecast_2hr },
+        { name: atOffset(105), rainfall: data.rainfall_forecast_105min },
+        { name: atOffset(120), rainfall: data.rainfall_forecast_120min },
+        { name: atOffset(135), rainfall: data.rainfall_forecast_135min },
         { name: atOffset(150), rainfall: data.rainfall_forecast_150min },
-        { name: atOffset(180), rainfall: data.rainfall_forecast_3hr },
+        { name: atOffset(165), rainfall: data.rainfall_forecast_165min },
+        { name: atOffset(180), rainfall: data.rainfall_forecast_180min },
+        { name: atOffset(195), rainfall: data.rainfall_forecast_195min },
         { name: atOffset(210), rainfall: data.rainfall_forecast_210min },
-        { name: atOffset(240), rainfall: data.rainfall_forecast_4hr },
+        { name: atOffset(225), rainfall: data.rainfall_forecast_225min },
+        { name: atOffset(240), rainfall: data.rainfall_forecast_240min },
     ].filter((d) => d.rainfall != null)
+
+    // The current reading's x-axis label — used to pick it out as "now" on
+    // the chart, since it's always the first (0-minute-offset) point.
+    const nowLabel = data.current_rainfall != null ? atOffset(0) : undefined
+
+    // The single highest tier reached by this forecast — see rainfallStrengthIndicator.
+    const maxRainfall = chartData.reduce((max, d) => Math.max(max, d.rainfall ?? 0), 0)
+    const indicator = rainfallStrengthIndicator(maxRainfall)
+
+    const RainfallDot = ({ cx, cy, payload }: DotItemDotProps) => {
+        if (cx == null || cy == null) return null
+        const isNow = payload?.name === nowLabel
+        return <circle cx={cx} cy={cy} r={isNow ? 3.5 : 2.7} fill={isNow ? 'var(--color-foreground)' : 'var(--color-rainfall)'} />
+    }
 
     return (
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
                 <Label>Rainfall forecast</Label>
-                <span className='text-muted-foreground text-xs'>{format(now, 'MMMM d, yyyy, EEEE')}</span>
+                <span className='text-muted-foreground text-xs'>{format(recordedAt, 'MMMM d, yyyy, EEEE')}</span>
             </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
                     <ChartContainer config={chartConfig}>
-                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 12 }}>
+                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 56 }}>
                             <CartesianGrid vertical={false} />
-                            <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
+                            <XAxis
+                                dataKey='name'
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tickFormatter={(value: string) => (value === nowLabel ? 'NOW' : value)}
+                            />
                             {/* Floor the range at the "light rain" threshold so a jump
                                 between e.g. 0 and 0.1 mm/hr — both really "no rain" —
-                                doesn't fill the whole chart height. */}
+                                doesn't fill the whole chart height. Also floored/ceilinged
+                                to keep the tier-boundary reference line below in view. */}
                             <YAxis
-                                domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR)]}
-                                hide
+                                domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR, indicator.at)]}
+                                tickLine={false}
+                                axisLine={false}
+                                width={32}
+                                tickFormatter={(v: number) => `${v}`}
+                            />
+                            {/* Only the highest tier the forecast actually reaches gets a
+                                line — see rainfallStrengthIndicator. */}
+                            <ReferenceLine
+                                y={indicator.at}
+                                stroke='var(--color-muted-foreground)'
+                                strokeDasharray='4 4'
+                                label={{
+                                    value: indicator.tier[0].toUpperCase() + indicator.tier.slice(1),
+                                    position: 'right',
+                                    fontSize: 10,
+                                    fill: 'var(--color-muted-foreground)',
+                                }}
                             />
                             <ChartTooltip
                                 cursor={false}
@@ -267,8 +322,8 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                 type='natural'
                                 stroke='var(--color-rainfall)'
                                 strokeWidth={2}
-                                dot={{ fill: 'var(--color-rainfall)' }}
-                                activeDot={{ r: 6 }}
+                                dot={RainfallDot}
+                                activeDot={{ r: 5.4 }}
                             />
                         </LineChart>
                     </ChartContainer>

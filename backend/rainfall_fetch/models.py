@@ -6,14 +6,25 @@ class Rainfall(models.Model):
     barangay = models.ForeignKey(Barangay,on_delete=models.CASCADE, related_name="rainfall_readings", null=True, blank=True)
 
     current_rainfall_strength = models.FloatField(default=0)
+
+    # Forecast points at every 15-minute step out to 4 hours, all sourced from
+    # Open-Meteo's minutely_15 series (not mixed with coarser hourly totals).
+    forecast_strength_15min = models.FloatField(default=0)
     forecast_strength_30min = models.FloatField(default=0)
-    forecast_strength_1hr = models.FloatField(default=0)
+    forecast_strength_45min = models.FloatField(default=0)
+    forecast_strength_60min = models.FloatField(default=0)
+    forecast_strength_75min = models.FloatField(default=0)
     forecast_strength_90min = models.FloatField(default=0)
-    forecast_strength_2hr = models.FloatField(default=0)
+    forecast_strength_105min = models.FloatField(default=0)
+    forecast_strength_120min = models.FloatField(default=0)
+    forecast_strength_135min = models.FloatField(default=0)
     forecast_strength_150min = models.FloatField(default=0)
-    forecast_strength_3hr = models.FloatField(default=0)
+    forecast_strength_165min = models.FloatField(default=0)
+    forecast_strength_180min = models.FloatField(default=0)
+    forecast_strength_195min = models.FloatField(default=0)
     forecast_strength_210min = models.FloatField(default=0)
-    forecast_strength_4hr = models.FloatField(default=0)
+    forecast_strength_225min = models.FloatField(default=0)
+    forecast_strength_240min = models.FloatField(default=0)
 
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
     # Reflects soil saturation, a stronger flood driver than instantaneous rate.

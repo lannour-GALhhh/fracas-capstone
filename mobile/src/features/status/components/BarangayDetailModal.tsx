@@ -93,10 +93,22 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 const Conditions = ({ data }: { data: BarangayRisk }) => {
     const roc = data.rainfall_rate_change
     const forecasts = [
-        data.rainfall_forecast_1hr,
-        data.rainfall_forecast_2hr,
-        data.rainfall_forecast_3hr,
-        data.rainfall_forecast_4hr,
+        data.rainfall_forecast_15min,
+        data.rainfall_forecast_30min,
+        data.rainfall_forecast_45min,
+        data.rainfall_forecast_60min,
+        data.rainfall_forecast_75min,
+        data.rainfall_forecast_90min,
+        data.rainfall_forecast_105min,
+        data.rainfall_forecast_120min,
+        data.rainfall_forecast_135min,
+        data.rainfall_forecast_150min,
+        data.rainfall_forecast_165min,
+        data.rainfall_forecast_180min,
+        data.rainfall_forecast_195min,
+        data.rainfall_forecast_210min,
+        data.rainfall_forecast_225min,
+        data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
 

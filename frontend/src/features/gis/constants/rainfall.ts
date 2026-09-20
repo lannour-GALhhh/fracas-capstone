@@ -66,3 +66,26 @@ export const rainfallTier = (mmPerHour: number | null | undefined): RainfallTier
     }
     return 'torrential'
 }
+
+/** A single tier-ceiling reference line for a rainfall chart. */
+export interface RainfallStrengthIndicator {
+    tier: RainfallTier
+    /** mm/hr value to draw the line at. */
+    at: number
+}
+
+/**
+ * The one tier-boundary line to draw on a rainfall chart, given the highest
+ * reading in view: the ceiling of whichever tier that reading falls into, so
+ * crossing a ceiling promotes the indicator to the next tier up. Below the
+ * lightest ceiling, `light`'s own ceiling is shown as the baseline. Torrential
+ * has no ceiling of its own, so it reuses intense's (30mm/hr) as the point
+ * where the reading crossed into it.
+ */
+export const rainfallStrengthIndicator = (maxMmPerHour: number): RainfallStrengthIndicator => {
+    const tier = rainfallTier(maxMmPerHour)
+    const ceiling = TIER_UPPER_BOUNDS.find(([t]) => t === tier)
+    if (ceiling) return { tier, at: ceiling[1] }
+    if (tier === 'torrential') return { tier, at: TIER_UPPER_BOUNDS[TIER_UPPER_BOUNDS.length - 1][1] }
+    return { tier: 'light', at: TIER_UPPER_BOUNDS[0][1] }
+}
