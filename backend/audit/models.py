@@ -56,7 +56,7 @@ class SingletonModel(models.Model):
 class ConfigChangeLog(models.Model):
     """Append-only audit of config/settings/ops changes lacking a domain log.
 
-    `target` is a human label for the touched surface (e.g. "Alerting Policy",
+    `target` is a human label for the touched surface (e.g. "Retention Policy",
     "risk-config #4"); `field`/`old_value`/`new_value` are blank for whole-object
     actions like a manual pipeline run.
     """

@@ -10,14 +10,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from alert.senders import SendError
-
 from .registration_serializers import (
     RegisterResendSerializer,
     RegisterSetPasswordSerializer,
     RegisterStartSerializer,
     RegisterVerifySerializer,
 )
+from .senders import SendError
 from .serializers_jwt import RoleTokenObtainPairSerializer
 from .services import registration
 from .services.otp import OTPError

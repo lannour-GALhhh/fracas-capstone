@@ -5,12 +5,13 @@ Blends *windowed* flood impact (events / people affected in the look-back) with
 validation recall) into one cheap payload.
 """
 
-from django.db.models import Count, Sum
+from collections import Counter
 
-from alert.models import AlertState
+from django.db.models import Sum
+
 from flood_events.models import FloodEvent
 from risk_score.constants import RiskCategory
-from risk_score.models import ValidationRun
+from risk_score.models import RiskScore, ValidationRun
 
 
 def _confirmed_events(since):
@@ -42,11 +43,12 @@ def build_summary(since):
         people_affected=Sum("people_affected"),
         people_evacuated=Sum("people_evacuated"),
     )
-    # Current risk distribution comes from AlertState (one row per barangay,
-    # overwritten each cycle) — cheaper than re-deriving from RiskScore history.
-    level_counts = dict(
-        AlertState.objects.values_list("level").annotate(n=Count("pk"))
+    latest_categories = (
+        RiskScore.objects.order_by("barangay_id", "-computed_at")
+        .distinct("barangay_id")
+        .values_list("category", flat=True)
     )
+    level_counts = Counter(latest_categories)
     return {
         "flood_events": events.count(),
         "people_affected": impact["people_affected"] or 0,

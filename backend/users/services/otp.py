@@ -10,8 +10,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from alert.senders import get_sms_provider
 from users.models import PhoneOTP
+from users.senders import get_sms_provider
 
 OTP_TTL = timedelta(minutes=10)
 RESEND_COOLDOWN = timedelta(seconds=60)

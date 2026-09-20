@@ -30,12 +30,7 @@ class EvacuationCenter(models.Model):
 
 
 class Evacuation(models.Model):
-    """One evacuation activation for a barangay — opens when the area turns
-    critical or an operator pings it, closes at stand-down. Mirrors the
-    ``AlertState`` (current) vs ``AlertEvent`` (log) split: this is the current
-    record *and* the permanent history — at stand-down we freeze the final
-    aggregate counts onto it, so a past evacuation is answerable from this row
-    alone without keeping the per-user ``EvacuationStatus`` rows around."""
+    """One evacuation activation for a barangay."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"

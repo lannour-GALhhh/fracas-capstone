@@ -1,10 +1,17 @@
 from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from alert.models import Notification
+from barangays.models import Barangay
+from users.models import Notification
 
-from .factories import make_barangay
+
+def make_barangay(name="Tumaga", code="T1"):
+    poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
+    return Barangay.objects.create(
+        name=name, code=code, province_code="PH0907332", boundary=MultiPolygon(poly)
+    )
 
 
 class NotificationApiTests(APITestCase):

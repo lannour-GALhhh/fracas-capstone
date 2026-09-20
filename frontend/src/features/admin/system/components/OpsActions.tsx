@@ -23,7 +23,7 @@ const OpsActions = () => {
                         </Button>
                     }
                     title='Run the scoring pipeline now?'
-                    description='Ingests rainfall, recomputes scores, and evaluates alerts immediately, off the 15-minute schedule.'
+                    description='Ingests rainfall, recomputes scores, and syncs evacuations immediately, off the 15-minute schedule.'
                     confirmLabel='Run pipeline'
                     isPending={runPipeline.isPending}
                     onConfirm={() => runPipeline.mutate()}

@@ -11,7 +11,7 @@ class NotificationPreference(models.Model):
     sms_enabled = models.BooleanField(default=True)
     push_enabled = models.BooleanField(default=True)
     inapp_enabled = models.BooleanField(default=True)
-    # Local-time window during which only in-app alerts are delivered (SMS/push held).
+    # Local-time window during which only in-app notifications are delivered (SMS/push held).
     quiet_hours_start = models.TimeField(null=True, blank=True)
     quiet_hours_end = models.TimeField(null=True, blank=True)
 

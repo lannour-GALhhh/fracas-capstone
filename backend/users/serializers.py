@@ -2,7 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from djoser.serializers import SetPasswordSerializer
 from rest_framework import serializers
 
-from .models import AccountChange, Device, NotificationPreference, Subscription, User
+from .models import AccountChange, Device, Notification, NotificationPreference, Subscription, User
 from .services import account_changes
 
 
@@ -228,3 +228,12 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
             "quiet_hours_start",
             "quiet_hours_end",
         ]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    barangay_name = serializers.CharField(source="barangay.name", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ["id", "barangay", "barangay_name", "category", "title", "body", "is_read", "created_at"]
+        read_only_fields = fields

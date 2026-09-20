@@ -6,7 +6,7 @@ import { lastRunLabel } from '../utils'
 const STAGES: { key: keyof SystemStatus['pipeline']; label: string }[] = [
     { key: 'rainfall', label: 'Rainfall ingest' },
     { key: 'scoring', label: 'Risk scoring' },
-    { key: 'alerts', label: 'Alert evaluation' },
+    { key: 'evacuation', label: 'Evacuation sync' },
 ]
 
 const StageRow = ({ label, stage }: { label: string; stage: PipelineStage }) => (
@@ -25,7 +25,7 @@ const StageRow = ({ label, stage }: { label: string; stage: PipelineStage }) => 
     </div>
 )
 
-/** Per-stage freshness for the ingest -> score -> alert pipeline. */
+/** Per-stage freshness for the ingest -> score -> evacuation pipeline. */
 const PipelineStages = ({ status }: { status: SystemStatus }) => (
     <Card>
         <CardHeader>

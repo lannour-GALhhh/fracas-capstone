@@ -3,7 +3,6 @@ import type { SettingsByGroup, SettingsGroup } from '../types/settings'
 
 /** Each settings group is one admin-gated singleton endpoint. */
 const GROUP_URL: Record<SettingsGroup, string> = {
-    alerting: '/api/admin/settings/alerting/',
     retention: '/api/admin/settings/retention/',
     organization: '/api/admin/settings/organization/',
     toggles: '/api/admin/settings/toggles/',

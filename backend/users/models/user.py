@@ -5,7 +5,7 @@ from django.db import models
 class User(AbstractUser):
     """Project user tied to JWT auth.
 
-    Extends AbstractUser with the fields the alerting subsystem needs.
+    Extends AbstractUser with the fields the notification subsystem needs.
     Subscriptions, devices, and preferences are separate related models.
     """
 

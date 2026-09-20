@@ -9,7 +9,7 @@ export const WINDOW_OPTIONS: { value: AnalyticsWindow; label: string }[] = [
 
 export const DEFAULT_WINDOW: AnalyticsWindow = 30
 
-/** All panels refetch on this cadence (matches the alerts page). */
+/** All panels refetch on this cadence (matches the dashboard's poll). */
 export const REFRESH_MS = 60_000
 
 /**

@@ -21,7 +21,7 @@ const humanizeLoginError = (err: unknown): string => {
 
 const FEATURES = [
 	{ icon: Map, title: 'Live risk map', desc: 'Barangay flood hazard, refreshed every 15 minutes.' },
-	{ icon: Megaphone, title: 'Instant advisories', desc: 'Broadcast alerts to subscribers the moment risk turns critical.' },
+	{ icon: Megaphone, title: 'Instant advisories', desc: 'Auto-evacuate and notify subscribers the moment risk turns critical.' },
 	{ icon: History, title: 'Flood history', desc: 'A searchable record of past events that validates the model.' },
 ]
 

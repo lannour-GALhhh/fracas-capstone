@@ -1,12 +1,12 @@
-"""Alerting Celery tasks — async so slow gateways never block the pipeline."""
+"""Notification-delivery Celery tasks — async so slow gateways never block callers."""
 
 import logging
 
 from celery import shared_task
 
-from alert.constants import Channel, DeliveryStatus
-from alert.models import NotificationLog
-from alert.senders import SendError, get_push_provider, get_sms_provider
+from .constants import Channel, DeliveryStatus
+from .models import NotificationLog
+from .senders import SendError, get_push_provider, get_sms_provider
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,3 @@ def send_push_task(user_id, dedup_key, token, title, body):
     except SendError as exc:
         logger.error("Push send failed: %s", exc)
         _finalize(user_id, Channel.PUSH, dedup_key, DeliveryStatus.FAILED, str(exc))
-
-
-@shared_task
-def evaluate_alerts():
-    from alert.services.evaluation import evaluate
-
-    return evaluate()

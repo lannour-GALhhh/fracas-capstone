@@ -21,14 +21,14 @@ class RetentionPolicySerializer(SingletonSerializer):
 class OperationalTogglesSerializer(SingletonSerializer):
     class Meta:
         model = OperationalToggles
-        fields = ["maintenance_mode", "announcement_banner", "broadcast_enabled", "updated_at"]
+        fields = ["maintenance_mode", "announcement_banner", "updated_at"]
         read_only_fields = ["updated_at"]
 
 
 class OrganizationSettingsSerializer(SingletonSerializer):
     class Meta:
         model = OrganizationSettings
-        fields = ["org_name", "system_title", "contact_number", "alert_footer", "updated_at"]
+        fields = ["org_name", "system_title", "contact_number", "updated_at"]
         read_only_fields = ["updated_at"]
 
 

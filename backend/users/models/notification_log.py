@@ -1,14 +1,11 @@
-"""Per-message delivery audit across all channels.
-
-`dedup_key` makes dispatch idempotent: the same alert episode never sends the
-same channel to the same user twice, even if the task retries.
-"""
+"""Per-message delivery audit across all channels."""
 
 from django.conf import settings
 from django.db import models
 
-from alert.constants import Channel, DeliveryStatus
 from barangays.models import Barangay
+
+from ..constants import Channel, DeliveryStatus
 
 
 class NotificationLog(models.Model):

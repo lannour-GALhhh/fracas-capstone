@@ -1,8 +1,8 @@
 from django.test import SimpleTestCase
 
-from alert.senders import SendError, get_push_provider, get_sms_provider
-from alert.senders.push import ConsolePushProvider
-from alert.senders.sms import ConsoleSmsProvider
+from users.senders import SendError, get_push_provider, get_sms_provider
+from users.senders.push import ConsolePushProvider
+from users.senders.sms import ConsoleSmsProvider
 
 
 class ProviderRegistryTests(SimpleTestCase):

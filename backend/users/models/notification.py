@@ -1,4 +1,4 @@
-"""In-app notification records — the user's alerts feed."""
+"""In-app notification records — the user's notification feed."""
 
 from django.conf import settings
 from django.db import models

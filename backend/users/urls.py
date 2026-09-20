@@ -6,6 +6,7 @@ from .api_views import (
     AdminUserViewSet,
     DeviceViewSet,
     NotificationPreferenceView,
+    NotificationViewSet,
     OperatorListView,
     RequestPhoneOTPView,
     SubscriptionViewSet,
@@ -23,6 +24,7 @@ router = DefaultRouter()
 router.register(r"account/subscriptions", SubscriptionViewSet, basename="subscription")
 router.register(r"account/devices", DeviceViewSet, basename="device")
 router.register(r"admin/users", AdminUserViewSet, basename="admin-user")
+router.register(r"notifications", NotificationViewSet, basename="notification")
 
 urlpatterns = [
     # Phone-first mobile registration (anonymous, 3 phases).

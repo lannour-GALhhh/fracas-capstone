@@ -109,10 +109,10 @@ class OperationalTogglesTests(_CacheIsolatedAPITestCase):
         self.client.force_authenticate(self.admin)
         self.url = reverse("admin-settings-toggles")
 
-    def test_toggle_broadcast_off(self):
-        resp = self.client.patch(self.url, {"broadcast_enabled": False}, format="json")
+    def test_toggle_maintenance_mode_on(self):
+        resp = self.client.patch(self.url, {"maintenance_mode": True}, format="json")
         self.assertEqual(resp.status_code, 200)
-        self.assertFalse(OperationalToggles.cached().broadcast_enabled)
+        self.assertTrue(OperationalToggles.cached().maintenance_mode)
 
 
 class PublicConfigTests(_CacheIsolatedAPITestCase):

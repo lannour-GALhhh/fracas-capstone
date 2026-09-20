@@ -26,7 +26,7 @@ from .serializers import (
                   name='list',
                   )
 class BarangayListView(viewsets.ReadOnlyModelViewSet):
-    # `subscriber_count` (residents subscribed to this barangay's alerts) is
+    # `subscriber_count` (residents subscribed to this barangay's notifications) is
     # annotated here so it rides along in each feature's GeoJSON properties —
     # the map tooltip reads it client-side with no extra request.
     queryset = Barangay.objects.annotate(subscriber_count=Count("subscribers"))

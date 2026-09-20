@@ -1,8 +1,6 @@
 import { formatDistanceToNow } from 'date-fns'
-import { Megaphone, Waves } from 'lucide-react'
+import { Waves } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
-import { useAlertEvents } from '@/features/alerts/hooks/useAlertEvents'
-import type { AlertEvent } from '@/features/alerts/types/api'
 import ErrorState from '@/common/components/ErrorState'
 import { Stagger, StaggerItem } from '@/common/motion'
 import { useMyFloodActivity } from '../hooks/useMyActivity'
@@ -49,19 +47,6 @@ const Empty = ({ text }: { text: string }) => (
     <p className='text-sm text-black/40'>{text}</p>
 )
 
-const BroadcastRow = ({ event }: { event: AlertEvent }) => (
-    <div className='flex items-center justify-between gap-2 border-l-2 border-border pl-3'>
-        <span className='truncate text-sm'>
-            <span className='font-medium'>{event.barangay_name ?? '—'}</span>
-            <span className='text-black/50'>
-                {' · '}
-                {event.recipients} {event.recipients === 1 ? 'recipient' : 'recipients'}
-            </span>
-        </span>
-        <When iso={event.created_at} />
-    </div>
-)
-
 const FloodRow = ({ change }: { change: FloodActivity }) => (
     <div className='flex items-center justify-between gap-2 border-l-2 border-border pl-3'>
         <span className='flex min-w-0 items-center gap-2 text-sm'>
@@ -76,36 +61,12 @@ const FloodRow = ({ change }: { change: FloodActivity }) => (
 
 /** The account page's right column: what this operator has actually done. */
 const OperatorActivity = () => {
-    const broadcasts = useAlertEvents({ kind: 'broadcast', triggered_by: 'me' })
     const floods = useMyFloodActivity()
 
-    const broadcastRows = broadcasts.data?.results.slice(0, LIMIT) ?? []
     const floodRows = floods.data?.results.slice(0, LIMIT) ?? []
 
     return (
         <div className='flex flex-col gap-6'>
-            <SectionShell icon={<Megaphone className='size-4' />} title='Broadcasts sent'>
-                {broadcasts.isLoading && <Empty text='Loading…' />}
-                {broadcasts.isError && (
-                    <ErrorState
-                        variant='inline'
-                        title='Couldn’t load broadcasts'
-                        message='Your sent advisories didn’t load just now.'
-                        onRetry={() => broadcasts.refetch()}
-                    />
-                )}
-                {!broadcasts.isLoading && !broadcasts.isError && broadcastRows.length === 0 && (
-                    <Empty text='No broadcasts yet.' />
-                )}
-                <Stagger className='flex flex-col gap-2'>
-                    {broadcastRows.map((e) => (
-                        <StaggerItem key={e.id}>
-                            <BroadcastRow event={e} />
-                        </StaggerItem>
-                    ))}
-                </Stagger>
-            </SectionShell>
-
             <SectionShell icon={<Waves className='size-4' />} title='Flood-event actions'>
                 {floods.isLoading && <Empty text='Loading…' />}
                 {floods.isError && (

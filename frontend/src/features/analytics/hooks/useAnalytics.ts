@@ -11,7 +11,7 @@ import type { AnalyticsWindow } from '../types/api'
 import { analyticsKeys } from './queryKeys'
 
 // All five panels share the same freshness policy: keep the previous window's
-// data on screen while the next loads, and poll on the alerts-page cadence.
+// data on screen while the next loads, and poll on a shared cadence.
 const shared = {
     placeholderData: keepPreviousData,
     refetchInterval: REFRESH_MS,

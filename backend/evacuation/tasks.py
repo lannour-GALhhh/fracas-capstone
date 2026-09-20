@@ -1,10 +1,4 @@
-"""Evacuation Celery tasks.
-
-``sync_evacuations`` is the pipeline step after ``evaluate_alerts``: it opens
-automated evacuations for barangays that just entered the alert trigger band and
-stands down automated ones whose hazard has cleared. The reconciliation logic
-lives in ``services.lifecycle`` (imported lazily so the worker boots cheaply).
-"""
+"""Evacuation Celery tasks."""
 
 from celery import shared_task
 

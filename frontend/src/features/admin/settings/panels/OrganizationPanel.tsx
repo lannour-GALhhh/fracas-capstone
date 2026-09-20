@@ -11,7 +11,7 @@ const OrganizationForm = ({ initial }: { initial: OrganizationSettings }) => {
             <TextField
                 id='org_name'
                 label='Organization name'
-                description='Shown to clients and used as the default alert signature.'
+                description='Shown to clients across the console and mobile app.'
                 value={form.org_name}
                 onChange={(v) => setField('org_name', v)}
             />
@@ -29,14 +29,6 @@ const OrganizationForm = ({ initial }: { initial: OrganizationSettings }) => {
                 placeholder='e.g. (062) 991-xxxx'
                 onChange={(v) => setField('contact_number', v)}
             />
-            <TextField
-                id='alert_footer'
-                label='Alert footer'
-                description='Signature appended to alert and broadcast messages. Defaults to “— {org name}”.'
-                value={form.alert_footer}
-                placeholder='— Zamboanga City DRRMO'
-                onChange={(v) => setField('alert_footer', v)}
-            />
             <SaveBar dirty={dirty} saving={saving} onSave={save} />
         </div>
     )
@@ -46,7 +38,7 @@ const OrganizationPanel = () => (
     <SettingsSection
         group='organization'
         title='Organization & branding'
-        description='Identity shown in the console and appended to outgoing alerts.'
+        description='Identity shown in the console and mobile app.'
     >
         {(initial) => <OrganizationForm initial={initial} />}
     </SettingsSection>

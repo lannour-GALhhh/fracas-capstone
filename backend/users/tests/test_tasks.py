@@ -3,10 +3,10 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from alert.constants import Channel, DeliveryStatus
-from alert.models import NotificationLog
-from alert.senders import SendError
-from alert.tasks import send_sms_task
+from users.constants import Channel, DeliveryStatus
+from users.models import NotificationLog
+from users.senders import SendError
+from users.tasks import send_sms_task
 
 
 class SendTaskTests(TestCase):
@@ -22,7 +22,7 @@ class SendTaskTests(TestCase):
         self.assertEqual(self.log.status, DeliveryStatus.SENT)
 
     def test_failure_marks_failed(self):
-        with patch("alert.tasks.get_sms_provider") as provider:
+        with patch("users.tasks.get_sms_provider") as provider:
             provider.return_value.send.side_effect = SendError("boom")
             send_sms_task(self.user.id, "k", "+63", "hi")
         self.log.refresh_from_db()

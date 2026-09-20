@@ -5,7 +5,7 @@ from barangays.models import Barangay
 
 
 class Subscription(models.Model):
-    """A user's interest in a barangay — who receives its critical alerts."""
+    """A user's interest in a barangay — who receives its notifications."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscriptions"

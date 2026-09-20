@@ -98,7 +98,6 @@ INSTALLED_APPS = [
     'audit',
     'rainfall_fetch',
     'barangays',
-    'alert',
     'risk_score',
     'users',
     'flood_events',

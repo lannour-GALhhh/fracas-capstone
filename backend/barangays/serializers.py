@@ -14,7 +14,7 @@ GEOJSON_PRECISION = 6
 
 class BarangayListSerializer(GeoFeatureModelSerializer):
     # Annotated on the queryset (see BarangayListView); count of residents
-    # subscribed to this barangay's alerts.
+    # subscribed to this barangay's notifications.
     subscriber_count = serializers.IntegerField(read_only=True)
     boundary = GeometryField(precision=GEOJSON_PRECISION)
 

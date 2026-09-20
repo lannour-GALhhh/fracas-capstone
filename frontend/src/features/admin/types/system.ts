@@ -14,7 +14,7 @@ export interface IngestionSource {
     consecutive_failures?: number
 }
 
-/** One stage of the ingest -> score -> alert pipeline. */
+/** One stage of the ingest -> score -> evacuation pipeline. */
 export interface PipelineStage {
     last_run: string | null
     fresh: boolean
@@ -34,7 +34,7 @@ export interface SystemStatus {
     pipeline: {
         rainfall: PipelineStage
         scoring: PipelineStage
-        alerts: PipelineStage
+        evacuation: PipelineStage
     }
     cadence: CadenceEntry[]
 }

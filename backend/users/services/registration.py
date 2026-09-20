@@ -6,7 +6,7 @@
 3. ``set_password`` — set a (lenient) password and activate the account.
 
 The account is kept ``is_active=False`` with an unusable password until phase 3,
-so a half-finished registration can neither log in nor receive alerts. Phone is
+so a half-finished registration can neither log in nor receive notifications. Phone is
 the login identity: ``username`` is stored as the normalized phone so the existing
 username-based JWT login works unchanged for residents.
 """

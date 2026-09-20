@@ -1,5 +1,7 @@
 from .account_change import AccountChange
 from .device import Device
+from .notification import Notification
+from .notification_log import NotificationLog
 from .otp import PhoneOTP
 from .preference import NotificationPreference
 from .settings import RegistrationPolicy
@@ -11,6 +13,8 @@ __all__ = [
     "Subscription",
     "Device",
     "NotificationPreference",
+    "Notification",
+    "NotificationLog",
     "PhoneOTP",
     "AccountChange",
     "RegistrationPolicy",

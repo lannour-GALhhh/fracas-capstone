@@ -29,7 +29,7 @@ class SystemStatusTests(APITestCase):
         # Base health fields plus the ops enrichments.
         self.assertIn("database", resp.data)
         self.assertIn("pipeline", resp.data)
-        self.assertEqual(set(resp.data["pipeline"]), {"rainfall", "scoring", "alerts"})
+        self.assertEqual(set(resp.data["pipeline"]), {"rainfall", "scoring", "evacuation"})
         self.assertIsInstance(resp.data["cadence"], list)
         # No scores yet -> scoring stage reports no last run and not fresh.
         self.assertIsNone(resp.data["pipeline"]["scoring"]["last_run"])
