@@ -27,6 +27,10 @@ CHUNK_DELAY = 2  # seconds between chunk requests, to avoid bursting the rate li
 REQUEST_TIMEOUT = 20
 RETRY_BACKOFF = 5
 
+# Forecast horizon: every 15-minute step out to 4 hours (16 points), matching
+# Open-Meteo's native minutely_15 resolution.
+FORECAST_STEPS_MIN = [15 * n for n in range(1, 17)]
+
 
 def hourly_url(latitudes: str, longitudes: str) -> str:
     return (
@@ -97,36 +101,23 @@ def parse_rainfall_data(data, barangay_name=None):
         logger.warning(f"Current hour not found in forecast for {barangay_name}. Defaulting to 0")
         return {key: 0 for key in [
             'current_rainfall_strength',
-            'forecast_strength_30min',
-            'forecast_strength_1hr',
-            'forecast_strength_90min',
-            'forecast_strength_2hr',
-            'forecast_strength_150min',
-            'forecast_strength_3hr',
-            'forecast_strength_210min',
-            'forecast_strength_4hr',
+            *[f'forecast_strength_{m}min' for m in FORECAST_STEPS_MIN],
             'accumulated_6hr',
             'accumulated_12hr',
             'accumulated_24hr',
             'accumulated_7day',
             ]}
 
-    # 1 hand function to get the precipitation based on hour represented as index, which is 1, 2, 3, 4
+    # 15-minute resolution: `x` is a count of 15-minute buckets ahead of now.
     # (Open-Meteo can report `null` for an edge bucket, so `or 0` covers that too.)
-    forecast = lambda x: (precipitation[index + x] or 0) if index + x < len(precipitation) else 0
-    # same idea but at 15-minute resolution, so `x` is a count of 15-minute buckets ahead
     forecast_quarter = lambda x: (quarter_precipitation[quarter_index + x] or 0) if quarter_index + x < len(quarter_precipitation) else 0
 
     return {
         'current_rainfall_strength': current_rainfall or 0,
-        'forecast_strength_30min': forecast_quarter(2),
-        'forecast_strength_1hr': forecast(1),
-        'forecast_strength_90min': forecast_quarter(6),
-        'forecast_strength_2hr': forecast(2),
-        'forecast_strength_150min': forecast_quarter(10),
-        'forecast_strength_3hr': forecast(3),
-        'forecast_strength_210min': forecast_quarter(14),
-        'forecast_strength_4hr': forecast(4),
+        **{
+            f'forecast_strength_{m}min': forecast_quarter(m // 15)
+            for m in FORECAST_STEPS_MIN
+        },
         'accumulated_6hr': _accumulate(precipitation, index, 6),
         'accumulated_12hr': _accumulate(precipitation, index, 12),
         'accumulated_24hr': _accumulate(precipitation, index, 24),

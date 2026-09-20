@@ -66,14 +66,22 @@ export interface BarangayRisk {
     breakdown: Record<string, RiskFactorBreakdown> | null
     computed_at: string | null
     current_rainfall: number | null
+    rainfall_forecast_15min: number | null
     rainfall_forecast_30min: number | null
-    rainfall_forecast_1hr: number | null
+    rainfall_forecast_45min: number | null
+    rainfall_forecast_60min: number | null
+    rainfall_forecast_75min: number | null
     rainfall_forecast_90min: number | null
-    rainfall_forecast_2hr: number | null
+    rainfall_forecast_105min: number | null
+    rainfall_forecast_120min: number | null
+    rainfall_forecast_135min: number | null
     rainfall_forecast_150min: number | null
-    rainfall_forecast_3hr: number | null
+    rainfall_forecast_165min: number | null
+    rainfall_forecast_180min: number | null
+    rainfall_forecast_195min: number | null
     rainfall_forecast_210min: number | null
-    rainfall_forecast_4hr: number | null
+    rainfall_forecast_225min: number | null
+    rainfall_forecast_240min: number | null
     accumulated_24hr: number | null
     accumulated_7day: number | null
     rainfall_rate_change: number | null

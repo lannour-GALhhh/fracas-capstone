@@ -30,17 +30,20 @@ class ParseRainfallTests(SimpleTestCase):
     def test_parses_intensity_and_accumulation(self):
         result = parse_rainfall_data(self._payload())
         self.assertEqual(result["current_rainfall_strength"], 10)
-        self.assertEqual(result["forecast_strength_1hr"], 2)
+        self.assertEqual(result["forecast_strength_60min"], 20)  # index 16 + 4
         self.assertEqual(result["accumulated_6hr"], 14)  # indices 0..4 -> 1+1+1+1+10
         self.assertEqual(result["accumulated_24hr"], 14)
         self.assertEqual(result["accumulated_7day"], 14)  # only 5 hours of history available
 
-    def test_parses_half_hour_forecasts(self):
+    def test_parses_quarter_hour_forecasts(self):
         result = parse_rainfall_data(self._payload())
+        self.assertEqual(result["forecast_strength_15min"], 17)  # index 16 + 1
         self.assertEqual(result["forecast_strength_30min"], 18)  # index 16 + 2
+        self.assertEqual(result["forecast_strength_45min"], 19)  # index 16 + 3
         self.assertEqual(result["forecast_strength_90min"], 22)  # index 16 + 6
         self.assertEqual(result["forecast_strength_150min"], 26)  # index 16 + 10
         self.assertEqual(result["forecast_strength_210min"], 30)  # index 16 + 14
+        self.assertEqual(result["forecast_strength_240min"], 0)  # index 16 + 16 -> out of range
 
     def test_missing_current_hour_defaults_to_zero(self):
         data = self._payload()

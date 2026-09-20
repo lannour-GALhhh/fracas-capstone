@@ -131,14 +131,22 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 
 const Conditions = ({ data }: { data: BarangayRisk }) => {
     const forecasts = [
+        data.rainfall_forecast_15min,
         data.rainfall_forecast_30min,
-        data.rainfall_forecast_1hr,
+        data.rainfall_forecast_45min,
+        data.rainfall_forecast_60min,
+        data.rainfall_forecast_75min,
         data.rainfall_forecast_90min,
-        data.rainfall_forecast_2hr,
+        data.rainfall_forecast_105min,
+        data.rainfall_forecast_120min,
+        data.rainfall_forecast_135min,
         data.rainfall_forecast_150min,
-        data.rainfall_forecast_3hr,
+        data.rainfall_forecast_165min,
+        data.rainfall_forecast_180min,
+        data.rainfall_forecast_195min,
         data.rainfall_forecast_210min,
-        data.rainfall_forecast_4hr,
+        data.rainfall_forecast_225min,
+        data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
     const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
@@ -213,26 +221,36 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 }
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
-    const now = new Date()
-    const atOffset = (minutes: number) => format(new Date(now.getTime() + minutes * 60_000), 'h:mm a')
+    // Anchor the timeline to when the backend fetched this reading, not the
+    // viewer's clock — keeps the chart correct regardless of client tz/drift.
+    const recordedAt = data.recorded_at ? new Date(data.recorded_at) : new Date()
+    const atOffset = (minutes: number) => format(new Date(recordedAt.getTime() + minutes * 60_000), 'h:mm a')
 
     const chartData = [
         { name: atOffset(0), rainfall: data.current_rainfall },
+        { name: atOffset(15), rainfall: data.rainfall_forecast_15min },
         { name: atOffset(30), rainfall: data.rainfall_forecast_30min },
-        { name: atOffset(60), rainfall: data.rainfall_forecast_1hr },
+        { name: atOffset(45), rainfall: data.rainfall_forecast_45min },
+        { name: atOffset(60), rainfall: data.rainfall_forecast_60min },
+        { name: atOffset(75), rainfall: data.rainfall_forecast_75min },
         { name: atOffset(90), rainfall: data.rainfall_forecast_90min },
-        { name: atOffset(120), rainfall: data.rainfall_forecast_2hr },
+        { name: atOffset(105), rainfall: data.rainfall_forecast_105min },
+        { name: atOffset(120), rainfall: data.rainfall_forecast_120min },
+        { name: atOffset(135), rainfall: data.rainfall_forecast_135min },
         { name: atOffset(150), rainfall: data.rainfall_forecast_150min },
-        { name: atOffset(180), rainfall: data.rainfall_forecast_3hr },
+        { name: atOffset(165), rainfall: data.rainfall_forecast_165min },
+        { name: atOffset(180), rainfall: data.rainfall_forecast_180min },
+        { name: atOffset(195), rainfall: data.rainfall_forecast_195min },
         { name: atOffset(210), rainfall: data.rainfall_forecast_210min },
-        { name: atOffset(240), rainfall: data.rainfall_forecast_4hr },
+        { name: atOffset(225), rainfall: data.rainfall_forecast_225min },
+        { name: atOffset(240), rainfall: data.rainfall_forecast_240min },
     ].filter((d) => d.rainfall != null)
 
     return (
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
                 <Label>Rainfall forecast</Label>
-                <span className='text-muted-foreground text-xs'>{format(now, 'MMMM d, yyyy, EEEE')}</span>
+                <span className='text-muted-foreground text-xs'>{format(recordedAt, 'MMMM d, yyyy, EEEE')}</span>
             </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>

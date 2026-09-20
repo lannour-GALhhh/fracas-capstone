@@ -20,14 +20,22 @@ class RainfallFactor:
             return FactorResult(self.key, 0.0, available=False, detail={"reason": "no rainfall reading"})
 
         forecasts = [
+            r.forecast_strength_15min,
             r.forecast_strength_30min,
-            r.forecast_strength_1hr,
+            r.forecast_strength_45min,
+            r.forecast_strength_60min,
+            r.forecast_strength_75min,
             r.forecast_strength_90min,
-            r.forecast_strength_2hr,
+            r.forecast_strength_105min,
+            r.forecast_strength_120min,
+            r.forecast_strength_135min,
             r.forecast_strength_150min,
-            r.forecast_strength_3hr,
+            r.forecast_strength_165min,
+            r.forecast_strength_180min,
+            r.forecast_strength_195min,
             r.forecast_strength_210min,
-            r.forecast_strength_4hr,
+            r.forecast_strength_225min,
+            r.forecast_strength_240min,
         ]
         peak_forecast = max(forecasts)
         peak_intensity = max(r.current_rainfall_strength, peak_forecast)
