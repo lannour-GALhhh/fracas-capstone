@@ -1,7 +1,21 @@
+from datetime import timedelta
+
+from django.db.models import Max, Sum
+from django.db.models.functions import TruncDate, TruncHour
+from django.utils import timezone
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .models import Rainfall
 from .serializers import RainfallSerializer
+
+MAX_HISTORY_DAYS = 30
+
+# Readings arrive on a 15-minute cadence (see tasks.fetch_rainfall_information),
+# so each reading's instantaneous mm/hr rate stands for a 15-minute slice when
+# integrating a bucket's accumulated total.
+READING_INTERVAL_HOURS = 0.25
 
 
 class RainfallViewset(viewsets.ReadOnlyModelViewSet):
@@ -20,3 +34,48 @@ class RainfallViewset(viewsets.ReadOnlyModelViewSet):
         if barangay_id:
             qs = qs.filter(barangay_id=barangay_id)
         return qs
+
+    @action(detail=False, methods=["get"])
+    def history(self, request):
+        """One point per bucket over the trailing `days` window (default 7,
+        capped at `MAX_HISTORY_DAYS`): that bucket's peak intensity and an
+        accumulated total integrated from each reading's mm/hr rate.
+        `?granularity=hour` (default) buckets by clock hour, timestamped to
+        the hour boundary (e.g. 9:00, not the raw 9:01-ish 15-minute reading
+        time) so it plots like the forward-looking forecast; `?granularity=day`
+        buckets by calendar day for a 7-day-at-a-glance view.
+        """
+        barangay_id = request.query_params.get("barangay")
+        if not barangay_id:
+            return Response({"detail": "barangay query param is required."}, status=400)
+
+        try:
+            days = int(request.query_params.get("days", 7))
+        except ValueError:
+            days = 7
+        days = min(max(days, 1), MAX_HISTORY_DAYS)
+
+        granularity = request.query_params.get("granularity", "hour")
+        trunc = TruncDate if granularity == "day" else TruncHour
+
+        since = timezone.now() - timedelta(days=days)
+        rows = (
+            Rainfall.objects
+            .filter(barangay_id=barangay_id, recorded_at__gte=since)
+            .annotate(bucket=trunc("recorded_at"))
+            .values("bucket")
+            .annotate(
+                peak_mm_hr=Max("current_rainfall_strength"),
+                strength_sum=Sum("current_rainfall_strength"),
+            )
+            .order_by("bucket")
+        )
+
+        return Response([
+            {
+                "recorded_at": row["bucket"].isoformat(),
+                "peak_mm_hr": round(row["peak_mm_hr"] or 0, 2),
+                "accumulated_mm": round((row["strength_sum"] or 0) * READING_INTERVAL_HOURS, 2),
+            }
+            for row in rows
+        ])

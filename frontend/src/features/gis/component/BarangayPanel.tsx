@@ -1,24 +1,30 @@
 import {
     AlertTriangle,
-    ChevronRight,
+    BarChart3,
     ChevronsRight,
     CloudRain,
     History,
+    LayoutGrid,
     TrendingUp,
-    Waves,
     X,
 } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/common/ui/dialog'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import PingEvacuationDialog from '@/features/evacuation/component/PingEvacuationDialog'
 import { EvacuationPingIcon } from '@/features/evacuation/component/EvacuationPingIcon'
 import { useActiveEvacuations } from '@/features/evacuation/hooks/useActiveEvacuations'
-import { useRecentFloods } from '@/features/history/hooks/useRecentFloods'
-import { SEVERITY_COLORS, SEVERITY_LABELS } from '@/features/history/constants/floodEvents'
 import {
     ChartContainer,
     ChartTooltip,
@@ -27,14 +33,22 @@ import {
 } from '@/common/ui/chart'
 import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
+import { useRainfallHistory } from '../hooks/useRainfallHistory'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
-import { RAINFALL_CHART_FLOOR_MM_HR, rainfallStrengthIndicator } from '../constants/rainfall'
+import {
+    RAINFALL_CHART_FLOOR_MM_HR,
+    RAINFALL_TIER_LABELS,
+    rainfallStrengthIndicator,
+    rainfallTier,
+} from '../constants/rainfall'
 import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
 import ErrorState from '@/common/components/ErrorState'
 import SidePanel from './SidePanel'
+import RainfallAccumulation from './RainfallAccumulation'
+import RainfallIcon from './RainfallIcon'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
@@ -86,23 +100,26 @@ const RainfallStat = ({
     </div>
 )
 
-const HazardHero = ({ data }: { data: BarangayRisk }) => {
+const HazardHero = ({ data, action }: { data: BarangayRisk; action?: React.ReactNode }) => {
     const category = data.status
     const score = data.risk_score
 
     return (
         <Card className='gap-3'>
-            <div className='flex items-center justify-between'>
+            <div className='flex items-start justify-between gap-2'>
                 <Label className='font-medium'>Flood Risk Analysis</Label>
-                {data.is_degraded && (
-                    <span
-                        className='text-destructive flex items-center gap-1 text-xs font-medium'
-                        title='Some inputs were stale; weights were redistributed.'
-                    >
-                        <AlertTriangle className='size-3.5 shrink-0' />
-                        Data Outdated
-                    </span>
-                )}
+                <div className='flex items-center gap-2'>
+                    {data.is_degraded && (
+                        <span
+                            className='text-destructive flex items-center gap-1 text-xs font-medium'
+                            title='Some inputs were stale; weights were redistributed.'
+                        >
+                            <AlertTriangle className='size-3.5 shrink-0' />
+                            Data Outdated
+                        </span>
+                    )}
+                    {action}
+                </div>
             </div>
 
             <div className='flex flex-col items-center gap-1.5 py-1.5 text-center'>
@@ -129,7 +146,7 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
-const Conditions = ({ data }: { data: BarangayRisk }) => {
+const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.ReactNode }) => {
     const forecasts = [
         data.rainfall_forecast_15min,
         data.rainfall_forecast_30min,
@@ -150,17 +167,29 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
     const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
+    const strength = rainfallTier(data.current_rainfall)
 
     return (
         <Card className='gap-3'>
-            <div className='flex items-center gap-1.5'>
-                <CloudRain className='text-muted-foreground size-4' />
-                <Label className='font-medium'>Rainfall</Label>
+            <div className='flex items-start justify-between gap-2'>
+                <div className='flex items-center gap-1.5'>
+                    <CloudRain className='text-muted-foreground size-4' />
+                    <Label className='font-medium'>Rainfall</Label>
+                </div>
+                {action}
             </div>
             <div className='flex items-stretch'>
                 <RainfallStat label='Current' value={fmt(data.current_rainfall)} />
                 <div className='bg-border mx-3 w-px' />
                 <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
+            </div>
+
+            <div className='flex items-center gap-2 border-t pt-2'>
+                <RainfallIcon mmPerHour={data.current_rainfall} className='size-6' />
+                <div className='flex flex-col'>
+                    <span className='text-muted-foreground text-xs'>Rainfall Strength</span>
+                    <span className='text-sm font-medium'>{RAINFALL_TIER_LABELS[strength]}</span>
+                </div>
             </div>
         </Card>
     )
@@ -335,46 +364,154 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
-/** The barangay's recent flood record (past 7 days, up to 3), newest first. */
-const RecentFloods = ({ id }: { id: number }) => {
-    const navigate = useNavigate()
-    const { data, isLoading } = useRecentFloods(id, 7)
-    const floods = (data?.results ?? []).slice(0, 3)
+/** Pixel width budgeted per hourly point — wide enough that the chart is a
+ * long horizontal strip you scroll through, not squeezed to fit the modal. */
+const HISTORY_POINT_WIDTH = 44
 
-    if (isLoading || floods.length === 0) return null
+/** The barangay's rainfall record for the trailing 7 days, one point per
+ * clock hour (peak reading that hour) — a look-back mirror of `RainfallTrend`'s
+ * forward-looking forecast line. Wider than its container and horizontally
+ * scrollable, opening scrolled to its right edge (the latest reading). */
+const RainfallHistory = ({ barangayId }: { barangayId: number }) => {
+    const { data, isLoading } = useRainfallHistory(barangayId, 7)
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    const chartData = (data ?? []).map((point) => ({
+        name: format(new Date(point.recorded_at), 'MMM d, h a'),
+        rainfall: point.peak_mm_hr,
+    }))
+
+    // The single highest tier reached in the past week — see rainfallStrengthIndicator.
+    const maxRainfall = chartData.reduce((max, d) => Math.max(max, d.rainfall ?? 0), 0)
+    const indicator = rainfallStrengthIndicator(maxRainfall)
+    const chartWidth = Math.max(chartData.length * HISTORY_POINT_WIDTH, 480)
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ left: scrollRef.current.scrollWidth })
+    }, [chartData.length])
 
     return (
-        <Card className='gap-2'>
-            <div className='flex items-center gap-1.5'>
-                <Waves className='text-muted-foreground size-4' />
-                <Label className='font-medium'>Recent floods</Label>
-                <span className='text-muted-foreground text-xs'>past 7 days</span>
-            </div>
-            <div className='flex flex-col gap-1'>
-                {floods.map((flood) => (
-                    <button
-                        key={flood.id}
-                        type='button'
-                        onClick={() => navigate(`/history/${flood.id}`)}
-                        className='hover:bg-muted flex items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors'
-                    >
-                        <span className='flex items-center gap-2 text-sm'>
-                            <span
-                                className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
-                                style={{ backgroundColor: SEVERITY_COLORS[flood.severity] }}
-                            />
-                            {format(new Date(flood.occurred_at), 'LLL d, HH:mm')}
-                            <span className='text-muted-foreground'>
-                                {SEVERITY_LABELS[flood.severity]}
-                            </span>
-                        </span>
-                        <ChevronRight className='text-muted-foreground size-4' />
-                    </button>
-                ))}
-            </div>
+        <Card className='h-full gap-1 py-3'>
+            <Label>7-day rainfall record</Label>
+            {isLoading ? (
+                <p className='text-muted-foreground text-xs'>Loading…</p>
+            ) : chartData.length > 1 ? (
+                <div ref={scrollRef} className='flex-1 overflow-x-auto'>
+                    <div style={{ width: chartWidth }} className='h-full'>
+                        <ChartContainer config={chartConfig} className='aspect-auto h-full min-h-72 w-full'>
+                            <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 16 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                    dataKey='name'
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    interval={3}
+                                />
+                                <YAxis
+                                    domain={[0, (dataMax: number) => Math.max(dataMax, RAINFALL_CHART_FLOOR_MM_HR, indicator.at)]}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={32}
+                                    tickFormatter={(v: number) => `${v}`}
+                                />
+                                <ReferenceLine
+                                    y={indicator.at}
+                                    stroke='var(--color-muted-foreground)'
+                                    strokeDasharray='4 4'
+                                    label={{
+                                        value: indicator.tier[0].toUpperCase() + indicator.tier.slice(1),
+                                        position: 'right',
+                                        fontSize: 10,
+                                        fill: 'var(--color-muted-foreground)',
+                                    }}
+                                />
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={
+                                        <ChartTooltipContent
+                                            formatter={(value) => (
+                                                <div className='flex w-full items-center justify-between gap-3'>
+                                                    <span className='text-muted-foreground'>Peak</span>
+                                                    <span className='font-mono font-medium tabular-nums'>
+                                                        {value} mm/hr
+                                                    </span>
+                                                </div>
+                                            )}
+                                        />
+                                    }
+                                />
+                                <Line
+                                    dataKey='rainfall'
+                                    type='natural'
+                                    stroke='var(--color-rainfall)'
+                                    strokeWidth={2}
+                                    dot={false}
+                                    activeDot={{ r: 4.5 }}
+                                />
+                            </LineChart>
+                        </ChartContainer>
+                    </div>
+                </div>
+            ) : (
+                <p className='text-muted-foreground text-xs'>No rainfall recorded in the past week.</p>
+            )}
         </Card>
     )
 }
+
+/** Opens a modal with the flood risk analysis plus the full per-zone breakdown. */
+const ZoneRiskTrigger = ({ data }: { data: BarangayRisk }) => (
+    <Dialog>
+        <DialogTrigger
+            render={
+                <Button size='sm' className='gap-1.5 text-xs'>
+                    <LayoutGrid className='size-3.5' />
+                    Zone risk
+                </Button>
+            }
+        />
+        <DialogContent className='max-h-[85vh] overflow-y-auto sm:max-w-md'>
+            <DialogHeader>
+                <DialogTitle>Zone risk — {data.name}</DialogTitle>
+            </DialogHeader>
+            <div className='flex flex-col gap-3'>
+                <HazardHero data={data} />
+                <ZoneBreakdown data={data} />
+            </div>
+        </DialogContent>
+    </Dialog>
+)
+
+/** Opens a single wide modal: current conditions + the 4-hour forecast trend
+ * up top, and the 7-day rainfall record given the full modal width below —
+ * its own horizontally scrollable strip, opening scrolled to the latest hour. */
+const RainfallDetailsTrigger = ({ data }: { data: BarangayRisk }) => (
+    <Dialog>
+        <DialogTrigger
+            render={
+                <Button size='sm' className='gap-1.5 text-xs'>
+                    <BarChart3 className='size-3.5' />
+                    Details
+                </Button>
+            }
+        />
+        <DialogContent className='max-h-[85vh] overflow-y-auto sm:max-w-5xl'>
+            <DialogHeader>
+                <DialogTitle>Rainfall — {data.name}</DialogTitle>
+            </DialogHeader>
+            <div className='grid grid-cols-1 items-stretch gap-4 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1.4fr)]'>
+                <div className='flex flex-col gap-3'>
+                    <Conditions data={data} />
+                    <RainfallTrend data={data} />
+                </div>
+                <div className='flex flex-col sm:border-l sm:pl-4'>
+                    <RainfallHistory barangayId={data.id} />
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
+)
 
 /** Operator-only actions for the selected barangay: broadcast, audit history,
  * and declaring an evacuation (or a link into one already active). */
@@ -418,11 +555,9 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
 
 const PanelBody = ({ data }: { data: BarangayRisk }) => (
     <div className='flex flex-col gap-3'>
-        <HazardHero data={data} />
-        <ZoneBreakdown data={data} />
-        <Conditions data={data} />
-        <RainfallTrend data={data} />
-        <RecentFloods id={data.id} />
+        <HazardHero data={data} action={<ZoneRiskTrigger data={data} />} />
+        <Conditions data={data} action={<RainfallDetailsTrigger data={data} />} />
+        <RainfallAccumulation data={data} />
 
         {(data.computed_at || data.recorded_at) && (
             <div className='text-muted-foreground mt-auto flex flex-col gap-0.5 pt-2 text-center text-xs'>

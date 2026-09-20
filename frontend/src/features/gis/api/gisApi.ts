@@ -4,6 +4,7 @@ import type {
     BarangayRisk,
     HazardZoneCollection,
     HighRiskStreet,
+    RainfallHistoryPoint,
     RiskSnapshot,
     ZoneRiskSnapshot,
 } from '../types/api'
@@ -52,6 +53,19 @@ export const getZoneRiskSnapshot = async (): Promise<ZoneRiskSnapshot> => {
 export const getBarangayHighRiskStreets = async (id: number): Promise<HighRiskStreet[]> => {
     const { data } = await apiClient.get<HighRiskStreet[]>('/api/high-risk-streets/', {
         params: { barangay: id },
+    })
+    return data
+}
+
+/** Rainfall record for a barangay, oldest first — one point per clock hour
+ * (default) or per calendar day (`granularity: 'day'`). */
+export const getRainfallHistory = async (
+    id: number,
+    days = 7,
+    granularity: 'hour' | 'day' = 'hour',
+): Promise<RainfallHistoryPoint[]> => {
+    const { data } = await apiClient.get<RainfallHistoryPoint[]>('/api/rainfall/history/', {
+        params: { barangay: id, days, granularity },
     })
     return data
 }
