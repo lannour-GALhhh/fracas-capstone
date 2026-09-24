@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { RefreshControl, StyleSheet, View } from 'react-native'
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 
 import { ErrorState } from '@/common/components/ErrorState'
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Button, Spinner, Text } from '@/common/ui'
+import { Button, Spinner } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
-import { timeAgo } from '@/common/utils/time'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
@@ -22,10 +22,11 @@ import { BarangayDetailModal } from '../components/BarangayDetailModal'
 import { EvacuationCard } from '../components/EvacuationCard'
 import { HazardCard } from '../components/HazardCard'
 import { StatusHero } from '../components/StatusHero'
+import { StatusSummaryRow } from '../components/StatusSummaryRow'
 import { useHomeBarangay } from '../hooks/useHomeBarangay'
 
-/** How much of the screen the info sheet claims, leaving the rest as open map. */
-const SHEET_MAX_HEIGHT = '58%'
+/** Collapsed (1/5 screen) and dragged-open (near full screen) sheet heights. */
+const SNAP_POINTS = ['20%', '92%']
 
 export function StatusScreen() {
     const theme = useTheme()
@@ -42,6 +43,7 @@ export function StatusScreen() {
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [focus, setFocus] = useState<MapFocus | null>(null)
     const [refreshing, setRefreshing] = useState(false)
+    const sheetRef = useRef<BottomSheet>(null)
 
     // Ask for a location fix the first time the tab opens (foreground-only).
     useEffect(() => {
@@ -88,6 +90,13 @@ export function StatusScreen() {
         if (!feature) return
         const box = geometryBounds(feature.geometry)
         if (box) setFocus({ center: centroidOf(box) })
+    }
+
+    // "View Hazard Detail" opens the barangay breakdown modal on top; collapse
+    // the sheet first so it doesn't fight the modal for the same space.
+    const openBreakdown = (id: number) => {
+        sheetRef.current?.collapse()
+        setSelectedId(id)
     }
 
     const currentEmpty =
@@ -148,6 +157,7 @@ export function StatusScreen() {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 showUser={locStatus === 'granted'}
+                userCoords={coords}
                 interactive
                 fill
                 focus={focus ?? userFocus}
@@ -165,26 +175,32 @@ export function StatusScreen() {
                 </View>
             ) : null}
 
-            <View
-                style={[
-                    styles.sheet,
-                    { backgroundColor: theme.colors.bg, borderColor: theme.colors.border },
-                ]}
+            <BottomSheet
+                ref={sheetRef}
+                snapPoints={SNAP_POINTS}
+                index={0}
+                animateOnMount={false}
+                backgroundStyle={{
+                    backgroundColor: theme.colors.bg,
+                    borderTopLeftRadius: radius.lg,
+                    borderTopRightRadius: radius.lg,
+                }}
+                handleIndicatorStyle={{ backgroundColor: theme.colors.border }}
+                style={styles.sheetShadow}
             >
-                <View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
-                <ScrollView
+                <BottomSheetScrollView
                     contentContainerStyle={styles.sheetBody}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.heading}>
-                        <Text variant="title">Flood status</Text>
-                        {riskMap.computedAt ? (
-                            <Text variant="caption" color="textMuted">
-                                Updated {timeAgo(riskMap.computedAt)}
-                            </Text>
-                        ) : null}
-                    </View>
+                    <StatusSummaryRow
+                        feature={current}
+                        localized={localized.data}
+                        emptyMessage={currentEmpty}
+                        computedAt={riskMap.computedAt}
+                        nearest={nearest}
+                        onExpand={() => sheetRef.current?.expand()}
+                    />
 
                     <StatusHero feature={current} localized={localized.data} emptyMessage={currentEmpty} />
 
@@ -192,7 +208,7 @@ export function StatusScreen() {
                         label="Current location"
                         feature={current}
                         emptyMessage={currentEmpty}
-                        onPress={setSelectedId}
+                        onPress={openBreakdown}
                         onFocus={current ? () => focusOn(current) : undefined}
                     />
                     {locStatus === 'denied' ? (
@@ -204,14 +220,14 @@ export function StatusScreen() {
                             label="Home"
                             feature={home.feature}
                             emptyMessage={homeEmpty}
-                            onPress={setSelectedId}
+                            onPress={openBreakdown}
                             onFocus={home.feature ? () => focusOn(home.feature) : undefined}
                         />
                     ) : null}
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
-                </ScrollView>
-            </View>
+                </BottomSheetScrollView>
+            </BottomSheet>
 
             <BarangayDetailModal barangayId={selectedId} onClose={() => setSelectedId(null)} />
         </View>
@@ -228,29 +244,12 @@ const styles = StyleSheet.create({
         left: spacing.lg,
         right: spacing.lg,
     },
-    sheet: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        maxHeight: SHEET_MAX_HEIGHT,
-        borderTopLeftRadius: radius.lg,
-        borderTopRightRadius: radius.lg,
-        borderWidth: StyleSheet.hairlineWidth,
+    sheetShadow: {
         shadowColor: '#000',
         shadowOpacity: 0.15,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: -4 },
         elevation: 8,
     },
-    grabber: {
-        alignSelf: 'center',
-        width: 36,
-        height: 4,
-        borderRadius: 2,
-        marginTop: spacing.sm,
-        marginBottom: spacing.xs,
-    },
-    heading: { gap: spacing.xs },
     sheetBody: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.lg },
 })
