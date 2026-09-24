@@ -4,10 +4,7 @@ import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useState } from 'react'
 import {
-    KeyboardAvoidingView,
-    Platform,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -15,6 +12,7 @@ import {
     useWindowDimensions,
     type TextInputProps,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useZodForm } from '@/common/hooks/useZodForm'
@@ -84,116 +82,117 @@ export function LoginScreen() {
         <View style={styles.root}>
             <StatusBar style="light" />
 
-            <KeyboardAvoidingView
+            <KeyboardAwareScrollView
                 style={styles.flex}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                contentContainerStyle={styles.scroll}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                bottomOffset={32}
             >
-                <ScrollView
-                    contentContainerStyle={styles.scroll}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                >
-                    <View style={[styles.hero, { height: heroHeight }]}>
-                        <View style={styles.heroCircleTopRight} pointerEvents="none" />
-                        <View style={styles.heroCircleBottom} pointerEvents="none" />
-                        {RAINDROPS.map((drop, i) => (
-                            <View
-                                key={i}
-                                pointerEvents="none"
-                                style={[
-                                    styles.raindrop,
-                                    {
-                                        top: drop.top,
-                                        left: drop.left,
-                                        height: drop.height,
-                                        opacity: drop.opacity,
-                                        transform: [{ rotate: drop.rotate }],
-                                    },
-                                ]}
-                            />
-                        ))}
-                        <Image
-                            source={require('../../../../assets/images/logo-glow.png')}
-                            style={styles.heroImage}
-                            contentFit="contain"
-                            transition={300}
+                <View style={[styles.hero, { height: heroHeight }]}>
+                    <View style={styles.heroCircleTopRight} pointerEvents="none" />
+                    <View style={styles.heroCircleBottom} pointerEvents="none" />
+                    {RAINDROPS.map((drop, i) => (
+                        <View
+                            key={i}
+                            pointerEvents="none"
+                            style={[
+                                styles.raindrop,
+                                {
+                                    top: drop.top,
+                                    left: drop.left,
+                                    height: drop.height,
+                                    opacity: drop.opacity,
+                                    transform: [{ rotate: drop.rotate }],
+                                },
+                            ]}
                         />
-                        <SafeAreaView edges={['top']} style={styles.heroContent}>
-                            <Text style={styles.heroTitle}>FRACAS</Text>
-                        </SafeAreaView>
+                    ))}
+                    <Image
+                        source={require('../../../../assets/images/logo-glow.png')}
+                        style={styles.heroImage}
+                        contentFit="contain"
+                        transition={300}
+                    />
+                    <SafeAreaView edges={['top']} style={styles.heroContent}>
+                        <Text style={styles.heroTitle}>FRACAS</Text>
+                    </SafeAreaView>
+                </View>
+
+                {/* Sheet — the form */}
+                <SafeAreaView edges={['bottom']} style={styles.sheet}>
+                    <Text style={styles.title}>Welcome back</Text>
+
+                    <View style={styles.form}>
+                        <LoginField
+                            label="Phone number"
+                            placeholder="Phone Number"
+                            keyboardType="phone-pad"
+                            autoComplete="tel"
+                            textContentType="telephoneNumber"
+                            value={phone}
+                            onChangeText={setPhone}
+                            onBlur={form.onBlur('phone')}
+                            error={form.fieldError('phone')?.[0]?.message}
+                            icon="call-outline"
+                        />
+
+                        <LoginField
+                            label="Password"
+                            placeholder="Password"
+                            secureTextEntry={!showPassword}
+                            autoComplete="password"
+                            textContentType="password"
+                            value={password}
+                            onChangeText={setPassword}
+                            onBlur={form.onBlur('password')}
+                            error={form.fieldError('password')?.[0]?.message}
+                            icon="lock-closed-outline"
+                            accessory={
+                                <Pressable
+                                    hitSlop={8}
+                                    onPress={() => setShowPassword((v) => !v)}
+                                >
+                                    <Ionicons
+                                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                                        size={20}
+                                        color={C.muted}
+                                    />
+                                </Pressable>
+                            }
+                        />
+
+                        <Pressable hitSlop={8} style={styles.forgotPassword}>
+                            <Text style={styles.forgotPasswordText}>Forgot my password</Text>
+                        </Pressable>
+
+                        {formError ? (
+                            <Text style={styles.formError}>{formError}</Text>
+                        ) : null}
+
+                        <Pressable
+                            onPress={onSubmit}
+                            disabled={submitting}
+                            style={({ pressed }) => [
+                                styles.submit,
+                                (pressed || submitting) && styles.submitDim,
+                            ]}
+                        >
+                            <Text style={styles.submitText}>
+                                {submitting ? 'Logging in...' : 'Log In to Fracas'}
+                            </Text>
+                        </Pressable>
                     </View>
 
-                    {/* Sheet — the form */}
-                    <SafeAreaView edges={['bottom']} style={styles.sheet}>
-                        <Text style={styles.title}>Welcome back</Text>
-
-                        <View style={styles.form}>
-                            <LoginField
-                                label="Phone number"
-                                placeholder="Phone Number"
-                                keyboardType="phone-pad"
-                                autoComplete="tel"
-                                textContentType="telephoneNumber"
-                                value={phone}
-                                onChangeText={setPhone}
-                                onBlur={form.onBlur('phone')}
-                                error={form.fieldError('phone')?.[0]?.message}
-                                icon="call-outline"
-                            />
-
-                            <LoginField
-                                label="Password"
-                                placeholder="Password"
-                                secureTextEntry={!showPassword}
-                                autoComplete="password"
-                                textContentType="password"
-                                value={password}
-                                onChangeText={setPassword}
-                                onBlur={form.onBlur('password')}
-                                error={form.fieldError('password')?.[0]?.message}
-                                icon="lock-closed-outline"
-                                accessory={
-                                    <Pressable
-                                        hitSlop={8}
-                                        onPress={() => setShowPassword((v) => !v)}
-                                    >
-                                        <Ionicons
-                                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                                            size={20}
-                                            color={C.muted}
-                                        />
-                                    </Pressable>
-                                }
-                            />
-
-                            {formError ? (
-                                <Text style={styles.formError}>{formError}</Text>
-                            ) : null}
-
-                            <Pressable
-                                onPress={onSubmit}
-                                disabled={submitting}
-                                style={({ pressed }) => [
-                                    styles.submit,
-                                    (pressed || submitting) && styles.submitDim,
-                                ]}
-                            >
-                                <Text style={styles.submitText}>
-                                    {submitting ? 'Logging in...' : 'Log In to Fracas'}
-                                </Text>
-                            </Pressable>
-                        </View>
-
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>New to FRACAS?</Text>
-                            <Pressable hitSlop={8} onPress={() => router.push('/register')}>
-                                <Text style={styles.footerLink}>Create an account</Text>
-                            </Pressable>
-                        </View>
-                    </SafeAreaView>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>New to FRACAS?</Text>
+                        <Pressable hitSlop={8} onPress={() => router.push('/register')}>
+                            <Text style={styles.footerLink}>Create an account</Text>
+                        </Pressable>
+                    </View>
+                </SafeAreaView>
+            </KeyboardAwareScrollView>
         </View>
     )
 }
@@ -322,6 +321,9 @@ const styles = StyleSheet.create({
     accessory: { paddingLeft: 10 },
     fieldError: { color: C.danger, fontSize: 13 },
 
+    forgotPassword: { alignSelf: 'flex-end', marginTop: -8 },
+    forgotPasswordText: { color: C.primary, fontSize: 14, fontWeight: '600' },
+
     formError: { color: C.danger, fontSize: 14, textAlign: 'center' },
 
     submit: {
@@ -330,7 +332,7 @@ const styles = StyleSheet.create({
         backgroundColor: C.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 4,
+        marginTop: 20,
         shadowColor: C.primary,
         shadowOpacity: 0.3,
         shadowRadius: 12,
