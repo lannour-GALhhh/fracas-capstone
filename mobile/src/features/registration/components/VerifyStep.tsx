@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
-import { spacing, useTheme } from '@/common/theme'
-import { Button, Checkbox, Field, GradientButton, Text } from '@/common/ui'
+import { AuthButton, AuthLinkButton } from '@/features/auth/components/AuthButton'
+import { AuthField } from '@/features/auth/components/AuthField'
+import { authColors as C } from '@/features/auth/theme/colors'
+import { Checkbox } from '@/common/ui'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { LegalModal } from './LegalModal'
@@ -22,7 +24,6 @@ const CODE_PATTERN = /^\d{6}$/
 
 /** Phase 2 — accept both documents + enter the 6-digit OTP. */
 export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props) {
-    const { colors } = useTheme()
     const [code, setCode] = useState('')
     const [acceptedTerms, setAcceptedTerms] = useState(false)
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
@@ -36,15 +37,11 @@ export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props)
     const setAccepted = (id: LegalDocumentId, value: boolean) =>
         (id === 'terms' ? setAcceptedTerms : setAcceptedPrivacy)(value)
 
-    const linkStyle = { color: colors.primary, textDecorationLine: 'underline' as const }
-
     return (
         <View style={styles.container}>
-            <Text variant="body" color="textMuted">
-                We sent a 6-digit code to {phone}.
-            </Text>
+            <Text style={styles.intro}>We sent a 6-digit code to {phone}.</Text>
 
-            <Field
+            <AuthField
                 label="Verification code"
                 placeholder="000000"
                 keyboardType="number-pad"
@@ -52,7 +49,8 @@ export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props)
                 value={code}
                 onChangeText={setCode}
                 onBlur={form.onBlur('code')}
-                errors={form.fieldError('code')}
+                error={form.fieldError('code')?.[0]?.message}
+                icon="shield-checkmark-outline"
             />
 
             <View style={styles.consent}>
@@ -64,11 +62,10 @@ export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props)
                         >
                             {/* The nested Text captures the tap, so opening the
                                 document doesn't also toggle the checkbox. */}
-                            <Text variant="body">
+                            <Text style={styles.consentText}>
                                 I have read and accept the{' '}
                                 <Text
-                                    variant="body"
-                                    style={linkStyle}
+                                    style={styles.consentLink}
                                     onPress={() => setReading(id)}
                                     accessibilityRole="link"
                                 >
@@ -78,7 +75,7 @@ export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props)
                             </Text>
                         </Checkbox>
                         {form.fieldError(fieldName[id]) ? (
-                            <Text variant="caption" color="danger">
+                            <Text style={styles.error}>
                                 {form.fieldError(fieldName[id])![0].message}
                             </Text>
                         ) : null}
@@ -86,21 +83,17 @@ export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props)
                 ))}
             </View>
 
-            {error ? (
-                <Text variant="caption" color="danger">
-                    {error}
-                </Text>
-            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             {/* Gated on the code alone, not `form.isValid`: an unticked box must
                 still be able to submit so its error message can surface. */}
-            <GradientButton
+            <AuthButton
                 label="Verify"
                 onPress={submit}
                 loading={pending}
                 disabled={!CODE_PATTERN.test(code)}
             />
-            <Button label="Resend code" variant="ghost" onPress={onResend} disabled={pending} />
+            <AuthLinkButton label="Resend code" onPress={onResend} disabled={pending} />
 
             <LegalModal
                 document={reading ? LEGAL_DOCUMENTS[reading] : null}
@@ -122,7 +115,11 @@ const fieldName: Record<LegalDocumentId, string> = {
 }
 
 const styles = StyleSheet.create({
-    container: { gap: spacing.lg },
-    consent: { gap: spacing.md },
-    consentItem: { gap: spacing.xs },
+    container: { gap: 18 },
+    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+    consent: { gap: 12 },
+    consentItem: { gap: 4 },
+    consentText: { color: C.text, fontSize: 15, lineHeight: 21 },
+    consentLink: { color: C.primary, textDecorationLine: 'underline' },
+    error: { color: C.danger, fontSize: 13, textAlign: 'center' },
 })

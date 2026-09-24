@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
-import { Field, GradientButton, Text } from '@/common/ui'
+import { AuthButton } from '@/features/auth/components/AuthButton'
+import { AuthField } from '@/features/auth/components/AuthField'
+import { authColors as C } from '@/features/auth/theme/colors'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { AddressPicker } from './AddressPicker'
@@ -27,11 +28,11 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
 
     return (
         <View style={styles.container}>
-            <Text variant="body" color="textMuted">
+            <Text style={styles.intro}>
                 Your phone number is your login and where flood alerts are sent.
             </Text>
 
-            <Field
+            <AuthField
                 label="Phone number"
                 placeholder="09XX XXX XXXX"
                 keyboardType="phone-pad"
@@ -39,20 +40,22 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
                 value={phone}
                 onChangeText={setPhone}
                 onBlur={form.onBlur('phone')}
-                errors={form.fieldError('phone')}
+                error={form.fieldError('phone')?.[0]?.message}
+                icon="call-outline"
             />
 
-            <AddressPicker value={address} onChange={setAddress} disabled={pending} />
+            <AddressPicker
+                value={address}
+                onChange={setAddress}
+                disabled={pending}
+                style={styles.addressCard}
+            />
 
-            {error ? (
-                <Text variant="caption" color="danger">
-                    {error}
-                </Text>
-            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             {/* Gated on a valid number: the OTP send is a real SMS, so don't let
                 a half-typed number spend one. */}
-            <GradientButton
+            <AuthButton
                 label="Send Verification Code"
                 onPress={submit}
                 loading={pending}
@@ -63,5 +66,9 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
 }
 
 const styles = StyleSheet.create({
-    container: { gap: spacing.lg },
+    container: { gap: 18 },
+    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+    error: { color: C.danger, fontSize: 14, textAlign: 'center' },
+    // Softens the shared `Card` to sit inside the borderless auth sheet.
+    addressCard: { backgroundColor: C.inputBg, borderColor: 'transparent', borderRadius: 20 },
 })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { spacing } from '@/common/theme'
@@ -15,6 +15,7 @@ interface Props {
     value: RegistrationAddress
     onChange: (address: RegistrationAddress) => void
     disabled?: boolean
+    style?: StyleProp<ViewStyle>
 }
 
 type Mode = 'idle' | 'choosing'
@@ -26,7 +27,7 @@ type Mode = 'idle' | 'choosing'
  * detected barangay is shown for the resident to confirm, plus an optional
  * unit/house field — and can be cleared to return to the two method buttons.
  */
-export function AddressPicker({ value, onChange, disabled }: Props) {
+export function AddressPicker({ value, onChange, disabled, style }: Props) {
     const { request } = useCurrentLocation()
     const [mode, setMode] = useState<Mode>('idle')
     const [busy, setBusy] = useState(false)
@@ -78,7 +79,7 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
     }
 
     return (
-        <Card style={styles.card}>
+        <Card style={[styles.card, style]}>
             <Text variant="label" color="textMuted">
                 Permanent address
             </Text>

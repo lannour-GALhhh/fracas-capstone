@@ -1,60 +1,23 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useState } from 'react'
-import {
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    useWindowDimensions,
-    type TextInputProps,
-} from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { normalizePhone } from '@/common/utils/phone'
 
+import { AuthField } from '../components/AuthField'
+import { AuthHero } from '../components/AuthHero'
 import { useAuth } from '../context/useAuth'
 import { loginSchema } from '../schemas/loginSchema'
-
-/** Sparse decorative "rain" strokes scattered across the hero — minimal lines, not drop shapes. */
-const RAINDROPS: Array<{
-    top: `${number}%`
-    left: `${number}%`
-    height: number
-    rotate: string
-    opacity: number
-}> = [
-    { top: '18%', left: '14%', height: 16, rotate: '12deg', opacity: 0.3 },
-    { top: '30%', left: '84%', height: 20, rotate: '10deg', opacity: 0.22 },
-    { top: '64%', left: '22%', height: 14, rotate: '15deg', opacity: 0.18 },
-    { top: '72%', left: '70%', height: 18, rotate: '8deg', opacity: 0.25 },
-    { top: '48%', left: '50%', height: 12, rotate: '14deg', opacity: 0.15 },
-]
-
-
-const C = {
-    hero: '#208AEF',
-    heroDeep: '#0F63C4',
-    sheet: '#ffffff',
-    text: '#0F1622',
-    muted: '#6B7280',
-    border: '#E3E8EF',
-    inputBg: '#F4F7FB',
-    primary: '#208AEF',
-    onPrimary: '#ffffff',
-    danger: '#D14343',
-    onHero: '#EAF3FF',
-}
+import { authColors as C } from '../theme/colors'
 
 export function LoginScreen() {
     const router = useRouter()
     const { login } = useAuth()
-    const { height } = useWindowDimensions()
 
     const [phone, setPhone] = useState('')
     const [password, setPassword] = useState('')
@@ -76,8 +39,6 @@ export function LoginScreen() {
         }
     })
 
-    const heroHeight = Math.round(height * 0.4)
-
     return (
         <View style={styles.root}>
             <StatusBar style="light" />
@@ -90,42 +51,14 @@ export function LoginScreen() {
                 bounces={false}
                 bottomOffset={32}
             >
-                <View style={[styles.hero, { height: heroHeight }]}>
-                    <View style={styles.heroCircleTopRight} pointerEvents="none" />
-                    <View style={styles.heroCircleBottom} pointerEvents="none" />
-                    {RAINDROPS.map((drop, i) => (
-                        <View
-                            key={i}
-                            pointerEvents="none"
-                            style={[
-                                styles.raindrop,
-                                {
-                                    top: drop.top,
-                                    left: drop.left,
-                                    height: drop.height,
-                                    opacity: drop.opacity,
-                                    transform: [{ rotate: drop.rotate }],
-                                },
-                            ]}
-                        />
-                    ))}
-                    <Image
-                        source={require('../../../../assets/images/logo-glow.png')}
-                        style={styles.heroImage}
-                        contentFit="contain"
-                        transition={300}
-                    />
-                    <SafeAreaView edges={['top']} style={styles.heroContent}>
-                        <Text style={styles.heroTitle}>FRACAS</Text>
-                    </SafeAreaView>
-                </View>
+                <AuthHero heightRatio={0.4} />
 
                 {/* Sheet — the form */}
                 <SafeAreaView edges={['bottom']} style={styles.sheet}>
                     <Text style={styles.title}>Welcome back</Text>
 
                     <View style={styles.form}>
-                        <LoginField
+                        <AuthField
                             label="Phone number"
                             placeholder="Phone Number"
                             keyboardType="phone-pad"
@@ -138,7 +71,7 @@ export function LoginScreen() {
                             icon="call-outline"
                         />
 
-                        <LoginField
+                        <AuthField
                             label="Password"
                             placeholder="Password"
                             secureTextEntry={!showPassword}
@@ -197,85 +130,10 @@ export function LoginScreen() {
     )
 }
 
-interface FieldProps extends TextInputProps {
-    label: string
-    error?: string
-    icon: keyof typeof Ionicons.glyphMap
-    accessory?: React.ReactNode
-}
-
-function LoginField({ label, error, icon, accessory, style, ...inputProps }: FieldProps) {
-    return (
-        <View style={styles.field}>
-            <View style={[styles.inputWrap, !!error && styles.inputWrapError]}>
-                <Ionicons name={icon} size={20} color={C.muted} style={styles.inputIcon} />
-                <TextInput
-                    style={[styles.input, style]}
-                    placeholderTextColor={C.muted}
-                    accessibilityLabel={label}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    {...inputProps}
-                />
-                {accessory ? <View style={styles.accessory}>{accessory}</View> : null}
-            </View>
-            {error ? <Text style={styles.fieldError}>{error}</Text> : null}
-        </View>
-    )
-}
-
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.sheet },
     flex: { flex: 1 },
     scroll: { flexGrow: 1, backgroundColor: C.hero },
-
-    hero: {
-        backgroundColor: C.hero,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    heroImage: {
-        position: 'absolute',
-        width: '78%',
-        height: '78%',
-        opacity: 0.9,
-    },
-    heroCircleTopRight: {
-        position: 'absolute',
-        top: -55,
-        right: -55,
-        width: 160,
-        height: 160,
-        borderRadius: 80,
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    heroCircleBottom: {
-        position: 'absolute',
-        bottom: -95,
-        left: -55,
-        width: 230,
-        height: 230,
-        borderRadius: 115,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    raindrop: {
-        position: 'absolute',
-        width: 2,
-        borderRadius: 1,
-        backgroundColor: '#ffffff',
-    },
-    heroContent: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-    },
-    heroTitle: {
-        color: '#ffffff',
-        fontSize: 40,
-        fontWeight: '800',
-        letterSpacing: 1,
-    },
 
     sheet: {
         flexGrow: 1,
@@ -287,39 +145,10 @@ const styles = StyleSheet.create({
         paddingTop: 40,
         paddingBottom: 16,
     },
-    grabber: {
-        alignSelf: 'center',
-        width: 44,
-        height: 5,
-        borderRadius: 999,
-        backgroundColor: C.border,
-        marginBottom: 20,
-    },
 
     title: { color: C.text, fontSize: 26, fontWeight: '700', textAlign: 'center' },
 
     form: { marginTop: 24, gap: 18 },
-
-    field: { gap: 8 },
-    inputWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: C.inputBg,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: 'transparent',
-        paddingHorizontal: 18,
-    },
-    inputWrapError: { borderColor: C.danger },
-    inputIcon: { marginRight: 10 },
-    input: {
-        flex: 1,
-        minHeight: 56,
-        fontSize: 18,
-        color: C.text,
-    },
-    accessory: { paddingLeft: 10 },
-    fieldError: { color: C.danger, fontSize: 13 },
 
     forgotPassword: { alignSelf: 'flex-end', marginTop: -8 },
     forgotPasswordText: { color: C.primary, fontSize: 14, fontWeight: '600' },

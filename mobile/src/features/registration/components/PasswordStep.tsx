@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
-import { Field, GradientButton, Text } from '@/common/ui'
+import { AuthButton } from '@/features/auth/components/AuthButton'
+import { AuthField } from '@/features/auth/components/AuthField'
+import { authColors as C } from '@/features/auth/theme/colors'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { passwordSchema } from '../schemas'
@@ -17,46 +19,64 @@ interface Props {
 export function PasswordStep({ pending, error, onSubmit }: Props) {
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirm, setShowConfirm] = useState(false)
     const form = useZodForm(passwordSchema, { password, confirm })
 
     const submit = form.handleSubmit((values) => onSubmit(values.password))
 
     return (
         <View style={styles.container}>
-            <Text variant="body" color="textMuted">
-                Choose a password to finish setting up your account.
-            </Text>
+            <Text style={styles.intro}>Choose a password to finish setting up your account.</Text>
 
-            <Field
+            <AuthField
                 label="Password"
                 placeholder="At least 6 characters"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
                 onBlur={form.onBlur('password')}
-                errors={form.fieldError('password')}
+                error={form.fieldError('password')?.[0]?.message}
+                icon="lock-closed-outline"
+                accessory={
+                    <Pressable hitSlop={8} onPress={() => setShowPassword((v) => !v)}>
+                        <Ionicons
+                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={C.muted}
+                        />
+                    </Pressable>
+                }
             />
-            <Field
+            <AuthField
                 label="Confirm password"
                 placeholder="Re-enter your password"
-                secureTextEntry
+                secureTextEntry={!showConfirm}
                 value={confirm}
                 onChangeText={setConfirm}
                 onBlur={form.onBlur('confirm')}
-                errors={form.fieldError('confirm')}
+                error={form.fieldError('confirm')?.[0]?.message}
+                icon="lock-closed-outline"
+                accessory={
+                    <Pressable hitSlop={8} onPress={() => setShowConfirm((v) => !v)}>
+                        <Ionicons
+                            name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={C.muted}
+                        />
+                    </Pressable>
+                }
             />
 
-            {error ? (
-                <Text variant="caption" color="danger">
-                    {error}
-                </Text>
-            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <GradientButton label="Get Started!" onPress={submit} loading={pending} />
+            <AuthButton label="Get Started!" onPress={submit} loading={pending} />
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: { gap: spacing.lg },
+    container: { gap: 18 },
+    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+    error: { color: C.danger, fontSize: 14, textAlign: 'center' },
 })
