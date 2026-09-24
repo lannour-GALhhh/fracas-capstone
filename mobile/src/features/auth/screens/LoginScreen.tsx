@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
@@ -22,12 +23,22 @@ import { normalizePhone } from '@/common/utils/phone'
 import { useAuth } from '../context/useAuth'
 import { loginSchema } from '../schemas/loginSchema'
 
-/**
- * Bespoke, light-mode login built for mobile: a branded hero fills the top half,
- * a rounded white sheet carries the phone + password form on the bottom half.
- * Colors are hardcoded light (not theme-driven) so the sign-in surface reads the
- * same regardless of the device's dark/light setting.
- */
+/** Sparse decorative "rain" strokes scattered across the hero — minimal lines, not drop shapes. */
+const RAINDROPS: Array<{
+    top: `${number}%`
+    left: `${number}%`
+    height: number
+    rotate: string
+    opacity: number
+}> = [
+    { top: '18%', left: '14%', height: 16, rotate: '12deg', opacity: 0.3 },
+    { top: '30%', left: '84%', height: 20, rotate: '10deg', opacity: 0.22 },
+    { top: '64%', left: '22%', height: 14, rotate: '15deg', opacity: 0.18 },
+    { top: '72%', left: '70%', height: 18, rotate: '8deg', opacity: 0.25 },
+    { top: '48%', left: '50%', height: 12, rotate: '14deg', opacity: 0.15 },
+]
+
+
 const C = {
     hero: '#208AEF',
     heroDeep: '#0F63C4',
@@ -60,7 +71,6 @@ export function LoginScreen() {
         setFormError(null)
         try {
             await login({ username: normalizePhone(values.phone)!, password: values.password })
-            // Auth state flips → the (auth) layout guard redirects into the app.
         } catch {
             setFormError('Incorrect phone number or password.')
         } finally {
@@ -68,8 +78,7 @@ export function LoginScreen() {
         }
     })
 
-    // Hero takes ~46% of the screen; the sheet overlaps it by 28px for the curve.
-    const heroHeight = Math.round(height * 0.46)
+    const heroHeight = Math.round(height * 0.4)
 
     return (
         <View style={styles.root}>
@@ -85,8 +94,25 @@ export function LoginScreen() {
                     showsVerticalScrollIndicator={false}
                     bounces={false}
                 >
-                    {/* Hero — placeholder image + brand mark */}
                     <View style={[styles.hero, { height: heroHeight }]}>
+                        <View style={styles.heroCircleTopRight} pointerEvents="none" />
+                        <View style={styles.heroCircleBottom} pointerEvents="none" />
+                        {RAINDROPS.map((drop, i) => (
+                            <View
+                                key={i}
+                                pointerEvents="none"
+                                style={[
+                                    styles.raindrop,
+                                    {
+                                        top: drop.top,
+                                        left: drop.left,
+                                        height: drop.height,
+                                        opacity: drop.opacity,
+                                        transform: [{ rotate: drop.rotate }],
+                                    },
+                                ]}
+                            />
+                        ))}
                         <Image
                             source={require('../../../../assets/images/logo-glow.png')}
                             style={styles.heroImage}
@@ -94,29 +120,18 @@ export function LoginScreen() {
                             transition={300}
                         />
                         <SafeAreaView edges={['top']} style={styles.heroContent}>
-                            <View style={styles.heroBadge}>
-                                <Text style={styles.heroBadgeText}>Flood Early-Warning</Text>
-                            </View>
                             <Text style={styles.heroTitle}>FRACAS</Text>
-                            <Text style={styles.heroSubtitle}>
-                                Real-time flood risk for your barangay
-                            </Text>
                         </SafeAreaView>
                     </View>
 
                     {/* Sheet — the form */}
                     <SafeAreaView edges={['bottom']} style={styles.sheet}>
-                        <View style={styles.grabber} />
-
                         <Text style={styles.title}>Welcome back</Text>
-                        <Text style={styles.subtitle}>
-                            Sign in with your registered phone number.
-                        </Text>
 
                         <View style={styles.form}>
                             <LoginField
                                 label="Phone number"
-                                placeholder="09XX XXX XXXX"
+                                placeholder="Phone Number"
                                 keyboardType="phone-pad"
                                 autoComplete="tel"
                                 textContentType="telephoneNumber"
@@ -124,11 +139,12 @@ export function LoginScreen() {
                                 onChangeText={setPhone}
                                 onBlur={form.onBlur('phone')}
                                 error={form.fieldError('phone')?.[0]?.message}
+                                icon="call-outline"
                             />
 
                             <LoginField
                                 label="Password"
-                                placeholder="Your password"
+                                placeholder="Password"
                                 secureTextEntry={!showPassword}
                                 autoComplete="password"
                                 textContentType="password"
@@ -136,14 +152,17 @@ export function LoginScreen() {
                                 onChangeText={setPassword}
                                 onBlur={form.onBlur('password')}
                                 error={form.fieldError('password')?.[0]?.message}
+                                icon="lock-closed-outline"
                                 accessory={
                                     <Pressable
                                         hitSlop={8}
                                         onPress={() => setShowPassword((v) => !v)}
                                     >
-                                        <Text style={styles.accessoryText}>
-                                            {showPassword ? 'Hide' : 'Show'}
-                                        </Text>
+                                        <Ionicons
+                                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                                            size={20}
+                                            color={C.muted}
+                                        />
                                     </Pressable>
                                 }
                             />
@@ -161,7 +180,7 @@ export function LoginScreen() {
                                 ]}
                             >
                                 <Text style={styles.submitText}>
-                                    {submitting ? 'Signing in…' : 'Sign in'}
+                                    {submitting ? 'Logging in...' : 'Log In to Fracas'}
                                 </Text>
                             </Pressable>
                         </View>
@@ -182,18 +201,19 @@ export function LoginScreen() {
 interface FieldProps extends TextInputProps {
     label: string
     error?: string
+    icon: keyof typeof Ionicons.glyphMap
     accessory?: React.ReactNode
 }
 
-/** Light-mode labeled input with an optional right-side accessory (e.g. show/hide). */
-function LoginField({ label, error, accessory, style, ...inputProps }: FieldProps) {
+function LoginField({ label, error, icon, accessory, style, ...inputProps }: FieldProps) {
     return (
         <View style={styles.field}>
-            <Text style={styles.label}>{label}</Text>
             <View style={[styles.inputWrap, !!error && styles.inputWrapError]}>
+                <Ionicons name={icon} size={20} color={C.muted} style={styles.inputIcon} />
                 <TextInput
                     style={[styles.input, style]}
                     placeholderTextColor={C.muted}
+                    accessibilityLabel={label}
                     autoCapitalize="none"
                     autoCorrect={false}
                     {...inputProps}
@@ -222,23 +242,34 @@ const styles = StyleSheet.create({
         height: '78%',
         opacity: 0.9,
     },
+    heroCircleTopRight: {
+        position: 'absolute',
+        top: -55,
+        right: -55,
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    heroCircleBottom: {
+        position: 'absolute',
+        bottom: -95,
+        left: -55,
+        width: 230,
+        height: 230,
+        borderRadius: 115,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    raindrop: {
+        position: 'absolute',
+        width: 2,
+        borderRadius: 1,
+        backgroundColor: '#ffffff',
+    },
     heroContent: {
         alignItems: 'center',
+        justifyContent: 'center',
         paddingHorizontal: 24,
-        paddingTop: 8,
-    },
-    heroBadge: {
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 999,
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        marginBottom: 14,
-    },
-    heroBadgeText: {
-        color: C.onHero,
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 0.3,
     },
     heroTitle: {
         color: '#ffffff',
@@ -246,21 +277,15 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: 1,
     },
-    heroSubtitle: {
-        color: C.onHero,
-        fontSize: 14,
-        marginTop: 4,
-        textAlign: 'center',
-    },
 
     sheet: {
         flexGrow: 1,
         backgroundColor: C.sheet,
-        marginTop: -28,
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
+        marginTop: -36,
+        borderTopLeftRadius: 44,
+        borderTopRightRadius: 44,
         paddingHorizontal: 24,
-        paddingTop: 12,
+        paddingTop: 40,
         paddingBottom: 16,
     },
     grabber: {
@@ -272,38 +297,36 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 
-    title: { color: C.text, fontSize: 24, fontWeight: '700' },
-    subtitle: { color: C.muted, fontSize: 14, marginTop: 4 },
+    title: { color: C.text, fontSize: 26, fontWeight: '700', textAlign: 'center' },
 
-    form: { marginTop: 24, gap: 16 },
+    form: { marginTop: 24, gap: 18 },
 
-    field: { gap: 7 },
-    label: { color: C.text, fontSize: 13, fontWeight: '600' },
+    field: { gap: 8 },
     inputWrap: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: C.inputBg,
-        borderWidth: 1,
-        borderColor: C.border,
-        borderRadius: 12,
-        paddingHorizontal: 14,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+        paddingHorizontal: 18,
     },
     inputWrapError: { borderColor: C.danger },
+    inputIcon: { marginRight: 10 },
     input: {
         flex: 1,
-        minHeight: 52,
-        fontSize: 16,
+        minHeight: 56,
+        fontSize: 18,
         color: C.text,
     },
     accessory: { paddingLeft: 10 },
-    accessoryText: { color: C.primary, fontSize: 13, fontWeight: '600' },
-    fieldError: { color: C.danger, fontSize: 12 },
+    fieldError: { color: C.danger, fontSize: 13 },
 
-    formError: { color: C.danger, fontSize: 13, textAlign: 'center' },
+    formError: { color: C.danger, fontSize: 14, textAlign: 'center' },
 
     submit: {
-        minHeight: 54,
-        borderRadius: 14,
+        minHeight: 56,
+        borderRadius: 28,
         backgroundColor: C.primary,
         alignItems: 'center',
         justifyContent: 'center',
@@ -315,16 +338,15 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     submitDim: { opacity: 0.65 },
-    submitText: { color: C.onPrimary, fontSize: 16, fontWeight: '700' },
+    submitText: { color: C.onPrimary, fontSize: 18, fontWeight: '700' },
 
     footer: {
-        marginTop: 'auto',
         paddingTop: 24,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 6,
     },
-    footerText: { color: C.muted, fontSize: 14 },
-    footerLink: { color: C.primary, fontSize: 14, fontWeight: '700' },
+    footerText: { color: C.muted, fontSize: 15 },
+    footerLink: { color: C.primary, fontSize: 15, fontWeight: '700' },
 })
