@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { NativeSyntheticEvent } from 'react-native'
 import {
     Camera,
@@ -12,7 +12,6 @@ import {
 } from '@maplibre/maplibre-react-native'
 
 import { useTheme } from '@/common/theme'
-import { Icon } from '@/common/ui'
 
 import { MAP_CENTER, MAP_PADDING, MAP_ZOOM, mapStyleFor } from '../constants/mapStyle'
 import { fillColorExpression } from '../constants/risk'
@@ -30,11 +29,9 @@ interface Props {
     onSelect: (id: number | null) => void
     /** Show the blue GPS dot (only once location permission is granted). */
     showUser: boolean
-    /** Allow pan/zoom gestures. Off on the status card (a fixed overview), on in the expanded view. */
+    /** Allow pan/zoom gestures. Off for a fixed overview, on for an explorable map. */
     interactive?: boolean
-    /** When set, renders an expand affordance that opens the draggable full map. */
-    onExpand?: () => void
-    /** Fill the parent instead of the fixed preview height (used by the expanded view). */
+    /** Fill the parent instead of the fixed preview height. */
     fill?: boolean
     /**
      * Recenter the camera on this point. A fresh object flies the map there — used
@@ -71,11 +68,10 @@ export function RiskMap({
     onSelect,
     showUser,
     interactive = true,
-    onExpand,
     fill = false,
     focus = null,
 }: Props) {
-    const { colors, scheme } = useTheme()
+    const { scheme } = useTheme()
     const cameraRef = useRef<CameraRef>(null)
     const [loaded, setLoaded] = useState(false)
     const fittedRef = useRef(false)
@@ -168,22 +164,6 @@ export function RiskMap({
 
                 {showUser ? <UserLocation animated /> : null}
             </Map>
-
-            {onExpand ? (
-                <Pressable
-                    onPress={onExpand}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Expand map"
-                    style={({ pressed }) => [
-                        styles.expand,
-                        { backgroundColor: colors.bg, borderColor: colors.border },
-                        pressed && styles.pressed,
-                    ]}
-                >
-                    <Icon name="expand-outline" size={18} color={colors.text} />
-                </Pressable>
-            ) : null}
         </View>
     )
 }
@@ -193,16 +173,4 @@ const styles = StyleSheet.create({
     preview: { height: 280 },
     fill: { flex: 1, borderRadius: 0 },
     map: { flex: 1 },
-    expand: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        width: 38,
-        height: 38,
-        borderRadius: 10,
-        borderWidth: StyleSheet.hairlineWidth,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    pressed: { opacity: 0.6 },
 })

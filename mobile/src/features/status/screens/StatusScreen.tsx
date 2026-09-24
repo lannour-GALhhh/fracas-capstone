@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ErrorState } from '@/common/components/ErrorState'
-import { spacing, useTheme } from '@/common/theme'
+import { radius, spacing, useTheme } from '@/common/theme'
 import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
@@ -22,9 +21,11 @@ import type { RiskFeature } from '@/features/gis/types'
 import { BarangayDetailModal } from '../components/BarangayDetailModal'
 import { EvacuationCard } from '../components/EvacuationCard'
 import { HazardCard } from '../components/HazardCard'
-import { MapModal } from '../components/MapModal'
 import { StatusHero } from '../components/StatusHero'
 import { useHomeBarangay } from '../hooks/useHomeBarangay'
+
+/** How much of the screen the info sheet claims, leaving the rest as open map. */
+const SHEET_MAX_HEIGHT = '58%'
 
 export function StatusScreen() {
     const theme = useTheme()
@@ -39,7 +40,6 @@ export function StatusScreen() {
     useAutoSubscribeHome()
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
-    const [mapExpanded, setMapExpanded] = useState(false)
     const [focus, setFocus] = useState<MapFocus | null>(null)
     const [refreshing, setRefreshing] = useState(false)
 
@@ -75,15 +75,15 @@ export function StatusScreen() {
     const homeIsCurrent =
         current != null && home.feature != null && current.properties.id === home.feature.properties.id
 
-    // The resident's general location, used to open the expanded map centered.
-    // Memoized so re-renders don't feed the expanded map a fresh object and yank
-    // its camera back after the resident has panned away.
+    // Default framing: the resident's location once we have a fix (falls back to
+    // the whole-city view built into RiskMap). A card's "center map here" button
+    // overrides this until the coords change again.
     const userFocus = useMemo<MapFocus | null>(
         () => (coords ? { center: [coords.lng, coords.lat] } : null),
         [coords],
     )
 
-    // Recenter the locked status map on a card's barangay (fresh object each tap).
+    // Recenter the map on a card's barangay (fresh object each tap).
     const focusOn = (feature: RiskFeature | null) => {
         if (!feature) return
         const box = geometryBounds(feature.geometry)
@@ -119,31 +119,64 @@ export function StatusScreen() {
         setRefreshing(false)
     }
 
-    return (
-        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
-            {riskMap.isLoading ? (
+    if (riskMap.isLoading) {
+        return (
+            <View style={[styles.flex, styles.center, { backgroundColor: theme.colors.bg }]}>
                 <Spinner />
-            ) : riskMap.isError ? (
+            </View>
+        )
+    }
+
+    if (riskMap.isError) {
+        return (
+            <View style={[styles.flex, styles.errorPad, { backgroundColor: theme.colors.bg }]}>
                 <ErrorState
                     title="Can't load flood status"
                     message="We couldn't reach the flood service. Check your connection and try again."
                     onRetry={riskMap.refetch}
                 />
-            ) : (
-                <ScrollView
-                    contentContainerStyle={styles.body}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                >
-                    {homeEvac ? (
-                        <EvacuationBanner
-                            evacuation={homeEvac}
-                            nearest={nearest}
-                            onMarkSafe={reporter.markSafe}
-                            isReporting={reporter.isReporting}
-                            locationEnabled={locStatus === 'granted'}
-                        />
-                    ) : null}
+            </View>
+        )
+    }
 
+    return (
+        <View style={styles.flex}>
+            {/* The map is the screen — everything else floats on top of it. */}
+            <RiskMap
+                data={riskMap.features}
+                centers={centers.data}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                showUser={locStatus === 'granted'}
+                interactive
+                fill
+                focus={focus ?? userFocus}
+            />
+
+            {homeEvac ? (
+                <View style={styles.bannerOverlay} pointerEvents="box-none">
+                    <EvacuationBanner
+                        evacuation={homeEvac}
+                        nearest={nearest}
+                        onMarkSafe={reporter.markSafe}
+                        isReporting={reporter.isReporting}
+                        locationEnabled={locStatus === 'granted'}
+                    />
+                </View>
+            ) : null}
+
+            <View
+                style={[
+                    styles.sheet,
+                    { backgroundColor: theme.colors.bg, borderColor: theme.colors.border },
+                ]}
+            >
+                <View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
+                <ScrollView
+                    contentContainerStyle={styles.sheetBody}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    showsVerticalScrollIndicator={false}
+                >
                     <View style={styles.heading}>
                         <Text variant="title">Flood status</Text>
                         {riskMap.computedAt ? (
@@ -154,17 +187,6 @@ export function StatusScreen() {
                     </View>
 
                     <StatusHero feature={current} localized={localized.data} emptyMessage={currentEmpty} />
-
-                    <RiskMap
-                        data={riskMap.features}
-                        centers={centers.data}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        showUser={locStatus === 'granted'}
-                        interactive={false}
-                        onExpand={() => setMapExpanded(true)}
-                        focus={focus}
-                    />
 
                     <HazardCard
                         label="Current location"
@@ -189,24 +211,46 @@ export function StatusScreen() {
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
                 </ScrollView>
-            )}
-
-            <MapModal
-                visible={mapExpanded}
-                onClose={() => setMapExpanded(false)}
-                data={riskMap.features}
-                centers={centers.data}
-                showUser={locStatus === 'granted'}
-                focus={userFocus}
-            />
+            </View>
 
             <BarangayDetailModal barangayId={selectedId} onClose={() => setSelectedId(null)} />
-        </SafeAreaView>
+        </View>
     )
 }
 
 const styles = StyleSheet.create({
     flex: { flex: 1 },
-    body: { padding: spacing.lg, gap: spacing.lg },
+    center: { alignItems: 'center', justifyContent: 'center' },
+    errorPad: { padding: spacing.lg },
+    bannerOverlay: {
+        position: 'absolute',
+        top: spacing.lg,
+        left: spacing.lg,
+        right: spacing.lg,
+    },
+    sheet: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        maxHeight: SHEET_MAX_HEIGHT,
+        borderTopLeftRadius: radius.lg,
+        borderTopRightRadius: radius.lg,
+        borderWidth: StyleSheet.hairlineWidth,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -4 },
+        elevation: 8,
+    },
+    grabber: {
+        alignSelf: 'center',
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        marginTop: spacing.sm,
+        marginBottom: spacing.xs,
+    },
     heading: { gap: spacing.xs },
+    sheetBody: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.lg },
 })
