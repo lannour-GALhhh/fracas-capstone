@@ -1,11 +1,10 @@
 import { Redirect, type Href } from 'expo-router'
 import { Drawer } from 'expo-router/drawer'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Icon, type IconName, Spinner, Text } from '@/common/ui'
+import { Icon, Spinner, Text } from '@/common/ui'
 import { goBack } from '@/common/utils/navigation'
-import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
@@ -19,30 +18,6 @@ export default function AppLayout() {
     if (!isAuthenticated) return <Redirect href="/login" />
 
     return <SignedInDrawer />
-}
-
-/** A bare icon header button (hamburger). */
-function HeaderButton({
-    icon,
-    onPress,
-    label,
-}: {
-    icon: IconName
-    onPress: () => void
-    label: string
-}) {
-    const theme = useTheme()
-    return (
-        <Pressable
-            onPress={onPress}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={label}
-            style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.5 }]}
-        >
-            <Icon name={icon} size={24} color={theme.colors.text} />
-        </Pressable>
-    )
 }
 
 /**
@@ -95,7 +70,7 @@ function SignedInDrawer() {
     return (
         <Drawer
             drawerContent={(props) => <AppDrawerContent {...props} />}
-            screenOptions={({ navigation }) => ({
+            screenOptions={{
                 headerTitle: '',
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: theme.colors.bg },
@@ -103,28 +78,12 @@ function SignedInDrawer() {
                 sceneStyle: { backgroundColor: theme.colors.bg },
                 drawerType: 'front',
                 swipeEdgeWidth: 64,
-                headerLeft: () => (
-                    <HeaderButton
-                        icon="menu"
-                        label="Open menu"
-                        onPress={() => navigation.openDrawer()}
-                    />
-                ),
-            })}
+            }}
         >
-            <Drawer.Screen
-                name="status"
-                options={{
-                    headerRight: () => (
-                        <View style={styles.headerRight}>
-                            <NotificationBell />
-                        </View>
-                    ),
-                }}
-            />
-            <Drawer.Screen name="account" />
-            <Drawer.Screen name="toolkit" />
-            <Drawer.Screen name="alerts" options={secondary('/status')} />
+            {/* The bottom-tab group (GIS, Notifications, Toolkit, Me) draws its own
+                header — including the hamburger that opens this drawer — so it opts
+                out of the one above. */}
+            <Drawer.Screen name="(tabs)" options={{ headerShown: false }} />
             <Drawer.Screen name="notification-settings" options={secondary('/account')} />
             <Drawer.Screen name="edit-profile" options={secondary('/account')} />
             <Drawer.Screen name="change-password" options={secondary('/account')} />
@@ -133,10 +92,6 @@ function SignedInDrawer() {
 }
 
 const styles = StyleSheet.create({
-    headerBtn: {
-        paddingHorizontal: 16,
-        paddingVertical: 4,
-    },
     backBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -149,7 +104,4 @@ const styles = StyleSheet.create({
         borderRadius: radius.pill,
     },
     pressed: { opacity: 0.6 },
-    headerRight: {
-        marginRight: 12,
-    },
 })

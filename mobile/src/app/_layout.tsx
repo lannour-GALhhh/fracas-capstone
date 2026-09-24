@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { ThemeProvider, useThemeControls } from '@/common/theme'
@@ -16,16 +17,18 @@ import { AuthProvider } from '@/features/auth/context/AuthProvider'
 export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-                <ThemeProvider>
-                    <QueryClientProvider client={queryClient}>
-                        <AuthProvider>
-                            <ThemedStatusBar />
-                            <Slot />
-                        </AuthProvider>
-                    </QueryClientProvider>
-                </ThemeProvider>
-            </SafeAreaProvider>
+            <KeyboardProvider>
+                <SafeAreaProvider>
+                    <ThemeProvider>
+                        <QueryClientProvider client={queryClient}>
+                            <AuthProvider>
+                                <ThemedStatusBar />
+                                <Slot />
+                            </AuthProvider>
+                        </QueryClientProvider>
+                    </ThemeProvider>
+                </SafeAreaProvider>
+            </KeyboardProvider>
         </GestureHandlerRootView>
     )
 }

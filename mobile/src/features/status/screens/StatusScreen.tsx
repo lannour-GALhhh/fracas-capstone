@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { RefreshControl, StyleSheet, View } from 'react-native'
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 
 import { ErrorState } from '@/common/components/ErrorState'
-import { spacing, useTheme } from '@/common/theme'
-import { Button, Spinner, Text } from '@/common/ui'
+import { radius, spacing, useTheme } from '@/common/theme'
+import { Button, Spinner } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
-import { timeAgo } from '@/common/utils/time'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
@@ -22,9 +21,12 @@ import type { RiskFeature } from '@/features/gis/types'
 import { BarangayDetailModal } from '../components/BarangayDetailModal'
 import { EvacuationCard } from '../components/EvacuationCard'
 import { HazardCard } from '../components/HazardCard'
-import { MapModal } from '../components/MapModal'
 import { StatusHero } from '../components/StatusHero'
+import { StatusSummaryRow } from '../components/StatusSummaryRow'
 import { useHomeBarangay } from '../hooks/useHomeBarangay'
+
+/** Collapsed (1/5 screen) and dragged-open (near full screen) sheet heights. */
+const SNAP_POINTS = ['20%', '92%']
 
 export function StatusScreen() {
     const theme = useTheme()
@@ -39,9 +41,9 @@ export function StatusScreen() {
     useAutoSubscribeHome()
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
-    const [mapExpanded, setMapExpanded] = useState(false)
     const [focus, setFocus] = useState<MapFocus | null>(null)
     const [refreshing, setRefreshing] = useState(false)
+    const sheetRef = useRef<BottomSheet>(null)
 
     // Ask for a location fix the first time the tab opens (foreground-only).
     useEffect(() => {
@@ -75,19 +77,26 @@ export function StatusScreen() {
     const homeIsCurrent =
         current != null && home.feature != null && current.properties.id === home.feature.properties.id
 
-    // The resident's general location, used to open the expanded map centered.
-    // Memoized so re-renders don't feed the expanded map a fresh object and yank
-    // its camera back after the resident has panned away.
+    // Default framing: the resident's location once we have a fix (falls back to
+    // the whole-city view built into RiskMap). A card's "center map here" button
+    // overrides this until the coords change again.
     const userFocus = useMemo<MapFocus | null>(
         () => (coords ? { center: [coords.lng, coords.lat] } : null),
         [coords],
     )
 
-    // Recenter the locked status map on a card's barangay (fresh object each tap).
+    // Recenter the map on a card's barangay (fresh object each tap).
     const focusOn = (feature: RiskFeature | null) => {
         if (!feature) return
         const box = geometryBounds(feature.geometry)
         if (box) setFocus({ center: centroidOf(box) })
+    }
+
+    // "View Hazard Detail" opens the barangay breakdown modal on top; collapse
+    // the sheet first so it doesn't fight the modal for the same space.
+    const openBreakdown = (id: number) => {
+        sheetRef.current?.collapse()
+        setSelectedId(id)
     }
 
     const currentEmpty =
@@ -119,58 +128,87 @@ export function StatusScreen() {
         setRefreshing(false)
     }
 
-    return (
-        <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
-            {riskMap.isLoading ? (
+    if (riskMap.isLoading) {
+        return (
+            <View style={[styles.flex, styles.center, { backgroundColor: theme.colors.bg }]}>
                 <Spinner />
-            ) : riskMap.isError ? (
+            </View>
+        )
+    }
+
+    if (riskMap.isError) {
+        return (
+            <View style={[styles.flex, styles.errorPad, { backgroundColor: theme.colors.bg }]}>
                 <ErrorState
                     title="Can't load flood status"
                     message="We couldn't reach the flood service. Check your connection and try again."
                     onRetry={riskMap.refetch}
                 />
-            ) : (
-                <ScrollView
-                    contentContainerStyle={styles.body}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                >
-                    {homeEvac ? (
-                        <EvacuationBanner
-                            evacuation={homeEvac}
-                            nearest={nearest}
-                            onMarkSafe={reporter.markSafe}
-                            isReporting={reporter.isReporting}
-                            locationEnabled={locStatus === 'granted'}
-                        />
-                    ) : null}
+            </View>
+        )
+    }
 
-                    <View style={styles.heading}>
-                        <Text variant="title">Flood status</Text>
-                        {riskMap.computedAt ? (
-                            <Text variant="caption" color="textMuted">
-                                Updated {timeAgo(riskMap.computedAt)}
-                            </Text>
-                        ) : null}
-                    </View>
+    return (
+        <View style={styles.flex}>
+            {/* The map is the screen — everything else floats on top of it. */}
+            <RiskMap
+                data={riskMap.features}
+                centers={centers.data}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                showUser={locStatus === 'granted'}
+                userCoords={coords}
+                interactive
+                fill
+                focus={focus ?? userFocus}
+            />
+
+            {homeEvac ? (
+                <View style={styles.bannerOverlay} pointerEvents="box-none">
+                    <EvacuationBanner
+                        evacuation={homeEvac}
+                        nearest={nearest}
+                        onMarkSafe={reporter.markSafe}
+                        isReporting={reporter.isReporting}
+                        locationEnabled={locStatus === 'granted'}
+                    />
+                </View>
+            ) : null}
+
+            <BottomSheet
+                ref={sheetRef}
+                snapPoints={SNAP_POINTS}
+                index={0}
+                animateOnMount={false}
+                backgroundStyle={{
+                    backgroundColor: theme.colors.bg,
+                    borderTopLeftRadius: radius.lg,
+                    borderTopRightRadius: radius.lg,
+                }}
+                handleIndicatorStyle={{ backgroundColor: theme.colors.border }}
+                style={styles.sheetShadow}
+            >
+                <BottomSheetScrollView
+                    contentContainerStyle={styles.sheetBody}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <StatusSummaryRow
+                        feature={current}
+                        localized={localized.data}
+                        emptyMessage={currentEmpty}
+                        computedAt={riskMap.computedAt}
+                        nearest={nearest}
+                        onExpand={() => sheetRef.current?.expand()}
+                    />
 
                     <StatusHero feature={current} localized={localized.data} emptyMessage={currentEmpty} />
-
-                    <RiskMap
-                        data={riskMap.features}
-                        centers={centers.data}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        showUser={locStatus === 'granted'}
-                        interactive={false}
-                        onExpand={() => setMapExpanded(true)}
-                        focus={focus}
-                    />
 
                     <HazardCard
                         label="Current location"
                         feature={current}
                         emptyMessage={currentEmpty}
-                        onPress={setSelectedId}
+                        onPress={openBreakdown}
                         onFocus={current ? () => focusOn(current) : undefined}
                     />
                     {locStatus === 'denied' ? (
@@ -182,31 +220,36 @@ export function StatusScreen() {
                             label="Home"
                             feature={home.feature}
                             emptyMessage={homeEmpty}
-                            onPress={setSelectedId}
+                            onPress={openBreakdown}
                             onFocus={home.feature ? () => focusOn(home.feature) : undefined}
                         />
                     ) : null}
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
-                </ScrollView>
-            )}
-
-            <MapModal
-                visible={mapExpanded}
-                onClose={() => setMapExpanded(false)}
-                data={riskMap.features}
-                centers={centers.data}
-                showUser={locStatus === 'granted'}
-                focus={userFocus}
-            />
+                </BottomSheetScrollView>
+            </BottomSheet>
 
             <BarangayDetailModal barangayId={selectedId} onClose={() => setSelectedId(null)} />
-        </SafeAreaView>
+        </View>
     )
 }
 
 const styles = StyleSheet.create({
     flex: { flex: 1 },
-    body: { padding: spacing.lg, gap: spacing.lg },
-    heading: { gap: spacing.xs },
+    center: { alignItems: 'center', justifyContent: 'center' },
+    errorPad: { padding: spacing.lg },
+    bannerOverlay: {
+        position: 'absolute',
+        top: spacing.lg,
+        left: spacing.lg,
+        right: spacing.lg,
+    },
+    sheetShadow: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -4 },
+        elevation: 8,
+    },
+    sheetBody: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.lg },
 })

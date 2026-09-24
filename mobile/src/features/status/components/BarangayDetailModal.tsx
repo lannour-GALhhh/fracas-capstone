@@ -1,10 +1,11 @@
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 
 import { spacing, useTheme } from '@/common/theme'
-import { Badge, Button, Card, Spinner, Text } from '@/common/ui'
+import { Badge, Button, Card, Icon, Spinner, Text } from '@/common/ui'
 import { ErrorState } from '@/common/components/ErrorState'
 import { timeAgo } from '@/common/utils/time'
-import { CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
+import { RAINFALL_TIER_ICONS, RAINFALL_TIER_LABELS, rainfallTier } from '@/features/gis/constants/rainfall'
+import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
 import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
 import { useBarangayRisk } from '@/features/gis/hooks/useBarangayRisk'
 import type { BarangayRisk, RiskCategory, ZoneScore } from '@/features/gis/types'
@@ -81,6 +82,11 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
                     textColor={category ? badgeTextColor(category) : undefined}
                 />
             </View>
+            <Text variant="caption" color="textMuted">
+                {category
+                    ? CATEGORY_DESCRIPTIONS[category]
+                    : 'Risk level unavailable — no recent score for this barangay.'}
+            </Text>
             {data.is_degraded ? (
                 <Text variant="caption" color="danger">
                     Degraded — some inputs were stale; weights were redistributed.
@@ -91,7 +97,6 @@ const HazardHero = ({ data }: { data: BarangayRisk }) => {
 }
 
 const Conditions = ({ data }: { data: BarangayRisk }) => {
-    const roc = data.rainfall_rate_change
     const forecasts = [
         data.rainfall_forecast_15min,
         data.rainfall_forecast_30min,
@@ -111,18 +116,33 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
         data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
+    const tier = rainfallTier(data.current_rainfall)
 
     return (
-        <View style={styles.tiles}>
-            <StatTile label="Current rainfall" value={fmt(data.current_rainfall)} unit="mm/hr" />
-            <StatTile
-                label="Rate of change"
-                value={roc == null ? '—' : `${roc > 0 ? '+' : ''}${fmt(roc)}`}
-                unit="mm/hr"
-            />
-            <StatTile label="Peak forecast (4 hr)" value={fmt(peak)} unit="mm/hr" />
-            <StatTile label="Accumulated (24 hr)" value={fmt(data.accumulated_24hr)} unit="mm" />
+        <View style={styles.conditions}>
+            <View style={styles.tiles}>
+                <StatTile label="Current rainfall" value={fmt(data.current_rainfall)} unit="mm/hr" />
+                <StatTile label="Peak forecast (4 hr)" value={fmt(peak)} unit="mm/hr" />
+                <StatTile label="Accumulated (24 hr)" value={fmt(data.accumulated_24hr)} unit="mm" />
+                <StatTile label="Accumulated (7 day)" value={fmt(data.accumulated_7day)} unit="mm" />
+            </View>
+            <RainfallStrength tier={tier} />
         </View>
+    )
+}
+
+const RainfallStrength = ({ tier }: { tier: ReturnType<typeof rainfallTier> }) => {
+    const theme = useTheme()
+    return (
+        <Card style={styles.strength}>
+            <Icon name={RAINFALL_TIER_ICONS[tier]} size={22} color={theme.colors.primary} />
+            <View>
+                <Text variant="caption" color="textMuted">
+                    Rainfall strength
+                </Text>
+                <Text variant="subtitle">{RAINFALL_TIER_LABELS[tier]}</Text>
+            </View>
+        </Card>
     )
 }
 
@@ -222,9 +242,11 @@ const styles = StyleSheet.create({
     heroRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
     score: { fontSize: 40, fontWeight: '700', lineHeight: 44 },
+    conditions: { gap: spacing.md },
     tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
     tile: { gap: spacing.xs, flexGrow: 1, flexBasis: '45%' },
     tileValue: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
+    strength: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     breakdown: { gap: spacing.sm },
     factor: { gap: spacing.xs, marginTop: spacing.xs },
     factorHead: { flexDirection: 'row', justifyContent: 'space-between' },

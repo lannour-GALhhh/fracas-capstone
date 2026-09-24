@@ -24,6 +24,18 @@ const COPY: Record<RiskCategory, { icon: IconName; message: string }> = {
 }
 
 /**
+ * Legible, semantic hues per category for text/icons — the RISK_COLORS ramp
+ * (white → red) is designed for fills and badges and is too pale to read as
+ * foreground text or a small icon, especially at the "low" end.
+ */
+const CATEGORY_ACCENT: Record<RiskCategory, string> = {
+    low: '#1a7f5a',
+    medium: '#c9820a',
+    high: '#dd4b4b',
+    critical: '#b01212',
+}
+
+/**
  * The status page's headline: a color-coded banner summarising the resident's
  * current flood risk at a glance, so the most important number isn't buried in a
  * list of plain cards.
@@ -37,12 +49,7 @@ export function StatusHero({ feature, localized, emptyMessage }: Props) {
 
     if (!feature || !category) {
         return (
-            <View
-                style={[
-                    styles.card,
-                    { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-                ]}
-            >
+            <View style={[styles.card, { backgroundColor: theme.colors.bg }]}>
                 <View style={[styles.iconWrap, { backgroundColor: theme.colors.surfaceAlt }]}>
                     <Icon name="location-outline" size={26} color={theme.colors.textMuted} />
                 </View>
@@ -59,41 +66,23 @@ export function StatusHero({ feature, localized, emptyMessage }: Props) {
         )
     }
 
-    const { name } = feature.properties
-    const accent = RISK_COLORS[category]
+    const tint = RISK_COLORS[category]
+    const accent = CATEGORY_ACCENT[category]
     const copy = COPY[category]
 
     return (
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: accent }]}>
+        <View style={[styles.card, { backgroundColor: tint }]}>
             <View style={[styles.iconWrap, { backgroundColor: accent }]}>
                 <Icon name={copy.icon} size={26} color="#ffffff" />
             </View>
-            <View style={styles.scoreColumn}>
-                <Text variant="label" color="textMuted">
-                    {`You're in ${name}`}
-                </Text>
-                <View style={styles.scoreColumn}>
-                    <View style={styles.scoreRow}>
-                        <Text style={styles.category}>{CATEGORY_LABELS[category]}</Text>
-                        {zone ? (
-                            <Text variant="caption" style={{ fontWeight: 'bold' }}>
-                                {Math.round(zone.score)} · your exact spot
-                            </Text>
-                        ) : (
-                            <Text variant="caption" style={{ fontWeight: 'bold' }}>
-                                Level Hazard Risk
-                            </Text>
-                        )}
-                    </View>
-                    {zone ? (
-                        <Text variant="caption" color="textMuted">
-                            {`${SUSCEPTIBILITY_LABELS[zone.level]} susceptibility zone`}
-                        </Text>
-                    ) : null}
-                </View>
-                <Text variant="caption" color="textMuted">
-                    {copy.message}
-                </Text>
+            <View style={styles.text}>
+                <Text style={[styles.category, { color: accent }]}>{CATEGORY_LABELS[category]} risk</Text>
+                {zone ? (
+                    <Text variant="caption" color="textMuted">
+                        {`${SUSCEPTIBILITY_LABELS[zone.level]} susceptibility zone`}
+                    </Text>
+                ) : null}
+                <Text variant="body">{copy.message}</Text>
             </View>
         </View>
     )
@@ -105,11 +94,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: spacing.md,
         padding: spacing.lg,
-        borderWidth: 2,
         borderRadius: radius.lg,
         overflow: 'hidden',
     },
-    accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6 },
     iconWrap: {
         width: 48,
         height: 48,
@@ -118,7 +105,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     text: { flex: 1, gap: 2 },
-    scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-    scoreColumn: { flexDirection: 'column', alignItems: 'baseline', gap: spacing.xs },
-    category: { fontSize: 22, fontWeight: '700' },
+    category: { fontSize: 18, fontWeight: '700' },
 })

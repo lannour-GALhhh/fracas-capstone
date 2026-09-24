@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { NativeSyntheticEvent } from 'react-native'
 import {
     Camera,
     GeoJSONSource,
     Layer,
     Map,
+    Marker,
     UserLocation,
     type CameraRef,
     type PressEventWithFeatures,
 } from '@maplibre/maplibre-react-native'
 
 import { useTheme } from '@/common/theme'
-import { Icon } from '@/common/ui'
+import { Icon, Text } from '@/common/ui'
 
 import { MAP_CENTER, MAP_PADDING, MAP_ZOOM, mapStyleFor } from '../constants/mapStyle'
 import { fillColorExpression } from '../constants/risk'
 import { collectionBounds } from '../utils/bounds'
+import type { Coords } from '@/common/hooks/useCurrentLocation'
 import type { EvacuationCenterCollection, RiskFeatureCollection } from '../types'
 
 interface Props {
@@ -30,11 +32,12 @@ interface Props {
     onSelect: (id: number | null) => void
     /** Show the blue GPS dot (only once location permission is granted). */
     showUser: boolean
-    /** Allow pan/zoom gestures. Off on the status card (a fixed overview), on in the expanded view. */
+    /** The resident's fixed location, for the "You are here" pin. Only drawn
+     * alongside the live GPS dot when `showUser` is also true. */
+    userCoords?: Coords | null
+    /** Allow pan/zoom gestures. Off for a fixed overview, on for an explorable map. */
     interactive?: boolean
-    /** When set, renders an expand affordance that opens the draggable full map. */
-    onExpand?: () => void
-    /** Fill the parent instead of the fixed preview height (used by the expanded view). */
+    /** Fill the parent instead of the fixed preview height. */
     fill?: boolean
     /**
      * Recenter the camera on this point. A fresh object flies the map there — used
@@ -60,9 +63,10 @@ const REFUGE_COLOR = '#0f766e' // teal — a "safe place" hue outside the red ra
 /**
  * The flood choropleth. Barangays are filled by their joined risk category
  * (one ramp shared with the cards), evacuation centers ride on top as refuge
- * dots, and the device location shows as the standard GPS puck. Tapping a
- * barangay selects it — the parent opens the same breakdown modal the cards do.
- * MapLibre needs a custom dev client; this screen cannot run in Expo Go.
+ * dots, and the device location shows as the standard GPS puck plus a
+ * labelled "You are here" pin. Tapping a barangay selects it — the parent
+ * opens the same breakdown modal the cards do. MapLibre needs a custom dev
+ * client; this screen cannot run in Expo Go.
  */
 export function RiskMap({
     data,
@@ -70,12 +74,13 @@ export function RiskMap({
     selectedId,
     onSelect,
     showUser,
+    userCoords = null,
     interactive = true,
-    onExpand,
     fill = false,
     focus = null,
 }: Props) {
-    const { colors, scheme } = useTheme()
+    const theme = useTheme()
+    const { scheme } = theme
     const cameraRef = useRef<CameraRef>(null)
     const [loaded, setLoaded] = useState(false)
     const fittedRef = useRef(false)
@@ -167,23 +172,20 @@ export function RiskMap({
                 ) : null}
 
                 {showUser ? <UserLocation animated /> : null}
-            </Map>
 
-            {onExpand ? (
-                <Pressable
-                    onPress={onExpand}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Expand map"
-                    style={({ pressed }) => [
-                        styles.expand,
-                        { backgroundColor: colors.bg, borderColor: colors.border },
-                        pressed && styles.pressed,
-                    ]}
-                >
-                    <Icon name="expand-outline" size={18} color={colors.text} />
-                </Pressable>
-            ) : null}
+                {showUser && userCoords ? (
+                    <Marker lngLat={[userCoords.lng, userCoords.lat]} anchor="bottom">
+                        <View style={styles.userPin}>
+                            <View style={[styles.userPinLabel, { backgroundColor: theme.colors.text }]}>
+                                <Text style={[styles.userPinLabelText, { color: theme.colors.bg }]}>
+                                    You are here
+                                </Text>
+                            </View>
+                            <Icon name="location" size={30} color={theme.colors.primary} />
+                        </View>
+                    </Marker>
+                ) : null}
+            </Map>
         </View>
     )
 }
@@ -193,16 +195,12 @@ const styles = StyleSheet.create({
     preview: { height: 280 },
     fill: { flex: 1, borderRadius: 0 },
     map: { flex: 1 },
-    expand: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        width: 38,
-        height: 38,
-        borderRadius: 10,
-        borderWidth: StyleSheet.hairlineWidth,
-        alignItems: 'center',
-        justifyContent: 'center',
+    userPin: { alignItems: 'center' },
+    userPinLabel: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        marginBottom: 2,
     },
-    pressed: { opacity: 0.6 },
+    userPinLabelText: { fontSize: 11, fontWeight: '700' },
 })

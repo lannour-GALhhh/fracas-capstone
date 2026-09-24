@@ -3,15 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { spacing, useTheme } from '@/common/theme'
 import { Card, Icon, Text } from '@/common/ui'
 import { CATEGORY_LABELS } from '@/features/gis/constants/risk'
-import type { RiskCategory, RiskFeature } from '@/features/gis/types'
-
-/** Legible, semantic hues per category (the RISK_COLORS ramp is too pale as text). */
-const SCORE_COLOR: Record<RiskCategory, string> = {
-    low: '#1a7f5a',
-    medium: '#c9820a',
-    high: '#dd4b4b',
-    critical: '#b01212',
-}
+import type { RiskFeature } from '@/features/gis/types'
 
 interface Props {
     /** Context label, e.g. "Current location" or "Home". */
@@ -26,8 +18,8 @@ interface Props {
 }
 
 /**
- * A barangay's hazard at a glance: the location on the left, a circular score
- * gauge on the right, and optional actions (center the map, open the full
+ * A barangay's hazard at a glance: the location on the left, its risk
+ * category on the right, and optional actions (center the map, open the full
  * breakdown) beneath.
  */
 export function HazardCard({ label, feature, emptyMessage, onPress, onFocus }: Props) {
@@ -46,8 +38,7 @@ export function HazardCard({ label, feature, emptyMessage, onPress, onFocus }: P
         )
     }
 
-    const { id, name, category, score, is_degraded } = feature.properties
-    const scoreColor = category ? SCORE_COLOR[category] : theme.colors.textMuted
+    const { id, name, category, is_degraded } = feature.properties
 
     return (
         <Card style={styles.card}>
@@ -65,19 +56,9 @@ export function HazardCard({ label, feature, emptyMessage, onPress, onFocus }: P
                 </View>
 
                 <View style={styles.rightCol}>
-                    <View style={styles.scoreRow}>
-                        <Text style={[styles.score, { color: scoreColor }]}>
-                            {score == null ? '—' : Math.round(score)}
-                        </Text>
-                        <Text variant="caption" color="textMuted">
-                            /100
-                        </Text>
-                    </View>
-                    <Text style={[styles.category, { color: scoreColor }]}>
-                        {category ? CATEGORY_LABELS[category] : 'No data'}
-                    </Text>
+                    <Text style={styles.category}>{category ? CATEGORY_LABELS[category] : 'No data'}</Text>
                     <Text variant="caption" color="textMuted">
-                        Hazard Risk Score
+                        Flood risk
                     </Text>
                 </View>
             </View>
@@ -125,15 +106,12 @@ const styles = StyleSheet.create({
     card: {
         gap: spacing.md,
         boxShadow: '0px 4px 2px rgba(0, 0, 0, 0.05)',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-        borderWidth: 2,
+        borderWidth: 0,
     },
     topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     leftCol: { flex: 1, gap: spacing.xs },
     rightCol: { alignItems: 'center', gap: 2 },
-    scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
-    score: { fontSize: 40, fontWeight: '800', lineHeight: 44 },
-    category: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    category: { fontSize: 18, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
     pressed: { opacity: 0.7 },
     focusBtn: {
         flexDirection: 'row',

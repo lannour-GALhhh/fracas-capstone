@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
-import { StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 
 interface Props {
     children: ReactNode
-    style?: ViewStyle
+    style?: StyleProp<ViewStyle>
 }
 
 /** Surface container with padding + rounded corners + hairline border. */

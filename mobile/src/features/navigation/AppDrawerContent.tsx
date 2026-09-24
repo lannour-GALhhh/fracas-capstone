@@ -1,32 +1,19 @@
-import { router } from 'expo-router'
 import { type DrawerContentComponentProps, DrawerContentScrollView } from 'expo-router/drawer'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Switch, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { radius, spacing, useTheme, useThemeControls } from '@/common/theme'
-import { Icon, type IconName, Spinner, Text } from '@/common/ui'
+import { Icon, Spinner, Text } from '@/common/ui'
 import { unregisterPushDevice } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useCurrentUser } from '@/features/account/hooks/useCurrentUser'
 
-interface NavItem {
-    /** The (app) route this item points at. */
-    route: '/status' | '/account' | '/toolkit'
-    label: string
-    icon: IconName
-}
-
-const NAV_ITEMS: NavItem[] = [
-    { route: '/status', label: 'Flood status', icon: 'water-outline' },
-    { route: '/account', label: 'Account settings', icon: 'settings-outline' },
-    { route: '/toolkit', label: 'Disaster toolkit', icon: 'medkit-outline' },
-]
-
 /**
- * The side panel. A user-info header, the primary destinations, and a pinned
- * sign-out at the bottom. Replaces the bottom tab bar as the app's main
- * navigation surface (opened by the header hamburger or an edge swipe).
+ * The side panel. A user-info header plus dark mode and sign-out — the primary
+ * destinations (GIS, Notifications, Toolkit, Me) live in the bottom tab bar now,
+ * so this drawer only carries what doesn't fit there. Opened by the header
+ * hamburger or an edge swipe.
  */
 export function AppDrawerContent(props: DrawerContentComponentProps) {
     const theme = useTheme()
@@ -34,14 +21,6 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
     const { logout } = useAuth()
     const { data: user, isLoading } = useCurrentUser()
     const [signingOut, setSigningOut] = useState(false)
-
-    // The active drawer route (e.g. "status") so we can highlight the current item.
-    const activeRoute = props.state.routeNames[props.state.index]
-
-    const go = (route: NavItem['route']) => {
-        props.navigation.closeDrawer()
-        router.navigate(route)
-    }
 
     const onSignOut = async () => {
         setSigningOut(true)
@@ -92,39 +71,6 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
                             ) : null}
                         </View>
                     )}
-                </View>
-
-                {/* Primary destinations */}
-                <View style={styles.nav}>
-                    {NAV_ITEMS.map((item) => {
-                        const active = activeRoute === item.route.slice(1)
-                        return (
-                            <Pressable
-                                key={item.route}
-                                onPress={() => go(item.route)}
-                                style={({ pressed }) => [
-                                    styles.item,
-                                    active && { backgroundColor: theme.colors.surfaceAlt },
-                                    pressed && styles.itemPressed,
-                                ]}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected: active }}
-                            >
-                                <Icon
-                                    name={item.icon}
-                                    size={22}
-                                    color={active ? theme.colors.primary : theme.colors.textMuted}
-                                />
-                                <Text
-                                    variant="label"
-                                    color={active ? 'primary' : 'text'}
-                                    style={styles.itemLabel}
-                                >
-                                    {item.label}
-                                </Text>
-                            </Pressable>
-                        )
-                    })}
                 </View>
             </DrawerContentScrollView>
 
@@ -223,7 +169,6 @@ const styles = StyleSheet.create({
     },
     avatarText: { fontSize: 18, fontWeight: '700' },
     profileText: { flex: 1, gap: 2 },
-    nav: { paddingHorizontal: spacing.sm, gap: spacing.xs },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
