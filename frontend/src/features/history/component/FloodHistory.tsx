@@ -41,6 +41,7 @@ import { getPageItems } from '@/common/utils/pageItems'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useFloodEvents } from '../hooks/useFloodEvents'
 import { SEVERITY_COLORS, SEVERITY_LABELS, SEVERITY_FILTERS } from '../constants/floodEvents'
+import BarangayMultiSelect from './BarangayMultiSelect'
 import FloodEventForm from './FloodEventForm'
 import UndoDeleteBanner from './UndoDeleteBanner'
 import type { FloodSeverity } from '../types/api'
@@ -84,7 +85,10 @@ const FloodHistory = () => {
     // All filters are URL-driven so they're shareable and the map panel can deep-link.
     const [searchParams, setSearchParams] = useSearchParams()
     const barangayParam = searchParams.get('barangay')
-    const barangayId = barangayParam ? Number(barangayParam) : undefined
+    const barangayIds = (barangayParam ?? '')
+        .split(',')
+        .map(Number)
+        .filter((n) => Number.isInteger(n) && n > 0)
     const severity = (searchParams.get('severity') ?? 'all') as FloodSeverity | 'all'
     const after = searchParams.get('after')
     const before = searchParams.get('before')
@@ -100,10 +104,9 @@ const FloodHistory = () => {
                 .sort((a, b) => a.name.localeCompare(b.name)),
         [barangays],
     )
-    const barangayName = barangayOptions.find((o) => o.id === barangayId)?.name
 
     // Any filter change resets to the first page (adjust-during-render).
-    const filterKey = `${barangayId}|${severity}|${after}|${before}`
+    const filterKey = `${barangayIds.join(',')}|${severity}|${after}|${before}`
     const [lastKey, setLastKey] = useState(filterKey)
     if (filterKey !== lastKey) {
         setLastKey(filterKey)
@@ -126,7 +129,7 @@ const FloodHistory = () => {
             before: r?.to ? toDay(r.to) : undefined,
         })
 
-    const hasFilters = severity !== 'all' || barangayId != null || after != null || before != null
+    const hasFilters = severity !== 'all' || barangayIds.length > 0 || after != null || before != null
     const rangeLabel =
         range?.from && range?.to
             ? `${format(range.from, 'LLL d')} – ${format(range.to, 'LLL d, y')}`
@@ -137,7 +140,7 @@ const FloodHistory = () => {
     const filters = {
         page,
         ...(severity !== 'all' && { severity }),
-        ...(barangayId && { barangay: barangayId }),
+        ...(barangayIds.length > 0 && { barangay: barangayIds.join(',') }),
         ...(after && { occurred_after: after }),
         ...(before && { occurred_before: before }),
     }
@@ -180,28 +183,11 @@ const FloodHistory = () => {
             )}
 
             <Card size='sm' className='flex flex-row items-center gap-2 my-4'>
-                <Select
-                    value={barangayId ? String(barangayId) : 'all'}
-                    onValueChange={(v) =>
-                        patchParams({ barangay: v === 'all' ? undefined : (v as string) })
-                    }
-                >
-                    <SelectTrigger className='w-56'>
-                        <SelectValue>
-                            {(v) =>
-                                v === 'all' ? 'All barangays' : (barangayName ?? `Barangay #${v}`)
-                            }
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className='max-h-72' alignItemWithTrigger={true}>
-                        <SelectItem value='all'>All barangays</SelectItem>
-                        {barangayOptions.map((o) => (
-                            <SelectItem key={o.id} value={String(o.id)}>
-                                {o.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <BarangayMultiSelect
+                    options={barangayOptions}
+                    value={barangayIds}
+                    onConfirm={(ids) => patchParams({ barangay: ids.join(',') || undefined })}
+                />
 
                 <Select
                     value={severity}

@@ -47,8 +47,10 @@ class FloodEventListView(_OperatorWriteMixin, ListCreateAPIView):
     def get_queryset(self):
         queryset = _live_qs()
         params = self.request.query_params
-        if barangay := params.get("barangay"):
-            queryset = queryset.filter(barangay_id=barangay)
+        # Accepts one id or a comma-separated list (multi-select filter).
+        ids = [b for b in (params.get("barangay") or "").split(",") if b.strip().isdigit()]
+        if ids:
+            queryset = queryset.filter(barangay_id__in=ids)
         if severity := params.get("severity"):
             queryset = queryset.filter(severity=severity)
         # Date-range filter (inclusive), accepts ISO date or datetime.

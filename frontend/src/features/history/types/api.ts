@@ -127,7 +127,8 @@ export interface FloodEventChange {
 
 /** Server-side filters for the list. `page` drives DRF pagination. */
 export interface FloodEventFilters {
-    barangay?: number
+    /** One barangay id, or a comma-separated list of ids. */
+    barangay?: number | string
     severity?: FloodSeverity
     /** Inclusive ISO date (YYYY-MM-DD) lower bound on occurred_at. */
     occurred_after?: string
