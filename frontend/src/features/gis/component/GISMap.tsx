@@ -1,5 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
-import { Map, MapControls, type MapRef } from '@/common/ui/map'
+import { MapPin } from 'lucide-react'
+import { Map, MapControls, MapMarker, MarkerContent, type MapRef } from '@/common/ui/map'
+import { useAuth } from '@/features/auth/context/useAuth'
+import MassEvacuationDialog from '@/features/evacuation/component/MassEvacuationDialog'
+import MassEvacuationControls from './MassEvacuationControls'
 import type { RiskFeatureCollection, SusceptibilityLevel } from '../types/api'
 import { collectionBounds, featureBoundsById, fitBox } from '../utils/bounds'
 import BarangayChoropleth from './BarangayChoropleth'
@@ -43,6 +47,33 @@ const GISMap = ({
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const mapRef = useRef<MapRef>(null)
+    const { isOperator } = useAuth()
+    const [massActive, setMassActive] = useState(false)
+    const [massIds, setMassIds] = useState<number[]>([])
+    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    const toggleMass = useCallback(
+        (id: number | null) => {
+            if (id == null) return
+            setMassIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]))
+        },
+        [],
+    )
+
+    const endMass = () => {
+        setMassActive(false)
+        setMassIds([])
+        setConfirmOpen(false)
+    }
+
+    const massTargets = (data?.features ?? [])
+        .filter((f) => massIds.includes(f.properties.id))
+        .map((f) => ({
+            id: f.properties.id,
+            name: f.properties.name,
+            score: f.properties.score,
+            category: f.properties.category,
+        }))
 
     const handleResetView = useCallback(() => {
         const map = mapRef.current
@@ -61,9 +92,27 @@ const GISMap = ({
     return (
         <div className='relative h-full w-full overflow-hidden'>
             {/* Barangay search, centered above the map. */}
-            <div className='absolute top-20 left-1/2 z-10 -translate-x-1/2'>
+            <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2'>
                 <BarangaySearch data={data} onSelect={onSelect} />
+                {isOperator && (
+                    <MassEvacuationControls
+                        active={massActive}
+                        selectedCount={massIds.length}
+                        onStart={() => {
+                            onSelect(null)
+                            setMassActive(true)
+                        }}
+                        onProceed={() => setConfirmOpen(true)}
+                        onCancel={endMass}
+                    />
+                )}
             </div>
+            <MassEvacuationDialog
+                open={confirmOpen}
+                targets={massTargets}
+                onOpenChange={setConfirmOpen}
+                onDone={endMass}
+            />
 
             <Map ref={mapRef} center={[122.07, 6.92]} zoom={11} theme='light'>
                 <MapControls
@@ -77,10 +126,21 @@ const GISMap = ({
                         <BarangayChoropleth
                             data={data}
                             selectedId={selectedId}
-                            onSelect={onSelect}
+                            onSelect={massActive ? toggleMass : onSelect}
                             onHover={setHoveredId}
                             panelWidth={panelWidth}
                         />
+                        {massActive &&
+                            massIds.map((id) => {
+                                const at = centroidOf(data, id)
+                                return at ? (
+                                    <MapMarker key={id} longitude={at[0]} latitude={at[1]}>
+                                        <MarkerContent>
+                                            <MapPin className='size-8 fill-red-600 text-white drop-shadow' />
+                                        </MarkerContent>
+                                    </MapMarker>
+                                ) : null
+                            })}
                         {/* Pinned tooltip for the selected barangay. */}
                         {selectedId != null && pinnedCentroid && (
                             <BarangayTooltip
