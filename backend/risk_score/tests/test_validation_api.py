@@ -14,11 +14,11 @@ from risk_score.tasks import run_validation_task
 from risk_score.tests.test_hindcast import hourly_series
 
 
-def make_barangay(name="Tumaga", code="T1", height=1.0):
+def make_barangay(name="Tumaga", code="T1"):
     poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
     return Barangay.objects.create(
         name=name, code=code, province_code="PH0907332",
-        boundary=MultiPolygon(poly), land_height_mean=height,
+        boundary=MultiPolygon(poly),
     )
 
 
@@ -40,7 +40,7 @@ class ValidationApiPermissionTests(APITestCase):
 
 class RunValidationTaskTests(APITestCase):
     def test_task_fills_metrics(self):
-        barangay = make_barangay(height=1.0)
+        barangay = make_barangay()
         FloodEvent.objects.create(barangay=barangay, occurred_at=timezone.now() - timedelta(days=10))
         run = ValidationRun.objects.create()
 

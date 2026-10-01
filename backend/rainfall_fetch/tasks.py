@@ -14,8 +14,11 @@ from .models import Rainfall
 logger = logging.getLogger(__name__)
 
 # Batched multi-location calls avoid Open-Meteo's per-request burst rate limit.
-CHUNK_SIZE = 25
-CHUNK_DELAY = 2  # seconds between chunk requests, to avoid bursting the rate limit
+# Open-Meteo accepts up to 100 coordinates per call; batching all barangays into
+# as few chunks as possible keeps the request burst (and 429 risk) low.
+CHUNK_SIZE = 50
+CHUNK_DELAY = 3  # seconds between chunk requests, to avoid bursting the rate limit
+CALL_DELAY = 1  # seconds between the hourly and minutely calls within a chunk
 REQUEST_TIMEOUT = 20
 RETRY_BACKOFF = 5
 
@@ -46,14 +49,24 @@ def _chunked(items, size):
         yield items[i:i + size]
 
 
-def _get_with_retry(url, *, retries=1):
-    """GET with one backed-off retry on failure."""
+def _get_with_retry(url, *, retries=2):
+    """GET with backed-off retries. 429s back off longer (honoring Retry-After)
+    than other failures, since retrying a rate limit quickly just re-triggers it."""
     last_exc = None
     for attempt in range(retries + 1):
         try:
             response = requests.get(url, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             return response
+        except requests.exceptions.HTTPError as e:
+            last_exc = e
+            if attempt < retries:
+                if e.response is not None and e.response.status_code == 429:
+                    retry_after = e.response.headers.get("Retry-After")
+                    delay = float(retry_after) if retry_after else RETRY_BACKOFF * (2 ** (attempt + 1))
+                else:
+                    delay = RETRY_BACKOFF
+                time.sleep(delay)
         except Exception as e:  # noqa: BLE001 - retried, then re-raised for the caller to log
             last_exc = e
             if attempt < retries:
@@ -105,20 +118,42 @@ def parse_rainfall_data(data, barangay_name=None):
         'accumulated_7day': _accumulate(precipitation, index, 24 * 7),
     }
 
+def _query_groups(barangays):
+    """Group barangays by the Open-Meteo grid-cell they actually resolve to
+    (from `discover_rainfall_grid`), so each unique cell is queried once instead
+    of once per barangay. Barangays not yet mapped fall back to their own
+    centroid as a singleton group, so the task still works before discovery runs
+    -- just without the dedup benefit for those barangays."""
+    groups = {}
+    for barangay in barangays:
+        grid = getattr(barangay, "rainfall_grid", None)
+        if grid is not None:
+            key = (grid.grid_lat, grid.grid_lon)
+            lat, lon = grid.grid_lat, grid.grid_lon
+        else:
+            centroid = barangay.boundary.centroid
+            key = ("unmapped", barangay.id)
+            lat, lon = centroid.y, centroid.x
+        group = groups.setdefault(key, {"lat": lat, "lon": lon, "members": []})
+        group["members"].append(barangay)
+    return list(groups.values())
+
+
 @shared_task
 def fetch_rainfall_information():
-    barangays = list(Barangay.objects.all())
+    barangays = list(Barangay.objects.select_related("rainfall_grid").all())
     timestamp = timezone.now()
     readings = []
 
-    chunks = list(_chunked(barangays, CHUNK_SIZE))
+    groups = _query_groups(barangays)
+    chunks = list(_chunked(groups, CHUNK_SIZE))
     for chunk_num, chunk in enumerate(chunks):
-        centroids = [b.boundary.centroid for b in chunk]
-        lats = ",".join(str(c.y) for c in centroids)
-        lons = ",".join(str(c.x) for c in centroids)
+        lats = ",".join(str(g["lat"]) for g in chunk)
+        lons = ",".join(str(g["lon"]) for g in chunk)
 
         try:
             hourly_batch = _get_with_retry(hourly_url(lats, lons)).json()
+            time.sleep(CALL_DELAY)
             minutely_batch = _get_with_retry(minutely_url(lats, lons)).json()
             # A single-location batch comes back as an object, not a list.
             if isinstance(hourly_batch, dict):
@@ -126,25 +161,26 @@ def fetch_rainfall_information():
             if isinstance(minutely_batch, dict):
                 minutely_batch = [minutely_batch]
         except Exception as e:
-            names = ", ".join(b.name for b in chunk)
+            names = ", ".join(b.name for g in chunk for b in g["members"])
             logger.error(f"Failed to fetch rainfall batch for [{names}]: {e}")
         else:
-            for barangay, hourly_data, minutely_data in zip(chunk, hourly_batch, minutely_batch):
-                try:
-                    data = hourly_data
-                    data['minutely_15'] = minutely_data['minutely_15']
-                    parsed_data = parse_rainfall_data(data, barangay.name)
+            for group, hourly_data, minutely_data in zip(chunk, hourly_batch, minutely_batch):
+                data = hourly_data
+                data['minutely_15'] = minutely_data['minutely_15']
+                for barangay in group["members"]:
+                    try:
+                        parsed_data = parse_rainfall_data(data, barangay.name)
 
-                    readings.append(Rainfall(
-                        barangay=barangay,
-                        recorded_at=timestamp,
-                        **parsed_data
-                    ))
+                        readings.append(Rainfall(
+                            barangay=barangay,
+                            recorded_at=timestamp,
+                            **parsed_data
+                        ))
 
-                    logger.info(f"Fetched rainfall information for {barangay.name}: {parsed_data}")
-                except Exception as e:
-                    logger.error(f"Failed to parse rainfall information for: {barangay.name}: {e}")
-                    continue
+                        logger.info(f"Fetched rainfall information for {barangay.name}: {parsed_data}")
+                    except Exception as e:
+                        logger.error(f"Failed to parse rainfall information for: {barangay.name}: {e}")
+                        continue
 
         if chunk_num < len(chunks) - 1:
             time.sleep(CHUNK_DELAY)

@@ -10,6 +10,7 @@ export interface EvacuationAggregate {
     roster: number
     safe: number
     moving: number
+    notified: number
     unaccounted: number
     updated_at: string
 }

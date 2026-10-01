@@ -5,7 +5,7 @@ from .models import Barangay, Street
 
 @admin.register(Barangay)
 class BarangayAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "land_height_mean")
+    list_display = ("name", "code")
     list_filter = ("province_code",)
     search_fields = ("name", "code")
 

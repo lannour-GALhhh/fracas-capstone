@@ -2,6 +2,28 @@ from django.db import models
 from barangays.models import Barangay
 
 
+class BarangayRainfallGrid(models.Model):
+    """Maps a barangay to the Open-Meteo weather grid-cell it actually resolves to.
+
+    Discovered empirically (see `discover_rainfall_grid` management command) from
+    the `latitude`/`longitude` Open-Meteo echoes back per location — never assumed
+    from geographic distance. Barangays sharing a grid cell get byte-identical
+    weather data, so `fetch_rainfall_information` queries once per unique cell
+    (by `grid_lat`/`grid_lon`) instead of once per barangay.
+    """
+
+    barangay = models.OneToOneField(Barangay, on_delete=models.CASCADE, related_name="rainfall_grid")
+    grid_lat = models.FloatField()
+    grid_lon = models.FloatField()
+    discovered_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["grid_lat", "grid_lon"])]
+
+    def __str__(self):
+        return f"{self.barangay} -> ({self.grid_lat}, {self.grid_lon})"
+
+
 class Rainfall(models.Model):
     barangay = models.ForeignKey(Barangay,on_delete=models.CASCADE, related_name="rainfall_readings", null=True, blank=True)
 

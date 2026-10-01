@@ -10,18 +10,18 @@ from risk_score.services.validation import validate
 from risk_score.tests.test_hindcast import hourly_series
 
 
-def make_barangay(name, code, height):
+def make_barangay(name, code):
     poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
     return Barangay.objects.create(
         name=name, code=code, province_code="PH0907332",
-        boundary=MultiPolygon(poly), land_height_mean=height,
+        boundary=MultiPolygon(poly),
     )
 
 
 class ValidateTests(TestCase):
     def test_torrential_events_are_detected(self):
-        b1 = make_barangay("Lowland", "L1", height=1.0)
-        b2 = make_barangay("Midland", "M1", height=50.0)
+        b1 = make_barangay("Lowland", "L1")
+        b2 = make_barangay("Midland", "M1")
         when = timezone.now() - timedelta(days=10)
         FloodEvent.objects.create(barangay=b1, occurred_at=when)
         FloodEvent.objects.create(barangay=b2, occurred_at=when)
@@ -35,7 +35,7 @@ class ValidateTests(TestCase):
         self.assertEqual(report.recall, 1.0)  # both flagged HIGH/CRITICAL
 
     def test_hindcast_error_is_recorded_not_raised(self):
-        b1 = make_barangay("Lowland", "L1", height=1.0)
+        b1 = make_barangay("Lowland", "L1")
         when = timezone.now() - timedelta(days=10)
         FloodEvent.objects.create(barangay=b1, occurred_at=when)
 

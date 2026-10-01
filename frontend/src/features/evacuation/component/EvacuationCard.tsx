@@ -1,26 +1,40 @@
 import { formatDistanceToNow } from 'date-fns'
-import { MapPin, Users } from 'lucide-react'
+import { BellRing, CheckCircle2, MapPin, Navigation, Users } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Card } from '@/common/ui/card'
 import { Badge } from '@/common/ui/badge'
-import { SEGMENT_COLORS, TRIGGER_LABELS } from '../constants/evacuation'
+import { cn } from '@/common/utils/utils'
+import { TRIGGER_LABELS } from '../constants/evacuation'
 import type { EvacuationAggregate } from '../types/api'
 import EvacProgress from './EvacProgress'
 import MarkSafeDialog from './MarkSafeDialog'
 
-/** A labelled count with a color dot matching the progress segment. */
-const CountStat = ({ label, value, color }: { label: string; value: number; color?: string }) => (
-    <div className='flex flex-col gap-0.5'>
-        <span className='text-muted-foreground flex items-center gap-1 text-xs'>
-            {color && (
-                <span
-                    className='aspect-square w-2 rounded-full'
-                    style={{ backgroundColor: color }}
-                />
-            )}
-            {label}
-        </span>
-        <span className='text-xl font-semibold tabular-nums'>{value.toLocaleString()}</span>
-    </div>
+interface StatTileProps {
+    icon: ReactNode
+    label: string
+    value: number
+    sub?: string
+    tone?: 'default' | 'safe' | 'warning'
+}
+
+const TONE: Record<NonNullable<StatTileProps['tone']>, string> = {
+    default: 'text-foreground',
+    safe: 'text-emerald-600',
+    warning: 'text-amber-600',
+}
+
+/** A labelled count tile: icon + value + context, matching the console's KPI tile style. */
+const StatTile = ({ icon, label, value, sub, tone = 'default' }: StatTileProps) => (
+    <Card size='sm' className='flex-row items-center gap-3'>
+        <div className={cn('shrink-0', TONE[tone])}>{icon}</div>
+        <div className='min-w-0'>
+            <p className='text-muted-foreground truncate text-xs'>{label}</p>
+            <p className={cn('text-xl leading-tight font-semibold tabular-nums', TONE[tone])}>
+                {value.toLocaleString()}
+            </p>
+            {sub && <p className='text-muted-foreground truncate text-xs'>{sub}</p>}
+        </div>
+    </Card>
 )
 
 interface EvacuationCardProps {
@@ -67,15 +81,29 @@ const EvacuationCard = ({ evac }: EvacuationCardProps) => {
                 />
             </div>
 
-            <div className='grid grid-cols-4 gap-2'>
-                <CountStat label='Evacuated' value={evac.safe} color={SEGMENT_COLORS.safe} />
-                <CountStat label='Moving' value={evac.moving} color={SEGMENT_COLORS.moving} />
-                <CountStat
-                    label='Unaccounted'
-                    value={evac.unaccounted}
-                    color={SEGMENT_COLORS.unaccounted}
+            <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
+                <StatTile
+                    icon={<CheckCircle2 className='size-5' />}
+                    label='Evacuated'
+                    value={evac.safe}
+                    tone='safe'
                 />
-                <CountStat label='Total residents' value={evac.roster} />
+                <StatTile
+                    icon={<Navigation className='size-5' />}
+                    label='Evacuated - Unsafe'
+                    value={evac.moving}
+                    tone='warning'
+                />
+                <StatTile
+                    icon={<BellRing className='size-5' />}
+                    label='Alerted'
+                    value={evac.notified}
+                />
+                <StatTile
+                    icon={<Users className='size-5' />}
+                    label='Total Registered Users'
+                    value={evac.roster}
+                />
             </div>
         </Card>
     )

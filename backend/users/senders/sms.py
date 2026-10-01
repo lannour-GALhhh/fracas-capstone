@@ -59,3 +59,33 @@ class SemaphoreSmsProvider:
             resp.raise_for_status()
         except requests.RequestException as exc:
             raise SendError(f"Semaphore send failed: {exc}") from exc
+
+
+class SmsApiPhProvider:
+    """smsapiph.onrender.com — free, unverified dev/alpha-testing provider only.
+
+    No SLA, no published owner/ToS, and a Render free-tier backend that
+    cold-starts after idle. Confirmed 2026-09-24: its API always returns
+    {"success": true} with no message ID or delivery status, and a real
+    phone did not receive the test text — this only proves the request
+    was accepted, not that a resident would receive anything. Use for
+    exercising the send code path only; swap SMS_PROVIDER to
+    twilio/semaphore before trusting it for actual delivery.
+    """
+
+    URL = "https://smsapiph.onrender.com/api/v1/send/sms"
+
+    def __init__(self):
+        self.apikey = config("SMSAPIPH_API_KEY")
+
+    def send(self, to: str, message: str) -> None:
+        try:
+            resp = requests.post(
+                self.URL,
+                json={"recipient": to, "message": message},
+                headers={"x-api-key": self.apikey},
+                timeout=TIMEOUT,
+            )
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            raise SendError(f"smsapiph send failed: {exc}") from exc
