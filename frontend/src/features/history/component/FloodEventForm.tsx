@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { ClipboardPlus, Plus, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import {
     Dialog,
     DialogClose,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -24,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/common/ui/select'
+import BarangayMultiSelect from './BarangayMultiSelect'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useSaveFloodEvent } from '../hooks/useSaveFloodEvent'
 import { SEVERITY_FILTERS, SEVERITY_LABELS, SOURCE_TYPE_LABELS } from '../constants/floodEvents'
@@ -60,6 +60,7 @@ const toIso = (local: string): string | null => (local ? new Date(local).toISOSt
 
 const blankForm = {
     barangay: '',
+    barangayIds: [] as number[],
     occurredAt: '',
     endedAt: '',
     severity: 'moderate' as FloodSeverity,
@@ -78,6 +79,7 @@ type FormState = typeof blankForm
 
 const formFromEvent = (e: FloodEventDetail): FormState => ({
     barangay: String(e.barangay),
+    barangayIds: [e.barangay],
     occurredAt: toLocalInput(e.occurred_at),
     endedAt: toLocalInput(e.ended_at),
     severity: e.severity,
@@ -112,7 +114,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
     const [timeline, setTimeline] = useState<TimelineRow[]>(initialTimeline)
 
     const { fieldError, onBlur, markTouched, handleSubmit, reset } = useZodForm(FloodEventSchema, {
-        barangay: form.barangay,
+        barangay: event ? form.barangay : form.barangayIds.join(','),
         occurred_at: form.occurredAt,
         ended_at: form.endedAt,
         source_type: form.sourceType,
@@ -153,16 +155,28 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
         markTouched('reported_by')
     }
 
+    // Chronological order; rows without a date sink to the bottom.
+    const sortRows = (rows: TimelineRow[]) =>
+        [...rows].sort((a, b) => {
+            if (!a.occurred_at) return b.occurred_at ? 1 : 0
+            if (!b.occurred_at) return -1
+            return a.occurred_at.localeCompare(b.occurred_at)
+        })
     const setRow = (i: number, key: keyof TimelineRow, value: string) =>
-        setTimeline((rows) => rows.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)))
+        setTimeline((rows) => {
+            const next = rows.map((r, idx) => (idx === i ? { ...r, [key]: value } : r))
+            return key === 'occurred_at' ? sortRows(next) : next
+        })
     const addRow = () =>
-        setTimeline((rows) => [...rows, { occurred_at: form.occurredAt, title: '', description: '' }])
+        setTimeline((rows) =>
+            sortRows([...rows, { occurred_at: form.occurredAt, title: '', description: '' }]),
+        )
     const removeRow = (i: number) => setTimeline((rows) => rows.filter((_, idx) => idx !== i))
 
     const onSubmit = handleSubmit(() => {
         const isOperatorSource = form.sourceType === 'operator'
         const payload: FloodEventInput = {
-            barangay: Number(form.barangay),
+            barangay: Number(event ? form.barangay : form.barangayIds[0]),
             occurred_at: toIso(form.occurredAt) as string,
             ended_at: toIso(form.endedAt),
             severity: form.severity,
@@ -182,7 +196,10 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                     description: r.description.trim() || undefined,
                 })),
         }
-        save.mutate({ id: event?.id, payload }, { onSuccess: () => setOpen(false) })
+        save.mutate(
+            { id: event?.id, payload, barangayIds: event ? undefined : form.barangayIds },
+            { onSuccess: () => setOpen(false) },
+        )
     })
 
     return (
@@ -190,10 +207,9 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
             <DialogTrigger render={trigger} />
             <DialogContent className='sm:max-w-4xl max-h-[85vh] overflow-y-auto'>
                 <DialogHeader>
-                    <DialogTitle>{event ? 'Edit flood event' : 'New flood event'}</DialogTitle>
-                    <DialogDescription>
-                        Recorded flood events power the history page and validate the risk model.
-                    </DialogDescription>
+                    <DialogTitle className='text-2xl'>
+                        {event ? 'Edit flood event' : 'Record New Flood Event'}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={onSubmit}>
@@ -203,28 +219,43 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                             <h3 className='text-sm font-semibold text-black/60'>Details</h3>
 
                             <Field>
-                                <FieldLabel htmlFor='fe-barangay'>Barangay</FieldLabel>
-                                <Select
-                                    id='fe-barangay'
-                                    value={form.barangay}
-                                    onValueChange={(v) => {
-                                        setStr('barangay')(String(v))
-                                        markTouched('barangay')
-                                    }}
-                                >
-                                    <SelectTrigger className='w-full'>
-                                        <SelectValue placeholder='Select a barangay'>
-                                            {selectedName}
-                                        </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent className='max-h-72' alignItemWithTrigger={true}>
-                                        {barangayOptions.map((o) => (
-                                            <SelectItem key={o.id} value={String(o.id)}>
-                                                {o.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <FieldLabel htmlFor='fe-barangay'>
+                                    {event ? 'Barangay' : 'Barangays'}
+                                </FieldLabel>
+                                {event ? (
+                                    <Select
+                                        id='fe-barangay'
+                                        value={form.barangay}
+                                        onValueChange={(v) => {
+                                            setStr('barangay')(String(v))
+                                            markTouched('barangay')
+                                        }}
+                                    >
+                                        <SelectTrigger className='w-full'>
+                                            <SelectValue placeholder='Select a barangay'>
+                                                {selectedName}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent className='max-h-72' alignItemWithTrigger={true}>
+                                            {barangayOptions.map((o) => (
+                                                <SelectItem key={o.id} value={String(o.id)}>
+                                                    {o.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <BarangayMultiSelect
+                                        className='w-full'
+                                        placeholder='Select barangays'
+                                        options={barangayOptions}
+                                        value={form.barangayIds}
+                                        onConfirm={(ids) => {
+                                            set('barangayIds')(ids)
+                                            markTouched('barangay')
+                                        }}
+                                    />
+                                )}
                                 <FieldError errors={fieldError('barangay')} />
                             </Field>
 
@@ -446,10 +477,20 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
 
                     <DialogFooter className='mt-4'>
                         <DialogClose
-                            render={<Button type='button' variant='outline'>Cancel</Button>}
+                            render={
+                                <Button type='button' variant='outline' size='lg' className='px-3'>
+                                    Cancel
+                                </Button>
+                            }
                         />
-                        <Button type='submit' disabled={save.isPending} className='cursor-pointer'>
-                            {save.isPending ? 'Saving…' : event ? 'Save changes' : 'Create event'}
+                        <Button
+                            type='submit'
+                            size='lg'
+                            disabled={save.isPending}
+                            className='cursor-pointer px-3'
+                        >
+                            {event ? <Save className='size-4' /> : <ClipboardPlus className='size-4' />}
+                            {save.isPending ? 'Saving…' : event ? 'Save changes' : 'Record event'}
                         </Button>
                     </DialogFooter>
                 </form>

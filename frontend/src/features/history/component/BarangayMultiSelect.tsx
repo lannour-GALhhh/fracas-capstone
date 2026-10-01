@@ -15,16 +15,18 @@ interface Props {
     /** Currently applied barangay ids. */
     value: number[]
     onConfirm: (ids: number[]) => void
+    className?: string
+    placeholder?: string
 }
 
 /** Checklist popover: edits a draft selection, applied only on "Confirm". */
-const BarangayMultiSelect = ({ options, value, onConfirm }: Props) => {
+const BarangayMultiSelect = ({ options, value, onConfirm, className, placeholder = 'All barangays' }: Props) => {
     const [open, setOpen] = useState(false)
     const [draft, setDraft] = useState<number[]>(value)
 
     const label =
         value.length === 0
-            ? 'All barangays'
+            ? placeholder
             : value.length === 1
                 ? (options.find((o) => o.id === value[0])?.name ?? `Barangay #${value[0]}`)
                 : `${value.length} barangays`
@@ -46,6 +48,7 @@ const BarangayMultiSelect = ({ options, value, onConfirm }: Props) => {
                         variant='outline'
                         className={cn(
                             'w-56 justify-between font-normal',
+                            className,
                             value.length === 0 && 'text-black/50',
                         )}
                     >

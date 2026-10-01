@@ -166,9 +166,9 @@ const FloodHistory = () => {
                 {isOperator && (
                     <FloodEventForm
                         trigger={
-                            <Button size='sm' className='cursor-pointer'>
+                            <Button size='lg' className='cursor-pointer px-3'>
                                 <Plus className='size-4' />
-                                New event
+                                Record New Flood Event
                             </Button>
                         }
                     />
