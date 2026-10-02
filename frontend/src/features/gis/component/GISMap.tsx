@@ -27,7 +27,7 @@ interface GISMapProps {
     visibleLevels: SusceptibilityLevel[]
 }
 
-/** Centre of a barangay's bounding box, to anchor its pinned tooltip. */
+/** Centre of a barangay's bounding box, to anchor its hover tooltip. */
 const centroidOf = (
     data: RiskFeatureCollection,
     id: number,
@@ -82,12 +82,7 @@ const GISMap = ({
         if (box) fitBox(map, box, panelWidth, 800)
     }, [data, panelWidth])
 
-    const pinnedCentroid =
-        data && selectedId != null ? centroidOf(data, selectedId) : null
-    const hoverCentroid =
-        data && hoveredId != null && hoveredId !== selectedId
-            ? centroidOf(data, hoveredId)
-            : null
+    const hoverCentroid = data && hoveredId != null ? centroidOf(data, hoveredId) : null
 
     return (
         <div className='relative h-full w-full overflow-hidden'>
@@ -141,18 +136,8 @@ const GISMap = ({
                                     </MapMarker>
                                 ) : null
                             })}
-                        {/* Pinned tooltip for the selected barangay. */}
-                        {selectedId != null && pinnedCentroid && (
-                            <BarangayTooltip
-                                data={data}
-                                id={selectedId}
-                                lngLat={pinnedCentroid}
-                                pinned
-                                onClose={() => onSelect(null)}
-                            />
-                        )}
-                        {/* Transient tooltip while hovering a different barangay. */}
-                        {hoveredId != null && hoveredId !== selectedId && hoverCentroid && (
+                        {/* Tooltip shown only while hovering a barangay. */}
+                        {hoveredId != null && hoverCentroid && (
                             <BarangayTooltip
                                 data={data}
                                 id={hoveredId}
