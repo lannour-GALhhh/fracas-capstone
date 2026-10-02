@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { ArrowLeft, BadgeCheck, CheckCircle2, Pencil } from 'lucide-react'
 import NotFound from '@/common/pages/NotFound'
 import ErrorState from '@/common/components/ErrorState'
@@ -8,7 +8,6 @@ import { Button } from '@/common/ui/button'
 import { Card, CardContent, CardTitle } from '@/common/ui/card'
 import { Map } from '@/common/ui/map'
 import { Separator } from '@/common/ui/separator'
-import { CATEGORY_LABELS } from '@/features/gis/constants/risk'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useFloodEvent } from '../hooks/useFloodEvent'
 import { useConfirmFloodEvent } from '../hooks/useFloodEventActions'
@@ -34,6 +33,12 @@ const Stat = ({ label, value, sub }: { label: string; value: string; sub?: strin
     </Card>
 )
 
+/** 12-hour time range; the end repeats the date only when it falls on another day. */
+const formatRange = (start: Date, end: Date) =>
+    `${format(start, 'h:mm a')} – ${
+        isSameDay(start, end) ? format(end, 'h:mm a') : format(end, 'LLL d, h:mm a')
+    }`
+
 /** Duration tile, or — when unresolved — a quick-resolve affordance for operators. */
 const DurationCard = ({
     event,
@@ -51,7 +56,7 @@ const DurationCard = ({
                 value={event.duration_hours != null ? `${event.duration_hours.toFixed(1)} hours` : '—'}
                 sub={
                     event.ended_at
-                        ? `${format(occurred, 'HH:mm')} – ${format(new Date(event.ended_at), 'HH:mm')}`
+                        ? formatRange(occurred, new Date(event.ended_at))
                         : 'Recession time not recorded'
                 }
             />
@@ -202,9 +207,17 @@ const FloodEventDetail = () => {
                 <Stat
                     label='Date'
                     value={format(occurred, 'LLL dd, y')}
-                    sub={`${format(occurred, 'HH:mm')} onset`}
+                    sub={`${format(occurred, 'h:mm a')} onset`}
                 />
                 <DurationCard event={event} isOperator={isOperator} />
+                <Stat
+                    label='People Affected'
+                    value={event.people_affected != null ? String(event.people_affected) : dash}
+                />
+                <Stat
+                    label='People Evacuated'
+                    value={event.people_evacuated != null ? String(event.people_evacuated) : dash}
+                />
                 <Stat
                     label='Flood Depth'
                     value={event.water_depth_m != null ? `${event.water_depth_m} ft` : dash}
@@ -212,24 +225,17 @@ const FloodEventDetail = () => {
                 <Stat
                     label='Peak Rainfall'
                     value={
-                        telemetry.rainfall != null
-                            ? `${telemetry.rainfall.peak_intensity} mm/hr`
-                            : dash
+                        event.peak_rainfall_mm_hr != null
+                            ? `${event.peak_rainfall_mm_hr} mm/hr`
+                            : telemetry.rainfall != null
+                              ? `${telemetry.rainfall.peak_intensity} mm/hr`
+                              : dash
                     }
                     sub={
                         telemetry.rainfall != null
                             ? `${telemetry.rainfall.peak_accumulation_24hr} mm / 24h`
                             : 'No reading in window'
                     }
-                />
-                <Stat
-                    label='Peak Risk'
-                    value={
-                        telemetry.risk != null
-                            ? `${telemetry.risk.peak_score.toFixed(0)} / 100`
-                            : dash
-                    }
-                    sub={telemetry.risk != null ? CATEGORY_LABELS[telemetry.risk.category] : 'No score in window'}
                 />
             </div>
 
@@ -239,20 +245,6 @@ const FloodEventDetail = () => {
                     <Separator />
                     <CardContent>
                         <p>{event.summary || event.notes || 'No summary recorded.'}</p>
-                    </CardContent>
-                    <Separator />
-
-                    <CardTitle>Impact Statistics</CardTitle>
-                    <Separator />
-                    <CardContent className='flex flex-row gap-2'>
-                        <Stat
-                            label='People Affected'
-                            value={event.people_affected != null ? String(event.people_affected) : dash}
-                        />
-                        <Stat
-                            label='People Evacuated'
-                            value={event.people_evacuated != null ? String(event.people_evacuated) : dash}
-                        />
                     </CardContent>
                 </Card>
 
@@ -266,7 +258,7 @@ const FloodEventDetail = () => {
                             {event.timeline.map((entry) => (
                                 <div key={entry.id}>
                                     <h5 className='text-sm text-black/50'>
-                                        {format(new Date(entry.occurred_at), 'HH:mm')}
+                                        {format(new Date(entry.occurred_at), 'LLL d, y · h:mm a')}
                                     </h5>
                                     <h1 className='text-md font-semibold'>{entry.title}</h1>
                                     {entry.description && (

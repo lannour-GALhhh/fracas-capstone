@@ -54,6 +54,7 @@ export const CHANGE_FIELD_LABELS: Record<string, string> = {
     ended_at: 'Ended at',
     severity: 'Severity',
     water_depth_m: 'Flood depth',
+    peak_rainfall_mm_hr: 'Peak rainfall',
     summary: 'Summary',
     people_affected: 'People affected',
     people_evacuated: 'People evacuated',

@@ -65,6 +65,7 @@ const blankForm = {
     endedAt: '',
     severity: 'moderate' as FloodSeverity,
     floodDepth: '',
+    peakRainfall: '',
     sourceType: 'third_party' as FloodSourceType,
     source: '',
     reportedById: null as number | null,
@@ -84,6 +85,7 @@ const formFromEvent = (e: FloodEventDetail): FormState => ({
     endedAt: toLocalInput(e.ended_at),
     severity: e.severity,
     floodDepth: e.water_depth_m?.toString() ?? '',
+    peakRainfall: e.peak_rainfall_mm_hr?.toString() ?? '',
     sourceType: e.source_type,
     source: e.source,
     reportedById: e.reported_by,
@@ -181,6 +183,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
             ended_at: toIso(form.endedAt),
             severity: form.severity,
             water_depth_m: numOrNull(form.floodDepth),
+            peak_rainfall_mm_hr: numOrNull(form.peakRainfall),
             source_type: form.sourceType,
             reported_by: isOperatorSource ? form.reportedById : null,
             source: isOperatorSource ? '' : form.source.trim(),
@@ -323,6 +326,20 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                     onBlur={onBlur('flood_depth')}
                                 />
                                 <FieldError errors={fieldError('flood_depth')} />
+                            </Field>
+
+                            <Field>
+                                <FieldLabel htmlFor='fe-rainfall'>
+                                    Peak rainfall (mm/hr) <span className='text-black/40'>(optional)</span>
+                                </FieldLabel>
+                                <Input
+                                    id='fe-rainfall'
+                                    type='number'
+                                    step='0.1'
+                                    min='0'
+                                    value={form.peakRainfall}
+                                    onChange={(e) => setStr('peakRainfall')(e.target.value)}
+                                />
                             </Field>
 
                             <Field>

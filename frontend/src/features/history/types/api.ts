@@ -52,6 +52,7 @@ export interface FloodEvent {
     ended_at: string | null
     severity: FloodSeverity
     water_depth_m: number | null
+    peak_rainfall_mm_hr: number | null
     source: string
     source_type: FloodSourceType
     reported_by_name: string | null
@@ -151,6 +152,7 @@ export interface FloodEventInput {
     ended_at?: string | null
     severity: FloodSeverity
     water_depth_m?: number | null
+    peak_rainfall_mm_hr?: number | null
     summary?: string
     people_affected?: number | null
     people_evacuated?: number | null

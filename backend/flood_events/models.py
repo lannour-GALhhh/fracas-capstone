@@ -39,6 +39,10 @@ class FloodEvent(models.Model):
     # Flood depth in feet (kept its historical column name to avoid a rename migration).
     water_depth_m = models.FloatField(null=True, blank=True, help_text="Peak flood depth in feet.")
 
+    peak_rainfall_mm_hr = models.FloatField(
+        null=True, blank=True, help_text="Peak rainfall intensity in mm/hr (operator-entered)."
+    )
+
     # --- operator-authored report fields (nullable so ground-truth rows stay valid) ---
     summary = models.TextField(blank=True, help_text="Narrative account of the event.")
     people_affected = models.PositiveIntegerField(null=True, blank=True)
