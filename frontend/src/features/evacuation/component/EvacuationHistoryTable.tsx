@@ -11,6 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/common/ui/table'
+import BarangayMultiSelect from '@/features/history/component/BarangayMultiSelect'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
 import { Card } from '@/common/ui/card'
@@ -78,7 +79,7 @@ const OutcomeCell = ({ evac }: { evac: EvacuationHistoryEntry }) => {
 /** Archive of closed evacuations, filterable by barangay/trigger/close date. */
 const EvacuationHistoryTable = () => {
     const [page, setPage] = useState(1)
-    const [barangayId, setBarangayId] = useState<number | undefined>()
+    const [barangayIds, setBarangayIds] = useState<number[]>([])
     const [trigger, setTrigger] = useState<EvacuationTrigger | 'all'>('all')
     const [range, setRange] = useState<DateRange | undefined>()
 
@@ -90,19 +91,18 @@ const EvacuationHistoryTable = () => {
                 .sort((a, b) => a.name.localeCompare(b.name)),
         [barangays],
     )
-    const barangayName = barangayOptions.find((o) => o.id === barangayId)?.name
 
     // Any filter change resets to the first page (adjust-during-render).
-    const filterKey = `${barangayId}|${trigger}|${range?.from}|${range?.to}`
+    const filterKey = `${barangayIds.join(',')}|${trigger}|${range?.from}|${range?.to}`
     const [lastKey, setLastKey] = useState(filterKey)
     if (filterKey !== lastKey) {
         setLastKey(filterKey)
         setPage(1)
     }
 
-    const hasFilters = barangayId != null || trigger !== 'all' || range != null
+    const hasFilters = barangayIds.length > 0 || trigger !== 'all' || range != null
     const clearFilters = () => {
-        setBarangayId(undefined)
+        setBarangayIds([])
         setTrigger('all')
         setRange(undefined)
     }
@@ -116,7 +116,7 @@ const EvacuationHistoryTable = () => {
 
     const { data, isLoading, isError, refetch } = useEvacuationHistory({
         page,
-        ...(barangayId && { barangay: barangayId }),
+        ...(barangayIds.length > 0 && { barangay: barangayIds.join(',') }),
         ...(trigger !== 'all' && { trigger }),
         ...(range?.from && { closed_after: toDay(range.from) }),
         ...(range?.to && { closed_before: toDay(range.to) }),
@@ -132,28 +132,11 @@ const EvacuationHistoryTable = () => {
     return (
         <>
             <Card size='sm' className='my-4 flex flex-row items-center gap-2'>
-                <Select
-                    value={barangayId ? String(barangayId) : 'all'}
-                    onValueChange={(v) =>
-                        setBarangayId(v === 'all' ? undefined : Number(v as string))
-                    }
-                >
-                    <SelectTrigger className='w-56'>
-                        <SelectValue>
-                            {(v) =>
-                                v === 'all' ? 'All barangays' : (barangayName ?? `Barangay #${v}`)
-                            }
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className='max-h-72' alignItemWithTrigger={true}>
-                        <SelectItem value='all'>All barangays</SelectItem>
-                        {barangayOptions.map((o) => (
-                            <SelectItem key={o.id} value={String(o.id)}>
-                                {o.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <BarangayMultiSelect
+                    options={barangayOptions}
+                    value={barangayIds}
+                    onConfirm={setBarangayIds}
+                />
 
                 <Select
                     value={trigger}

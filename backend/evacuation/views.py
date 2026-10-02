@@ -158,8 +158,9 @@ class EvacuationHistoryView(ListAPIView):
             status=Evacuation.Status.STOOD_DOWN
         ).select_related("barangay", "triggered_by")
         params = self.request.query_params
-        if barangay := params.get("barangay"):
-            queryset = queryset.filter(barangay_id=barangay)
+        ids = [b for b in (params.get("barangay") or "").split(",") if b.strip().isdigit()]
+        if ids:
+            queryset = queryset.filter(barangay_id__in=ids)
         if trigger := params.get("trigger"):
             queryset = queryset.filter(trigger=trigger)
         if after := _parse_day(params.get("closed_after")):
