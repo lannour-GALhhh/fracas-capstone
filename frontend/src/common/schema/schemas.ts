@@ -26,3 +26,24 @@ export const OptionalPositiveNumber = (label: string) =>
         .string()
         .trim()
         .refine((v) => v === '' || (Number(v) > 0 && !Number.isNaN(Number(v))), `${label} must be a positive number`)
+
+/** Optional non-negative number entered as text (decimals allowed, no exponent). */
+export const OptionalNonNegativeNumber = (label: string, max?: number) =>
+    zod
+        .string()
+        .trim()
+        .superRefine((v, ctx) => {
+            if (v === '') return
+            if (!/^\d*\.?\d+$|^\d+\.$/.test(v)) {
+                ctx.addIssue({ code: 'custom', message: `${label} must be a number (digits only).` })
+            } else if (max !== undefined && Number(v) > max) {
+                ctx.addIssue({ code: 'custom', message: `${label} must not exceed ${max}.` })
+            }
+        })
+
+/** Optional whole number entered as text: empty allowed, else digits only. */
+export const OptionalWholeNumber = (label: string) =>
+    zod
+        .string()
+        .trim()
+        .refine((v) => v === '' || /^\d+$/.test(v), `${label} must be a whole number (digits only).`)

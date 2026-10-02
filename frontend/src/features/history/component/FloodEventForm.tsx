@@ -96,6 +96,20 @@ const formFromEvent = (e: FloodEventDetail): FormState => ({
     notes: e.notes,
 })
 
+/** Keep digits (and optionally one decimal point) only. */
+const sanitizeNumber = (s: string, decimal: boolean): string => {
+    if (!decimal) return s.replace(/\D/g, '')
+    const cleaned = s.replace(/[^\d.]/g, '')
+    const [int, ...rest] = cleaned.split('.')
+    return rest.length ? `${int}.${rest.join('')}` : int
+}
+
+/** Block exponent/sign characters at the keyboard (`e`, `E`, `+`, `-`, and `.` when whole-only). */
+const blockNonNumericKeys = (decimal: boolean) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const blocked = decimal ? ['e', 'E', '+', '-'] : ['e', 'E', '+', '-', '.', ',']
+    if (blocked.includes(e.key)) e.preventDefault()
+}
+
 const numOrNull = (s: string): number | null => (s.trim() === '' ? null : Number(s))
 
 /** Operator create/edit form: a Details column beside a Summary + timeline column. */
@@ -123,6 +137,9 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
         source: form.source,
         reported_by: form.reportedById,
         flood_depth: form.floodDepth,
+        peak_rainfall: form.peakRainfall,
+        people_affected: form.peopleAffected,
+        people_evacuated: form.peopleEvacuated,
     })
 
     const barangayOptions = useMemo(
@@ -318,12 +335,13 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                 </FieldLabel>
                                 <Input
                                     id='fe-depth'
-                                    type='number'
-                                    step='0.1'
-                                    min='0'
+                                    type='text'
+                                    inputMode='decimal'
                                     value={form.floodDepth}
-                                    onChange={(e) => setStr('floodDepth')(e.target.value)}
+                                    onKeyDown={blockNonNumericKeys(true)}
+                                    onChange={(e) => setStr('floodDepth')(sanitizeNumber(e.target.value, true))}
                                     onBlur={onBlur('flood_depth')}
+                                    aria-invalid={!!fieldError('flood_depth')}
                                 />
                                 <FieldError errors={fieldError('flood_depth')} />
                             </Field>
@@ -334,12 +352,15 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                 </FieldLabel>
                                 <Input
                                     id='fe-rainfall'
-                                    type='number'
-                                    step='0.1'
-                                    min='0'
+                                    type='text'
+                                    inputMode='decimal'
                                     value={form.peakRainfall}
-                                    onChange={(e) => setStr('peakRainfall')(e.target.value)}
+                                    onKeyDown={blockNonNumericKeys(true)}
+                                    onChange={(e) => setStr('peakRainfall')(sanitizeNumber(e.target.value, true))}
+                                    onBlur={onBlur('peak_rainfall')}
+                                    aria-invalid={!!fieldError('peak_rainfall')}
                                 />
+                                <FieldError errors={fieldError('peak_rainfall')} />
                             </Field>
 
                             <Field>
@@ -394,11 +415,15 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                     </FieldLabel>
                                     <Input
                                         id='fe-affected'
-                                        type='number'
-                                        min='0'
+                                        type='text'
+                                        inputMode='numeric'
                                         value={form.peopleAffected}
-                                        onChange={(e) => setStr('peopleAffected')(e.target.value)}
+                                        onKeyDown={blockNonNumericKeys(false)}
+                                        onChange={(e) => setStr('peopleAffected')(sanitizeNumber(e.target.value, false))}
+                                        onBlur={onBlur('people_affected')}
+                                        aria-invalid={!!fieldError('people_affected')}
                                     />
+                                    <FieldError errors={fieldError('people_affected')} />
                                 </Field>
                                 <Field>
                                     <FieldLabel htmlFor='fe-evacuated'>
@@ -406,11 +431,15 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                     </FieldLabel>
                                     <Input
                                         id='fe-evacuated'
-                                        type='number'
-                                        min='0'
+                                        type='text'
+                                        inputMode='numeric'
                                         value={form.peopleEvacuated}
-                                        onChange={(e) => setStr('peopleEvacuated')(e.target.value)}
+                                        onKeyDown={blockNonNumericKeys(false)}
+                                        onChange={(e) => setStr('peopleEvacuated')(sanitizeNumber(e.target.value, false))}
+                                        onBlur={onBlur('people_evacuated')}
+                                        aria-invalid={!!fieldError('people_evacuated')}
                                     />
+                                    <FieldError errors={fieldError('people_evacuated')} />
                                 </Field>
                             </div>
                         </FieldGroup>
