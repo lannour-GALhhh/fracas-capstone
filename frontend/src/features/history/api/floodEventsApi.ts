@@ -99,6 +99,8 @@ export const createFloodEventReport = async (
     const { data } = await apiClient.post<FloodEventReport>(
         `/api/flood-events/${id}/reports/`,
         form,
+        // apiClient defaults to JSON, which would make axios serialize the FormData as an object.
+        { headers: { 'Content-Type': 'multipart/form-data' } },
     )
     return data
 }

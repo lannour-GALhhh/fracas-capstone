@@ -206,7 +206,14 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Pluggable media storage backend, selected by env: local/s3/cloudinary.
-MEDIA_STORAGE = config("MEDIA_STORAGE", default="local")
+# Cloudinary is the main bucket whenever a cloud name is configured; the test
+# suite always uses the filesystem so it stays offline.
+MEDIA_STORAGE = config(
+    "MEDIA_STORAGE",
+    default="cloudinary" if config("CLOUDINARY_CLOUD_NAME", default="") else "local",
+)
+if TESTING:
+    MEDIA_STORAGE = "local"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -222,11 +229,10 @@ if MEDIA_STORAGE == "s3":
     AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="") or None
     AWS_QUERYSTRING_AUTH = config("AWS_QUERYSTRING_AUTH", default=True, cast=bool)
 elif MEDIA_STORAGE == "cloudinary":
-    STORAGES["default"] = {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"}
-    # These apps are only imported when Cloudinary is actually selected.
-    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+    STORAGES["default"] = {"BACKEND": "backend.cloudinary_storage.CloudinaryMediaStorage"}
     CLOUDINARY_STORAGE = {
         "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME", default=""),
+        "UPLOAD_PRESET": config("CLOUDINARY_UPLOAD_PRESET", default=""),
         "API_KEY": config("CLOUDINARY_API_KEY", default=""),
         "API_SECRET": config("CLOUDINARY_API_SECRET", default=""),
     }
