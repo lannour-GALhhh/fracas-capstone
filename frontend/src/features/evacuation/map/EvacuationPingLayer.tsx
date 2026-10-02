@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { BellRing, CheckCircle2, CircleAlert, Siren, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/common/ui/button'
-import { MapMarker, MarkerContent, MarkerPopup } from '@/common/ui/map'
+import { MapMarker, MarkerContent, MarkerPopup, useMarkerContext } from '@/common/ui/map'
 import { featureBoundsById } from '@/features/gis/utils/bounds'
 import type { RiskFeatureCollection } from '@/features/gis/types/api'
 import { useActiveEvacuations } from '../hooks/useActiveEvacuations'
@@ -13,6 +13,8 @@ import type { EvacuationAggregate } from '../types/api'
 interface Props {
     /** The risk feature collection — used to anchor each badge at a centroid. */
     data: RiskFeatureCollection | null
+    /** When set to a barangay under evacuation, its popup is opened. */
+    focusedBarangayId?: number | null
 }
 
 /** Centre of a barangay's bounding box, or null if it isn't in the collection. */
@@ -20,16 +22,6 @@ const centroidOf = (data: RiskFeatureCollection, id: number): [number, number] |
     const box = featureBoundsById(data, id)
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
-
-/** The pulsing siren badge, with evacuated/total pinned to its corner. */
-const PingBadge = ({ safe, roster }: { safe: number; roster: number }) => (
-    <div className='relative flex items-center justify-center'>
-        <EvacuationPingBadge />
-        <span className='bg-foreground absolute -right-1.5 -bottom-1.5 rounded-full border border-white px-1 text-[10px] font-semibold text-white shadow tabular-nums'>
-            {safe}/{roster}
-        </span>
-    </div>
-)
 
 /** A stat row: tinted icon + muted label left, larger value right. */
 const Row = ({
@@ -98,8 +90,19 @@ const UnderEvacuationCard = ({ evac }: { evac: EvacuationAggregate }) => {
     )
 }
 
+/** Opens the enclosing marker's popup when `active` turns true. */
+const PopupOpener = ({ active }: { active: boolean }) => {
+    const { marker, map } = useMarkerContext()
+    useEffect(() => {
+        if (!active || !map) return
+        const popup = marker.getPopup()
+        if (popup && !popup.isOpen()) marker.togglePopup()
+    }, [active, marker, map])
+    return null
+}
+
 /** Pulsing evacuated/total badge over every barangay under active evacuation. */
-const EvacuationPingLayer = ({ data }: Props) => {
+const EvacuationPingLayer = ({ data, focusedBarangayId = null }: Props) => {
     const { data: evacuations } = useActiveEvacuations()
 
     if (!data || !evacuations?.length) return null
@@ -113,11 +116,12 @@ const EvacuationPingLayer = ({ data }: Props) => {
                 return (
                     <MapMarker key={evac.evacuation_id} longitude={lng} latitude={lat} draggable={false}>
                         <MarkerContent>
-                            <PingBadge safe={evac.safe} roster={evac.roster} />
+                            <EvacuationPingBadge />
                         </MarkerContent>
                         <MarkerPopup className='max-w-none'>
                             <UnderEvacuationCard evac={evac} />
                         </MarkerPopup>
+                        <PopupOpener active={focusedBarangayId === evac.barangay.id} />
                     </MapMarker>
                 )
             })}

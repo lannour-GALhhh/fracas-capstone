@@ -160,7 +160,7 @@ const GISMap = ({
                 <RainfallLayer data={data} visible={layers.rainfall} />
                 {/* Pulsing evacuated/total badges for barangays under an active
                     evacuation — an alert overlay, always shown when present. */}
-                <EvacuationPingLayer data={data} />
+                <EvacuationPingLayer data={data} focusedBarangayId={selectedId} />
             </Map>
         </div>
     )

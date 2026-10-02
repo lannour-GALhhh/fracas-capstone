@@ -148,7 +148,7 @@ const Dashboard = () => {
                 </>
             )}
 
-            {!barangayPanelVisible && <UnderEvacuationCard />}
+            {!barangayPanelVisible && <UnderEvacuationCard onSelect={handleSelect} />}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
             {selectedId != null && panelHidden && (

@@ -1866,6 +1866,7 @@ export {
   MapRoute,
   MapArc,
   MapClusterLayer,
+  useMarkerContext,
 };
 
 export type { MapRef, MapViewport, MapArcDatum, MapArcEvent };
