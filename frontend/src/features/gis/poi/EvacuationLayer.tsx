@@ -51,7 +51,7 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
                 Inactive
             </Badge>
         )}
-        {(p.capacity != null || p.contact) && (
+        {(p.capacity != null || p.contacts.length > 0) && (
             <div className='flex flex-col gap-1'>
                 {p.capacity != null && (
                     <Row
@@ -60,9 +60,14 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
                         value={p.capacity.toLocaleString()}
                     />
                 )}
-                {p.contact && (
-                    <Row icon={<Phone className='size-4' />} label='Contact' value={p.contact} />
-                )}
+                {p.contacts.map((c) => (
+                    <Row
+                        key={c.id}
+                        icon={<Phone className='size-4' />}
+                        label={c.label || 'Contact'}
+                        value={c.phone}
+                    />
+                ))}
             </div>
         )}
     </div>
@@ -70,7 +75,7 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 
-/** Read-only evacuation-center markers; managed from the admin console, not the map. */
+/** Read-only evacuation-center markers; managed from the Evacuation Centers page, not the map. */
 const EvacuationLayer = ({ visible, focusedBarangayId }: Props) => {
     const { data } = useEvacuationCenters()
 

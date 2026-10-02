@@ -1,11 +1,34 @@
 import type { FeatureCollection, Point } from 'geojson'
 
+export interface EvacuationContact {
+    id?: number
+    label: string
+    phone: string
+}
+
+/** One photo in the form's ordered list: a saved image (`id`) or a newly picked `file`. */
+export interface CenterPhoto {
+    key: string
+    url: string
+    id?: number
+    file?: File
+}
+
+export interface EvacuationImage {
+    id: number
+    image: string
+    uploaded_at: string
+}
+
 /** Properties on each evacuation-center GeoJSON feature. */
 export interface EvacuationProperties {
     id: number
     name: string
     capacity: number | null
+    /** First contact's number — kept for older clients; prefer `contacts`. */
     contact: string
+    contacts: EvacuationContact[]
+    images: EvacuationImage[]
     is_active: boolean
     barangay: number | null
     barangay_name: string | null
@@ -19,7 +42,7 @@ export interface EvacuationInput {
     latitude: number
     longitude: number
     capacity: number | null
-    contact: string
+    contacts: EvacuationContact[]
     is_active: boolean
 }
 

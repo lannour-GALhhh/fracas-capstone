@@ -1,7 +1,9 @@
+import type { Feature, Point } from 'geojson'
 import apiClient from '@/app/apiClient'
 import type {
     EvacuationCollection,
     EvacuationInput,
+    EvacuationProperties,
     Paginated,
     PoiKind,
     PoiLog,
@@ -16,16 +18,41 @@ export const getEvacuationCenters = async (): Promise<EvacuationCollection> => {
 }
 
 /** Create a new evacuation center (operator only). */
-export const createEvacuationCenter = async (payload: EvacuationInput): Promise<void> => {
-    await apiClient.post(EVAC_URL, payload)
+export const createEvacuationCenter = async (
+    payload: EvacuationInput,
+): Promise<Feature<Point, EvacuationProperties>> => {
+    const { data } = await apiClient.post(EVAC_URL, payload)
+    return data
 }
 
 /** Update an existing center — accepts a partial patch (e.g. just lat/lng on drag). */
 export const updateEvacuationCenter = async (
     id: number,
     payload: Partial<EvacuationInput>,
-): Promise<void> => {
-    await apiClient.patch(`${EVAC_URL}${id}/`, payload)
+): Promise<Feature<Point, EvacuationProperties>> => {
+    const { data } = await apiClient.patch(`${EVAC_URL}${id}/`, payload)
+    return data
+}
+
+/** Upload photos to a center (operator only, multipart). */
+export const uploadEvacuationImages = async (id: number, files: File[]): Promise<number[]> => {
+    const form = new FormData()
+    files.forEach((f) => form.append('images', f))
+    // apiClient defaults to JSON, which would make axios serialize the FormData as an object.
+    const { data } = await apiClient.post<{ id: number }[]>(`${EVAC_URL}${id}/images/`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.map((img) => img.id) // same order as `files`
+}
+
+/** Set the photo order; `ids` must list every photo once, first = MAIN. */
+export const reorderEvacuationImages = async (id: number, ids: number[]): Promise<void> => {
+    await apiClient.post(`${EVAC_URL}${id}/images/reorder/`, { ids })
+}
+
+/** Remove one photo from a center (operator only). */
+export const deleteEvacuationImage = async (id: number, imageId: number): Promise<void> => {
+    await apiClient.delete(`${EVAC_URL}${id}/images/${imageId}/`)
 }
 
 /** Delete an evacuation center (operator only). */

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, PanelRightOpen } from 'lucide-react'
 import { Card } from '@/common/ui/card'
@@ -52,6 +53,9 @@ const FreshnessBar = ({
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
     const [selectedId, setSelectedId] = useState<number | null>(null)
+    // `?center=<id>` flies to that evacuation center (linked from its management page).
+    const [searchParams] = useSearchParams()
+    const focusCenterId = Number(searchParams.get('center')) || null
     const [panelHidden, setPanelHidden] = useState(false)
     const [layers, setLayers] = useState<LayerVisibility>({
         hazard: true,
@@ -135,6 +139,7 @@ const Dashboard = () => {
                 layers={layers}
                 zoneColorMode={zoneColorMode}
                 visibleLevels={visibleLevels}
+                focusCenterId={focusCenterId}
             />
 
             {barangayPanelVisible && selectedId != null && (

@@ -1,3 +1,4 @@
+import tempfile
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -7,7 +8,12 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from evacuation.models import Evacuation, EvacuationCenter, EvacuationStatus
+from evacuation.models import (
+    Evacuation,
+    EvacuationCenter,
+    EvacuationCenterImage,
+    EvacuationStatus,
+)
 from poi.models import MapPoiChange
 from users.models import Subscription
 
@@ -93,6 +99,91 @@ class EvacuationCenterOperatorTests(APITestCase):
         log = MapPoiChange.objects.filter(poi_id=center.id, action="updated").first()
         self.assertIsNotNone(log)
         self.assertEqual(log.detail["changed"]["capacity"], [100, 250])
+
+    def test_create_with_multiple_contacts(self):
+        resp = self.client.post(
+            reverse("evacuation-center-list"),
+            {
+                "name": "Multi",
+                "latitude": 0.5,
+                "longitude": 0.5,
+                "contacts": [
+                    {"label": "Principal", "phone": "0917111"},
+                    {"label": "", "phone": "0917222"},
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        props = resp.data["properties"]
+        self.assertEqual([c["phone"] for c in props["contacts"]], ["0917111", "0917222"])
+        self.assertEqual(props["contact"], "0917111")  # legacy single field = first
+
+    def test_update_replaces_contacts_only_when_sent(self):
+        center = EvacuationCenter.objects.create(
+            name="Gym", location=Point(0.5, 0.5, srid=4326)
+        )
+        center.contacts.create(phone="1")
+        url = reverse("evacuation-center-detail", args=[center.id])
+        self.client.patch(url, {"capacity": 5}, format="json")
+        self.assertEqual(center.contacts.count(), 1)  # untouched
+        self.client.patch(url, {"contacts": [{"phone": "2"}, {"phone": "3"}]}, format="json")
+        self.assertEqual(list(center.contacts.values_list("phone", flat=True)), ["2", "3"])
+
+    def test_image_upload_and_remove(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from io import BytesIO
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (4, 4)).save(buf, "PNG")
+        center = EvacuationCenter.objects.create(
+            name="Gym", location=Point(0.5, 0.5, srid=4326)
+        )
+        files = [
+            SimpleUploadedFile(f"p{i}.png", buf.getvalue(), content_type="image/png")
+            for i in range(2)
+        ]
+        with self.settings(MEDIA_ROOT=tempfile.mkdtemp()):
+            resp = self.client.post(
+                reverse("evacuation-center-add-images", args=[center.id]),
+                {"images": files},
+                format="multipart",
+            )
+            self.assertEqual(resp.status_code, 201)
+            self.assertEqual(center.images.count(), 2)
+            image_id = resp.data[0]["id"]
+            resp = self.client.delete(
+                reverse("evacuation-center-remove-image", args=[center.id, image_id])
+            )
+            self.assertEqual(resp.status_code, 204)
+            self.assertEqual(center.images.count(), 1)
+
+    def test_reorder_images(self):
+        center = EvacuationCenter.objects.create(
+            name="Gym", location=Point(0.5, 0.5, srid=4326)
+        )
+        a, b, c = (
+            EvacuationCenterImage.objects.create(center=center, image=f"x{i}.png", position=i)
+            for i in range(3)
+        )
+        url = reverse("evacuation-center-reorder-images", args=[center.id])
+        resp = self.client.post(url, {"ids": [c.id, a.id, b.id]}, format="json")
+        self.assertEqual(resp.status_code, 204)
+        self.assertEqual(list(center.images.values_list("id", flat=True)), [c.id, a.id, b.id])
+        # Must list every image exactly once.
+        bad = self.client.post(url, {"ids": [a.id]}, format="json")
+        self.assertEqual(bad.status_code, 400)
+
+    def test_image_upload_requires_operator(self):
+        center = EvacuationCenter.objects.create(
+            name="Gym", location=Point(0.5, 0.5, srid=4326)
+        )
+        self.client.force_authenticate(get_user_model().objects.create_user("res", password="pw"))
+        resp = self.client.post(
+            reverse("evacuation-center-add-images", args=[center.id]), {}, format="multipart"
+        )
+        self.assertEqual(resp.status_code, 403)
 
     def test_delete_logs(self):
         center = EvacuationCenter.objects.create(

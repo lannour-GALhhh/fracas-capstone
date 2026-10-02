@@ -10,6 +10,7 @@ import BarangayChoropleth from './BarangayChoropleth'
 import BarangayTooltip from './BarangayTooltip'
 import HazardZoneLayer from './HazardZoneLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
+import FocusCenter from '../poi/FocusCenter'
 import EvacuationPingLayer from '@/features/evacuation/map/EvacuationPingLayer'
 import RainfallLayer from './RainfallLayer'
 import BarangaySearch from './BarangaySearch'
@@ -25,6 +26,8 @@ interface GISMapProps {
     zoneColorMode: ZoneColorMode
     /** Susceptibility levels currently switched on — filters the hazard zones. */
     visibleLevels: SusceptibilityLevel[]
+    /** Evacuation center to fly to on load (from the Evacuation Centers page). */
+    focusCenterId?: number | null
 }
 
 /** Centre of a barangay's bounding box, to anchor its hover tooltip. */
@@ -44,6 +47,7 @@ const GISMap = ({
     layers,
     zoneColorMode,
     visibleLevels,
+    focusCenterId = null,
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const mapRef = useRef<MapRef>(null)
@@ -116,6 +120,7 @@ const GISMap = ({
                     showReset={true}
                     onReset={handleResetView}
                 />
+                <FocusCenter centerId={focusCenterId} />
                 {data && (
                     <>
                         <BarangayChoropleth
@@ -124,6 +129,7 @@ const GISMap = ({
                             onSelect={massActive ? toggleMass : onSelect}
                             onHover={setHoveredId}
                             panelWidth={panelWidth}
+                            skipInitialFit={focusCenterId != null}
                         />
                         {massActive &&
                             massIds.map((id) => {
