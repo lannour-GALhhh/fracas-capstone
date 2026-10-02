@@ -9,6 +9,7 @@ TRACKED_FIELDS = [
     "ended_at",
     "severity",
     "water_depth_m",
+    "peak_rainfall_mm_hr",
     "summary",
     "people_affected",
     "people_evacuated",

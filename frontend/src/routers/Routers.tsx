@@ -13,7 +13,7 @@ const FloodHistory = lazy(() => import('@/features/history/component/FloodHistor
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
 const AccountPage = lazy(() => import('@/features/user/AccountPage'))
 const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage'))
-const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'))
+const CentersPage = lazy(() => import('@/features/centers/CentersPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const UsersPage = lazy(() => import('@/features/admin/users/UsersPage'))
 const UserDetailPage = lazy(() => import('@/features/admin/users/UserDetailPage'))
@@ -21,9 +21,6 @@ const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPag
 const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'))
-const EvacuationCentersPage = lazy(
-  () => import('@/features/admin/evacuation/EvacuationCentersPage'),
-)
 const TestAuth = lazy(() => import('@/common/test/TestAuth'))
 const NotFound = lazy(() => import('@/common/pages/NotFound'))
 
@@ -40,14 +37,15 @@ const Routers = () => {
           <Route path='/history/:id' element={<FloodEventDetail />} />
           <Route path='/me' element={<AccountPage />} />
           <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
-          <Route path='/analytics' element={<OperatorRoute><AnalyticsPage /></OperatorRoute>} />
+          <Route path='/evacuation-centers' element={<OperatorRoute><CentersPage /></OperatorRoute>} />
+          {/* Analytics is hidden for now: re-add the route + nav link to bring it back. */}
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route index element={<Navigate to='users' replace />} />
             <Route path='users' element={<UsersPage />} />
             <Route path='users/:id' element={<UserDetailPage />} />
             <Route path='model/config' element={<ModelConfigPage />} />
             <Route path='model/validation' element={<ModelValidationPage />} />
-            <Route path='evacuation' element={<EvacuationCentersPage />} />
+            <Route path='evacuation' element={<Navigate to='/evacuation-centers' replace />} />
             <Route path='system' element={<SystemPage />} />
             <Route path='settings' element={<SettingsPage />} />
           </Route>

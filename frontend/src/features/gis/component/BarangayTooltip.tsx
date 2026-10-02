@@ -10,9 +10,6 @@ interface Props {
     id: number
     /** Where to anchor the popup ([lng, lat]). */
     lngLat: [number, number]
-    /** Pinned popups stay put and show a close button; hover popups don't. */
-    pinned?: boolean
-    onClose?: () => void
 }
 
 const propsById = (
@@ -34,7 +31,7 @@ const HazardBadge = ({ category }: { category: BarangayRiskProperties['category'
 }
 
 /** A small readout anchored to a barangay: name and hazard level. */
-const BarangayTooltip = ({ data, id, lngLat, pinned = false, onClose }: Props) => {
+const BarangayTooltip = ({ data, id, lngLat }: Props) => {
     const p = propsById(data, id)
     if (!p) return null
 
@@ -42,12 +39,11 @@ const BarangayTooltip = ({ data, id, lngLat, pinned = false, onClose }: Props) =
         <MapPopup
             longitude={lngLat[0]}
             latitude={lngLat[1]}
-            closeButton={pinned}
-            onClose={onClose}
+            closeButton={false}
             closeOnClick={false}
             className='w-56 -translate-x-60'
         >
-            <div className='flex items-start justify-between gap-2 pr-4'>
+            <div className='flex items-start justify-between gap-2'>
                 <h4 className='text-sm leading-tight font-semibold'>{p.name}</h4>
                 <HazardBadge category={p.category} />
             </div>

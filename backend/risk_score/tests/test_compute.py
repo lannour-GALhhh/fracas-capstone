@@ -9,14 +9,13 @@ from risk_score.services import snapshot
 from risk_score.tasks import compute_risk_scores
 
 
-def make_barangay(name, code, height):
+def make_barangay(name, code):
     poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
     return Barangay.objects.create(
         name=name,
         code=code,
         province_code="PH0907332",
         boundary=MultiPolygon(poly),
-        land_height_mean=height,
     )
 
 
@@ -34,8 +33,8 @@ def make_susceptibility(barangay, level="high", source_flood_value=4.0):
 
 class ComputeRiskScoresTests(TestCase):
     def test_scores_all_barangays_and_caches_snapshot(self):
-        low = make_barangay("Lowland", "L1", height=1.0)
-        make_barangay("Highland", "H1", height=100.0)
+        low = make_barangay("Lowland", "L1")
+        make_barangay("Highland", "H1")
         Rainfall.objects.create(
             barangay=low, recorded_at=timezone.now(), current_rainfall_strength=30.0
         )
@@ -58,7 +57,7 @@ class ComputeRiskScoresTests(TestCase):
         self.assertEqual(payload["count"], 2)
 
     def test_not_degraded_when_both_factors_available(self):
-        barangay = make_barangay("Lowland", "L1", height=1.0)
+        barangay = make_barangay("Lowland", "L1")
         make_susceptibility(barangay, level="very_high")
         Rainfall.objects.create(
             barangay=barangay, recorded_at=timezone.now(), current_rainfall_strength=30.0

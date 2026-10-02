@@ -1,15 +1,16 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import MultiPolygon, Polygon
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from rainfall_fetch.models import Rainfall
-from rainfall_fetch.tasks import _accumulate, parse_rainfall_data
+from rainfall_fetch.models import BarangayRainfallGrid, Rainfall
+from rainfall_fetch.tasks import _accumulate, _query_groups, fetch_rainfall_information, parse_rainfall_data
 
 
 class AccumulateTests(SimpleTestCase):
@@ -69,6 +70,89 @@ def make_barangay(name="Tumaga", code="T1"):
     return Barangay.objects.create(
         name=name, code=code, province_code="PH0907332", boundary=MultiPolygon(poly),
     )
+
+
+def _mock_forecast_payload(n):
+    """One Open-Meteo response object per queried location."""
+    payload = {
+        "current": {"time": "2026-07-01T04:00", "precipitation": 5},
+        "hourly": {"time": ["2026-07-01T04:00"], "precipitation": [5]},
+        "minutely_15": {"time": ["2026-07-01T04:00"], "precipitation": [5]},
+    }
+    return [dict(payload) for _ in range(n)]
+
+
+class QueryGroupsTests(TestCase):
+    """`_query_groups` must dedup by the *discovered* grid cell (BarangayRainfallGrid),
+    never by an assumed geographic distance."""
+
+    def test_barangays_sharing_a_discovered_grid_cell_are_grouped_together(self):
+        b1 = make_barangay("Alpha", "A1")
+        b2 = make_barangay("Beta", "B1")
+        BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
+        BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.0, grid_lon=122.0)
+
+        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
+        groups = _query_groups(barangays)
+
+        self.assertEqual(len(groups), 1)
+        self.assertCountEqual([b.name for b in groups[0]["members"]], ["Alpha", "Beta"])
+        self.assertEqual((groups[0]["lat"], groups[0]["lon"]), (7.0, 122.0))
+
+    def test_barangays_in_different_discovered_cells_stay_separate(self):
+        b1 = make_barangay("Alpha", "A1")
+        b2 = make_barangay("Beta", "B1")
+        BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
+        BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.1, grid_lon=122.1)
+
+        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
+        groups = _query_groups(barangays)
+
+        self.assertEqual(len(groups), 2)
+
+    def test_undiscovered_barangay_falls_back_to_its_own_centroid(self):
+        make_barangay("Undiscovered", "U1")
+
+        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
+        groups = _query_groups(barangays)
+
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(len(groups[0]["members"]), 1)
+        # Falls back to the barangay's own centroid, not a guessed/shared point.
+        centroid = barangays[0].boundary.centroid
+        self.assertEqual((groups[0]["lat"], groups[0]["lon"]), (centroid.y, centroid.x))
+
+
+class FetchRainfallDedupTests(TestCase):
+    """Barangays sharing a discovered grid cell must be fetched with a single
+    Open-Meteo query, not one query per barangay."""
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_shared_grid_cell_is_queried_once_but_stores_a_reading_per_barangay(self, mock_get):
+        b1 = make_barangay("Alpha", "A1")
+        b2 = make_barangay("Beta", "B1")
+        b3 = make_barangay("Gamma", "G1")
+        BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
+        BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.0, grid_lon=122.0)
+        # Gamma left undiscovered on purpose -> queried separately via its own centroid.
+
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = _mock_forecast_payload(2)
+
+        fetch_rainfall_information()
+
+        # Two distinct query points went out (the shared cell + Gamma's own centroid),
+        # not three -- one HTTP call per hourly/minutely leg, i.e. 2 calls total.
+        self.assertEqual(mock_get.call_count, 2)
+        queried_url = mock_get.call_args_list[0].args[0]
+        latitude_param = queried_url.split("latitude=")[1].split("&")[0]
+        self.assertEqual(len(latitude_param.split(",")), 2)  # 2 query points, not 3
+
+        # But every barangay still gets its own stored reading.
+        self.assertEqual(Rainfall.objects.count(), 3)
+        self.assertEqual(Rainfall.objects.filter(barangay=b1).count(), 1)
+        self.assertEqual(Rainfall.objects.filter(barangay=b2).count(), 1)
+        self.assertEqual(Rainfall.objects.filter(barangay=b3).count(), 1)
 
 
 class RainfallHistoryApiTests(APITestCase):

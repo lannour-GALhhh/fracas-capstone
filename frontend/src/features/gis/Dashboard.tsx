@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, PanelRightOpen } from 'lucide-react'
 import { Card } from '@/common/ui/card'
@@ -9,6 +10,7 @@ import Legend from './component/Legend'
 import LayersControl from './component/LayersControl'
 import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
+import UnderEvacuationCard from './component/UnderEvacuationCard'
 import HighRiskStreetsPanel from './component/HighRiskStreetsPanel'
 import { useRiskMap } from './hooks/useRiskMap'
 import { SUSCEPTIBILITY_LAYER_KEYS, type LayerKey, type LayerVisibility } from './constants/layers'
@@ -51,6 +53,9 @@ const FreshnessBar = ({
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
     const [selectedId, setSelectedId] = useState<number | null>(null)
+    // `?center=<id>` flies to that evacuation center (linked from its management page).
+    const [searchParams] = useSearchParams()
+    const focusCenterId = Number(searchParams.get('center')) || null
     const [panelHidden, setPanelHidden] = useState(false)
     const [layers, setLayers] = useState<LayerVisibility>({
         hazard: true,
@@ -134,6 +139,7 @@ const Dashboard = () => {
                 layers={layers}
                 zoneColorMode={zoneColorMode}
                 visibleLevels={visibleLevels}
+                focusCenterId={focusCenterId}
             />
 
             {barangayPanelVisible && selectedId != null && (
@@ -146,6 +152,8 @@ const Dashboard = () => {
                     />
                 </>
             )}
+
+            {!barangayPanelVisible && <UnderEvacuationCard onSelect={handleSelect} />}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
             {selectedId != null && panelHidden && (

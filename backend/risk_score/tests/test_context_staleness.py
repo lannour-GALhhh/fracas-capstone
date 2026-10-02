@@ -12,7 +12,7 @@ from .test_compute import make_barangay
 
 class ContextStalenessTests(TestCase):
     def setUp(self):
-        self.barangay = make_barangay("Lowland", "L1", height=1.0)
+        self.barangay = make_barangay("Lowland", "L1")
 
     def test_fresh_rainfall_is_kept(self):
         Rainfall.objects.create(

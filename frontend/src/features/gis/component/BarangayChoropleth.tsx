@@ -30,6 +30,8 @@ interface Props {
     onHover: (id: number | null) => void
     /** Pixels reserved on the right for the detail panel (0 when closed). */
     panelWidth: number
+    /** Leave the camera alone on first load (something else frames the view). */
+    skipInitialFit?: boolean
     /** When true, barangay hover/click is inert (e.g. while editing POIs). */
     disabled?: boolean
 }
@@ -44,6 +46,7 @@ const BarangayChoropleth = ({
     onSelect,
     onHover,
     panelWidth,
+    skipInitialFit = false,
     disabled = false,
 }: Props) => {
     const { map, isLoaded } = useMap()
@@ -173,7 +176,7 @@ const BarangayChoropleth = ({
         if (!map || !isLoaded) return
         const source = map.getSource(SOURCE) as GeoJSONSource | undefined
         source?.setData(data)
-        if (!didFitRef.current) {
+        if (!didFitRef.current && !skipInitialFit) {
             const box = collectionBounds(data)
             if (box) {
                 fitBox(map, box, panelWidth, 0)

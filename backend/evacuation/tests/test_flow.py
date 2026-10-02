@@ -88,14 +88,21 @@ class EvacuationFlowTests(APITestCase):
         )
         self.assertEqual(EvacuationStatus.objects.filter(evacuation=evac).count(), 1)
 
-        # Dashboard: roster 3, this reporter is 'moving', the other 2 unaccounted.
+        self.client.force_authenticate(self.residents[1])
+        self.client.post(
+            reverse("evacuation-report"),
+            {"evacuation_id": evac.id, "status": "notified"},
+        )
+
+        # Dashboard: roster 3, residents[0] moving, residents[1] notified, residents[2] unaccounted.
         self.client.force_authenticate(self.operator)
         data = self.client.get(reverse("evacuation-active")).data
         entry = next(e for e in data if e["evacuation_id"] == evac.id)
         self.assertEqual(entry["roster"], 3)
         self.assertEqual(entry["moving"], 1)
         self.assertEqual(entry["safe"], 0)
-        self.assertEqual(entry["unaccounted"], 2)
+        self.assertEqual(entry["notified"], 1)
+        self.assertEqual(entry["unaccounted"], 1)
 
     def test_report_requires_active_evacuation(self):
         self.client.force_authenticate(self.residents[0])

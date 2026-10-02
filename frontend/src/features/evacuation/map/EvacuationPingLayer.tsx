@@ -1,16 +1,20 @@
+import { useEffect, type ReactNode } from 'react'
+import { BellRing, CheckCircle2, CircleAlert, Siren, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
-import { MapMarker, MarkerContent, MarkerPopup } from '@/common/ui/map'
+import { Button } from '@/common/ui/button'
+import { MapMarker, MarkerContent, MarkerPopup, useMarkerContext } from '@/common/ui/map'
 import { featureBoundsById } from '@/features/gis/utils/bounds'
 import type { RiskFeatureCollection } from '@/features/gis/types/api'
 import { useActiveEvacuations } from '../hooks/useActiveEvacuations'
-import { TRIGGER_LABELS } from '../constants/evacuation'
+import { SEGMENT_COLORS } from '../constants/evacuation'
 import { EvacuationPingBadge } from '../component/EvacuationPingIcon'
 import type { EvacuationAggregate } from '../types/api'
 
 interface Props {
     /** The risk feature collection — used to anchor each badge at a centroid. */
     data: RiskFeatureCollection | null
+    /** When set to a barangay under evacuation, its popup is opened. */
+    focusedBarangayId?: number | null
 }
 
 /** Centre of a barangay's bounding box, or null if it isn't in the collection. */
@@ -19,58 +23,86 @@ const centroidOf = (data: RiskFeatureCollection, id: number): [number, number] |
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
-/** The pulsing siren badge, with evacuated/total pinned to its corner. */
-const PingBadge = ({ safe, roster }: { safe: number; roster: number }) => (
-    <div className='relative flex items-center justify-center'>
-        <EvacuationPingBadge />
-        <span className='bg-foreground absolute -right-1.5 -bottom-1.5 rounded-full border border-white px-1 text-[10px] font-semibold text-white shadow tabular-nums'>
-            {safe}/{roster}
+/** A stat row: tinted icon + muted label left, larger value right. */
+const Row = ({
+    icon,
+    label,
+    value,
+    color,
+}: {
+    icon: ReactNode
+    label: string
+    value: number
+    color?: string
+}) => (
+    <div className='bg-muted/50 flex items-center justify-between gap-6 rounded-lg px-2.5 py-1.5'>
+        <span className='text-muted-foreground flex items-center gap-2 text-[13px]'>
+            <span style={color ? { color } : undefined}>{icon}</span>
+            {label}
         </span>
-    </div>
-)
-
-/** A labelled row in the "Under evacuation" card. */
-const Row = ({ label, value }: { label: string; value: string | number }) => (
-    <div className='flex items-center justify-between gap-4'>
-        <span className='text-muted-foreground'>{label}</span>
-        <span className='font-medium tabular-nums'>{value}</span>
+        <span className='text-base font-medium tabular-nums' style={color ? { color } : undefined}>
+            {value.toLocaleString()}
+        </span>
     </div>
 )
 
 /** The click-through card anchored to a badge. */
 const UnderEvacuationCard = ({ evac }: { evac: EvacuationAggregate }) => {
     const navigate = useNavigate()
-    const remaining = Math.max(evac.roster - evac.safe, 0)
 
     return (
-        <div className='flex w-52 flex-col gap-1.5 text-xs'>
-            <div className='flex flex-col'>
-                <span className='text-destructive text-[11px] font-semibold uppercase tracking-wide'>
-                    Under evacuation
+        // MapLibre mounts popups inside the map's canvas container, so pointer events
+        // bubble into its drag/click handlers; keep them from swallowing the button press.
+        <div
+            className='flex w-72 flex-col gap-2.5 font-sans'
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+        >
+            <div className='flex items-start justify-between gap-3'>
+                <span className='text-[15px] font-semibold tracking-wide uppercase'>
+                    {evac.barangay.name}
                 </span>
-                <span className='text-sm font-semibold'>{evac.barangay.name}</span>
+                <span
+                    className='bg-destructive/10 text-destructive flex size-7 shrink-0 items-center justify-center rounded-md'
+                    title='Under evacuation'
+                >
+                    <Siren className='size-4' />
+                </span>
             </div>
-            <Row
-                label={TRIGGER_LABELS[evac.trigger]}
-                value={formatDistanceToNow(new Date(evac.opened_at), { addSuffix: true })}
-            />
-            <div className='border-t pt-1.5' />
-            <Row label='Evacuated' value={evac.safe} />
-            <Row label='Remaining' value={remaining} />
-            <Row label='Total residents' value={evac.roster} />
-            <button
-                type='button'
+
+            <div className='flex flex-col gap-1'>
+                <Row icon={<CheckCircle2 className='size-4' />} label='Evacuated' value={evac.safe} color={SEGMENT_COLORS.safe} />
+                <Row icon={<CircleAlert className='size-4' />} label='Evacuated - Unsafe' value={evac.moving} color='#f59e0b' />
+                <Row icon={<BellRing className='size-4' />} label='Alerted' value={evac.notified} />
+                <Row icon={<Users className='size-4' />} label='Total Registered Users' value={evac.roster} />
+            </div>
+
+            <Button
+                size='sm'
+                className='w-full cursor-pointer bg-red-600 text-[13px] text-white hover:bg-red-700'
                 onClick={() => navigate('/evacuation')}
-                className='text-destructive mt-1 self-start font-medium hover:underline'
             >
-                View evacuation →
-            </button>
+                View evacuation
+            </Button>
         </div>
     )
 }
 
+/** Opens the enclosing marker's popup when `active` turns true. */
+const PopupOpener = ({ active }: { active: boolean }) => {
+    const { marker, map } = useMarkerContext()
+    useEffect(() => {
+        if (!active || !map) return
+        const popup = marker.getPopup()
+        if (popup && !popup.isOpen()) marker.togglePopup()
+    }, [active, marker, map])
+    return null
+}
+
 /** Pulsing evacuated/total badge over every barangay under active evacuation. */
-const EvacuationPingLayer = ({ data }: Props) => {
+const EvacuationPingLayer = ({ data, focusedBarangayId = null }: Props) => {
     const { data: evacuations } = useActiveEvacuations()
 
     if (!data || !evacuations?.length) return null
@@ -84,11 +116,12 @@ const EvacuationPingLayer = ({ data }: Props) => {
                 return (
                     <MapMarker key={evac.evacuation_id} longitude={lng} latitude={lat} draggable={false}>
                         <MarkerContent>
-                            <PingBadge safe={evac.safe} roster={evac.roster} />
+                            <EvacuationPingBadge />
                         </MarkerContent>
-                        <MarkerPopup closeButton>
+                        <MarkerPopup className='max-w-none'>
                             <UnderEvacuationCard evac={evac} />
                         </MarkerPopup>
+                        <PopupOpener active={focusedBarangayId === evac.barangay.id} />
                     </MapMarker>
                 )
             })}

@@ -1,10 +1,31 @@
 from django.contrib.gis.geos import Point
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from barangays.models import Barangay
 
-from .models import Evacuation, EvacuationCenter, EvacuationStatus
+from .models import (
+    Evacuation,
+    EvacuationCenter,
+    EvacuationCenterContact,
+    EvacuationCenterImage,
+    EvacuationStatus,
+)
+
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EvacuationCenterContact
+        fields = ["id", "label", "phone"]
+        read_only_fields = ["id"]
+
+
+class CenterImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EvacuationCenterImage
+        fields = ["id", "image", "uploaded_at"]
+        read_only_fields = ["id", "uploaded_at"]
 
 
 class EvacuationCenterSerializer(GeoFeatureModelSerializer):
@@ -12,27 +33,44 @@ class EvacuationCenterSerializer(GeoFeatureModelSerializer):
 
     # Method field so a null barangay serializes as None, not SkipField.
     barangay_name = serializers.SerializerMethodField()
+    contacts = ContactSerializer(many=True, read_only=True)
+    images = CenterImageSerializer(many=True, read_only=True)
+    # First contact's number: the single `contact` string older clients (mobile) dial.
+    contact = serializers.SerializerMethodField()
 
     def get_barangay_name(self, obj):
         return obj.barangay.name if obj.barangay_id else None
+
+    def get_contact(self, obj):
+        # Iterates the prefetched list rather than issuing a query per center.
+        contacts = list(obj.contacts.all())
+        return contacts[0].phone if contacts else ""
 
     class Meta:
         model = EvacuationCenter
         geo_field = "location"
         # Keep `id` in properties (see BarangayListSerializer for the rationale).
         id_field = False
-        fields = ["id", "name", "capacity", "contact", "is_active", "barangay", "barangay_name"]
+        fields = [
+            "id", "name", "capacity", "contact", "contacts", "images",
+            "is_active", "barangay", "barangay_name", "archived_at",
+        ]
 
 
 class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
-    """Operator write form: plain lat/lng in, GeoJSON Feature back out."""
+    """Operator write form: plain lat/lng in, GeoJSON Feature back out.
+
+    `contacts`, when sent, replaces the center's whole contact list. Photos are
+    managed through the `images/` sub-resource (multipart), not this payload.
+    """
 
     latitude = serializers.FloatField(write_only=True)
     longitude = serializers.FloatField(write_only=True)
+    contacts = ContactSerializer(many=True, required=False)
 
     class Meta:
         model = EvacuationCenter
-        fields = ["id", "name", "capacity", "contact", "is_active", "barangay", "latitude", "longitude"]
+        fields = ["id", "name", "capacity", "contacts", "is_active", "barangay", "latitude", "longitude"]
 
     def _apply_location(self, validated):
         lat = validated.pop("latitude", None)
@@ -45,11 +83,27 @@ class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
                 validated["barangay"] = Barangay.objects.filter(boundary__contains=point).first()
         return validated
 
-    def create(self, validated_data):
-        return super().create(self._apply_location(validated_data))
+    @staticmethod
+    def _replace_contacts(center, contacts):
+        center.contacts.all().delete()
+        EvacuationCenterContact.objects.bulk_create(
+            [EvacuationCenterContact(center=center, **c) for c in contacts]
+        )
 
+    @transaction.atomic
+    def create(self, validated_data):
+        contacts = validated_data.pop("contacts", [])
+        center = super().create(self._apply_location(validated_data))
+        self._replace_contacts(center, contacts)
+        return center
+
+    @transaction.atomic
     def update(self, instance, validated_data):
-        return super().update(instance, self._apply_location(validated_data))
+        contacts = validated_data.pop("contacts", None)
+        center = super().update(instance, self._apply_location(validated_data))
+        if contacts is not None:
+            self._replace_contacts(center, contacts)
+        return center
 
     def to_representation(self, instance):
         return EvacuationCenterSerializer(instance, context=self.context).data

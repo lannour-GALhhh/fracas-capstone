@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { OptionalPositiveNumber, RequiredString } from '@/common/schema/schemas'
+import { OptionalNonNegativeNumber, OptionalWholeNumber, RequiredString } from '@/common/schema/schemas'
 
 /** Flat validation view of the flood-event form. */
 export const FloodEventSchema = z
@@ -10,7 +10,10 @@ export const FloodEventSchema = z
         source_type: z.enum(['operator', 'third_party']),
         source: z.string(),
         reported_by: z.number().nullable(),
-        flood_depth: OptionalPositiveNumber('Flood depth'),
+        flood_depth: OptionalNonNegativeNumber('Flood depth'),
+        peak_rainfall: OptionalNonNegativeNumber('Peak rainfall'),
+        people_affected: OptionalWholeNumber('People affected'),
+        people_evacuated: OptionalWholeNumber('People evacuated'),
     })
     .refine(
         (d) => !d.ended_at || !d.occurred_at || new Date(d.ended_at) >= new Date(d.occurred_at),

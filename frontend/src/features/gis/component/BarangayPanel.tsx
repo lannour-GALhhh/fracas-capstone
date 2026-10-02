@@ -474,13 +474,13 @@ const RainfallDetailsTrigger = ({ data }: { data: BarangayRisk }) => (
             render={
                 <Button size='sm' className='gap-1.5 text-xs'>
                     <BarChart3 className='size-3.5' />
-                    Details
+                    Forecast
                 </Button>
             }
         />
         <DialogContent className='max-h-[85vh] overflow-y-auto sm:max-w-5xl'>
             <DialogHeader>
-                <DialogTitle>Rainfall — {data.name}</DialogTitle>
+                <DialogTitle>Forecast — {data.name}</DialogTitle>
             </DialogHeader>
             <div className='grid grid-cols-1 items-stretch gap-4 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1.4fr)]'>
                 <div className='flex flex-col gap-3'>

@@ -68,6 +68,7 @@ def compute() -> list[dict]:
                 "roster": r,
                 "safe": safe,
                 "moving": moving,
+                "notified": notified,
                 "unaccounted": unaccounted,
                 "updated_at": updated.isoformat(),
             }

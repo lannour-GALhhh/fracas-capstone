@@ -16,14 +16,54 @@ class EvacuationCenter(models.Model):
         related_name="evacuation_centers",
     )
     capacity = models.PositiveIntegerField(null=True, blank=True)
-    contact = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    # Set when archived (the operator "delete"); hard-purged after a grace period.
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self):
         return self.name
+
+
+class EvacuationCenterContact(models.Model):
+    """One contact (phone + optional label) for a center; a center has several."""
+
+    center = models.ForeignKey(
+        EvacuationCenter, on_delete=models.CASCADE, related_name="contacts"
+    )
+    label = models.CharField(
+        max_length=100, blank=True, help_text="Who this reaches, e.g. 'Principal'."
+    )
+    phone = models.CharField(max_length=50)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.label or 'Contact'} {self.phone}"
+
+
+def center_image_path(instance, filename):
+    """Group photos per center in the storage bucket."""
+    return f"evacuation_centers/{instance.center_id}/{filename}"
+
+
+class EvacuationCenterImage(models.Model):
+    center = models.ForeignKey(
+        EvacuationCenter, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to=center_image_path)
+    # Display order; the first (lowest) is the center's MAIN photo.
+    position = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return f"Image for center #{self.center_id}"
 
 
 class Evacuation(models.Model):

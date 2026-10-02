@@ -41,16 +41,18 @@ class Command(BaseCommand):
                 point = Point(lng, lat, srid=4326)  # GEOS is (x=lng, y=lat)
                 barangay = self._resolve_barangay(row.get("barangay_code"), point)
 
-                _, was_created = EvacuationCenter.objects.update_or_create(
+                center, was_created = EvacuationCenter.objects.update_or_create(
                     name=name,
                     location=point,
                     defaults={
                         "capacity": _as_int(row.get("capacity")),
-                        "contact": (row.get("contact") or "").strip(),
                         "barangay": barangay,
                         "is_active": True,
                     },
                 )
+                phone = (row.get("contact") or "").strip()
+                if phone:
+                    center.contacts.get_or_create(phone=phone)
                 created += was_created
                 updated += not was_created
 

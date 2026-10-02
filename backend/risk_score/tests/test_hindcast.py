@@ -29,17 +29,17 @@ class ReconstructRainfallTests(SimpleTestCase):
         self.assertEqual(r.accumulated_24hr, 23 * 1.0 + 25.0)  # 23 prior hours + spike
 
 
-def make_barangay(name, code, height):
+def make_barangay(name, code):
     poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
     return Barangay.objects.create(
         name=name, code=code, province_code="PH0907332",
-        boundary=MultiPolygon(poly), land_height_mean=height,
+        boundary=MultiPolygon(poly),
     )
 
 
 class HindcastScoreTests(TestCase):
     def test_heavy_rain_scores_and_is_not_degraded_with_susceptibility_loaded(self):
-        barangay = make_barangay("Lowland", "L1", height=1.0)
+        barangay = make_barangay("Lowland", "L1")
         when = timezone.now() - timedelta(days=10)
         susceptibility = {barangay.id: {"level": "high", "value": 0.8, "zone_count": 1}}
 
@@ -52,7 +52,7 @@ class HindcastScoreTests(TestCase):
         self.assertFalse(result.is_degraded)
 
     def test_no_susceptibility_data_degrades(self):
-        barangay = make_barangay("Lowland", "L1", height=1.0)
+        barangay = make_barangay("Lowland", "L1")
         when = timezone.now() - timedelta(days=10)
 
         def fetcher(lat, lon, w):

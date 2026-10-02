@@ -1,17 +1,114 @@
 """Evacuation-center API."""
 
-from poi.views import PoiViewSet
+from django.db.models import Max
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
 
-from .models import EvacuationCenter
-from .serializers import EvacuationCenterSerializer, EvacuationCenterWriteSerializer
+from poi.views import PoiViewSet, is_operator_user
+from users.permissions import IsOperator
+
+from .models import EvacuationCenter, EvacuationCenterImage
+from .serializers import (
+    CenterImageSerializer,
+    EvacuationCenterSerializer,
+    EvacuationCenterWriteSerializer,
+)
 
 
 class EvacuationCenterViewSet(PoiViewSet):
-    queryset = EvacuationCenter.objects.select_related("barangay")
+    queryset = EvacuationCenter.objects.select_related("barangay").prefetch_related(
+        "contacts", "images"
+    )
     read_serializer_class = EvacuationCenterSerializer
     write_serializer_class = EvacuationCenterWriteSerializer
     poi_type = "evacuation"
-    tracked_fields = ["name", "capacity", "contact", "is_active"]
+    tracked_fields = ["name", "capacity", "is_active"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Archived centers are hidden everywhere except the operator archive view
+        # (`?archived=true`) and the restore action.
+        want_archived = self.action == "restore" or (
+            self.request.query_params.get("archived") == "true"
+            and is_operator_user(self.request.user)
+        )
+        return qs.filter(archived_at__isnull=not want_archived)
+
+    def perform_destroy(self, instance):
+        """'Delete' archives; the purge task hard-deletes after the grace period."""
+        instance.archived_at = timezone.now()
+        instance.save(update_fields=["archived_at"])
+        self._log(instance, "archived")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsOperator])
+    def restore(self, request, pk=None):
+        center = self.get_object()
+        center.archived_at = None
+        center.save(update_fields=["archived_at"])
+        self._log(center, "restored")
+        return Response(
+            EvacuationCenterSerializer(center, context={"request": request}).data
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="images",
+        parser_classes=[MultiPartParser, FormParser],
+        permission_classes=[IsOperator],
+    )
+    def add_images(self, request, pk=None):
+        """Attach one or more photos (multipart `images` files) to a center."""
+        center = self.get_object()
+        files = request.FILES.getlist("images")
+        if not files:
+            return Response({"images": ["Attach at least one image."]}, status=400)
+        created = []
+        next_pos = (center.images.aggregate(m=Max("position"))["m"] or -1) + 1
+        for offset, f in enumerate(files):
+            serializer = CenterImageSerializer(data={"image": f}, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            created.append(serializer.save(center=center, position=next_pos + offset))
+        self._log(center, "updated", detail={"changed": {"images": [None, f"+{len(created)}"]}})
+        return Response(
+            CenterImageSerializer(created, many=True, context={"request": request}).data,
+            status=201,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="images/reorder",
+        permission_classes=[IsOperator],
+    )
+    def reorder_images(self, request, pk=None):
+        """Set photo order from `ids` (first = MAIN). Must list every photo of the center."""
+        center = self.get_object()
+        ids = request.data.get("ids")
+        existing = set(center.images.values_list("id", flat=True))
+        if not isinstance(ids, list) or set(ids) != existing or len(ids) != len(existing):
+            return Response({"ids": ["Provide every image id of this center exactly once."]}, status=400)
+        for position, image_id in enumerate(ids):
+            center.images.filter(id=image_id).update(position=position)
+        self._log(center, "updated", detail={"changed": {"images": [None, "reordered"]}})
+        return Response(status=204)
+
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"images/(?P<image_id>\d+)",
+        permission_classes=[IsOperator],
+    )
+    def remove_image(self, request, pk=None, image_id=None):
+        center = self.get_object()
+        image = get_object_or_404(EvacuationCenterImage, pk=image_id, center=center)
+        image.image.delete(save=False)  # drop the file from storage too
+        image.delete()
+        self._log(center, "updated", detail={"changed": {"images": [None, "-1"]}})
+        return Response(status=204)
 
 
 from django.utils.dateparse import parse_date, parse_datetime
@@ -158,8 +255,9 @@ class EvacuationHistoryView(ListAPIView):
             status=Evacuation.Status.STOOD_DOWN
         ).select_related("barangay", "triggered_by")
         params = self.request.query_params
-        if barangay := params.get("barangay"):
-            queryset = queryset.filter(barangay_id=barangay)
+        ids = [b for b in (params.get("barangay") or "").split(",") if b.strip().isdigit()]
+        if ids:
+            queryset = queryset.filter(barangay_id__in=ids)
         if trigger := params.get("trigger"):
             queryset = queryset.filter(trigger=trigger)
         if after := _parse_day(params.get("closed_after")):

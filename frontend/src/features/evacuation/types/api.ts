@@ -10,6 +10,7 @@ export interface EvacuationAggregate {
     roster: number
     safe: number
     moving: number
+    notified: number
     unaccounted: number
     updated_at: string
 }
@@ -33,7 +34,8 @@ export interface EvacuationHistoryEntry {
 /** Query params for the history archive. Dates are `YYYY-MM-DD`. */
 export interface EvacuationHistoryFilters {
     page?: number
-    barangay?: number
+    /** Comma-separated barangay ids. */
+    barangay?: string
     trigger?: EvacuationTrigger
     closed_after?: string
     closed_before?: string

@@ -15,6 +15,7 @@ const ACTION_LABELS: Record<FloodActivityAction, string> = {
     confirmed: 'Confirmed',
     resolved: 'Resolved',
     deleted: 'Deleted',
+    archived: 'Archived',
     restored: 'Restored',
 }
 

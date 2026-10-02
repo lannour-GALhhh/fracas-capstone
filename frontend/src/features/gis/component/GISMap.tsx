@@ -1,11 +1,16 @@
 import { useCallback, useRef, useState } from 'react'
-import { Map, MapControls, type MapRef } from '@/common/ui/map'
+import { MapPin } from 'lucide-react'
+import { Map, MapControls, MapMarker, MarkerContent, type MapRef } from '@/common/ui/map'
+import { useAuth } from '@/features/auth/context/useAuth'
+import MassEvacuationDialog from '@/features/evacuation/component/MassEvacuationDialog'
+import MassEvacuationControls from './MassEvacuationControls'
 import type { RiskFeatureCollection, SusceptibilityLevel } from '../types/api'
 import { collectionBounds, featureBoundsById, fitBox } from '../utils/bounds'
 import BarangayChoropleth from './BarangayChoropleth'
 import BarangayTooltip from './BarangayTooltip'
 import HazardZoneLayer from './HazardZoneLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
+import FocusCenter from '../poi/FocusCenter'
 import EvacuationPingLayer from '@/features/evacuation/map/EvacuationPingLayer'
 import RainfallLayer from './RainfallLayer'
 import BarangaySearch from './BarangaySearch'
@@ -21,9 +26,11 @@ interface GISMapProps {
     zoneColorMode: ZoneColorMode
     /** Susceptibility levels currently switched on — filters the hazard zones. */
     visibleLevels: SusceptibilityLevel[]
+    /** Evacuation center to fly to on load (from the Evacuation Centers page). */
+    focusCenterId?: number | null
 }
 
-/** Centre of a barangay's bounding box, to anchor its pinned tooltip. */
+/** Centre of a barangay's bounding box, to anchor its hover tooltip. */
 const centroidOf = (
     data: RiskFeatureCollection,
     id: number,
@@ -40,9 +47,37 @@ const GISMap = ({
     layers,
     zoneColorMode,
     visibleLevels,
+    focusCenterId = null,
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const mapRef = useRef<MapRef>(null)
+    const { isOperator } = useAuth()
+    const [massActive, setMassActive] = useState(false)
+    const [massIds, setMassIds] = useState<number[]>([])
+    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    const toggleMass = useCallback(
+        (id: number | null) => {
+            if (id == null) return
+            setMassIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]))
+        },
+        [],
+    )
+
+    const endMass = () => {
+        setMassActive(false)
+        setMassIds([])
+        setConfirmOpen(false)
+    }
+
+    const massTargets = (data?.features ?? [])
+        .filter((f) => massIds.includes(f.properties.id))
+        .map((f) => ({
+            id: f.properties.id,
+            name: f.properties.name,
+            score: f.properties.score,
+            category: f.properties.category,
+        }))
 
     const handleResetView = useCallback(() => {
         const map = mapRef.current
@@ -51,19 +86,32 @@ const GISMap = ({
         if (box) fitBox(map, box, panelWidth, 800)
     }, [data, panelWidth])
 
-    const pinnedCentroid =
-        data && selectedId != null ? centroidOf(data, selectedId) : null
-    const hoverCentroid =
-        data && hoveredId != null && hoveredId !== selectedId
-            ? centroidOf(data, hoveredId)
-            : null
+    const hoverCentroid = data && hoveredId != null ? centroidOf(data, hoveredId) : null
 
     return (
         <div className='relative h-full w-full overflow-hidden'>
             {/* Barangay search, centered above the map. */}
-            <div className='absolute top-20 left-1/2 z-10 -translate-x-1/2'>
+            <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2'>
                 <BarangaySearch data={data} onSelect={onSelect} />
+                {isOperator && selectedId == null && (
+                    <MassEvacuationControls
+                        active={massActive}
+                        selectedCount={massIds.length}
+                        onStart={() => {
+                            onSelect(null)
+                            setMassActive(true)
+                        }}
+                        onProceed={() => setConfirmOpen(true)}
+                        onCancel={endMass}
+                    />
+                )}
             </div>
+            <MassEvacuationDialog
+                open={confirmOpen}
+                targets={massTargets}
+                onOpenChange={setConfirmOpen}
+                onDone={endMass}
+            />
 
             <Map ref={mapRef} center={[122.07, 6.92]} zoom={11} theme='light'>
                 <MapControls
@@ -72,27 +120,30 @@ const GISMap = ({
                     showReset={true}
                     onReset={handleResetView}
                 />
+                <FocusCenter centerId={focusCenterId} />
                 {data && (
                     <>
                         <BarangayChoropleth
                             data={data}
                             selectedId={selectedId}
-                            onSelect={onSelect}
+                            onSelect={massActive ? toggleMass : onSelect}
                             onHover={setHoveredId}
                             panelWidth={panelWidth}
+                            skipInitialFit={focusCenterId != null}
                         />
-                        {/* Pinned tooltip for the selected barangay. */}
-                        {selectedId != null && pinnedCentroid && (
-                            <BarangayTooltip
-                                data={data}
-                                id={selectedId}
-                                lngLat={pinnedCentroid}
-                                pinned
-                                onClose={() => onSelect(null)}
-                            />
-                        )}
-                        {/* Transient tooltip while hovering a different barangay. */}
-                        {hoveredId != null && hoveredId !== selectedId && hoverCentroid && (
+                        {massActive &&
+                            massIds.map((id) => {
+                                const at = centroidOf(data, id)
+                                return at ? (
+                                    <MapMarker key={id} longitude={at[0]} latitude={at[1]}>
+                                        <MarkerContent>
+                                            <MapPin className='size-8 fill-red-600 text-white drop-shadow' />
+                                        </MarkerContent>
+                                    </MapMarker>
+                                ) : null
+                            })}
+                        {/* Tooltip shown only while hovering a barangay. */}
+                        {hoveredId != null && hoverCentroid && (
                             <BarangayTooltip
                                 data={data}
                                 id={hoveredId}
@@ -115,7 +166,7 @@ const GISMap = ({
                 <RainfallLayer data={data} visible={layers.rainfall} />
                 {/* Pulsing evacuated/total badges for barangays under an active
                     evacuation — an alert overlay, always shown when present. */}
-                <EvacuationPingLayer data={data} />
+                <EvacuationPingLayer data={data} focusedBarangayId={selectedId} />
             </Map>
         </div>
     )

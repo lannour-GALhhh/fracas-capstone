@@ -16,6 +16,7 @@ import { Label } from '@/common/ui/label'
 import { Textarea } from '@/common/ui/textarea'
 import { Separator } from '@/common/ui/separator'
 import { DateTimePicker } from '@/common/ui/datetime-picker'
+import ImageLightbox from '@/common/components/ImageLightbox'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useCreateFloodReport, useFloodReports } from '../hooks/useFloodReports'
 import type { FloodEventReport } from '../types/api'
@@ -148,39 +149,45 @@ const AddReportDialog = ({ eventId }: { eventId: number }) => {
     )
 }
 
-const ReportCard = ({ report }: { report: FloodEventReport }) => (
-    <Card size='sm' className='gap-2'>
-        <div className='flex flex-wrap items-center justify-between gap-2'>
-            <span className='flex items-center gap-1.5 text-sm font-medium'>
-                <User className='text-muted-foreground size-3.5' />
-                {report.reporter_name ?? 'Unknown reporter'}
-            </span>
-            <span className='text-muted-foreground text-xs'>
-                {format(new Date(report.occurred_at), 'LLL d, y · HH:mm')}
-            </span>
-        </div>
-        {report.description && <p className='text-sm'>{report.description}</p>}
-        {report.images.length > 0 && (
-            <div className='grid grid-cols-3 gap-2 sm:grid-cols-4'>
-                {report.images.map((img) => (
-                    <a
-                        key={img.id}
-                        href={img.image}
-                        target='_blank'
-                        rel='noreferrer'
-                        className='aspect-square overflow-hidden rounded-md border'
-                    >
-                        <img
-                            src={img.image}
-                            alt={img.caption || 'Evidence'}
-                            className='size-full object-cover transition-transform hover:scale-105'
-                        />
-                    </a>
-                ))}
+const ReportCard = ({ report }: { report: FloodEventReport }) => {
+    const [viewing, setViewing] = useState<number | null>(null)
+    const urls = report.images.map((img) => img.image)
+
+    return (
+        <Card size='sm' className='gap-2'>
+            <div className='flex flex-wrap items-center justify-between gap-2'>
+                <span className='flex items-center gap-1.5 text-sm font-medium'>
+                    <User className='text-muted-foreground size-3.5' />
+                    {report.reporter_name ?? 'Unknown reporter'}
+                </span>
+                <span className='text-muted-foreground text-xs'>
+                    {format(new Date(report.occurred_at), 'LLL d, y · HH:mm')}
+                </span>
             </div>
-        )}
-    </Card>
-)
+            {report.description && <p className='text-sm'>{report.description}</p>}
+            {report.images.length > 0 && (
+                <div className='flex flex-wrap gap-2'>
+                    {report.images.map((img, i) => (
+                        <button
+                            key={img.id}
+                            type='button'
+                            aria-label='View photo'
+                            onClick={() => setViewing(i)}
+                            className='size-20 cursor-zoom-in overflow-hidden rounded-md border'
+                        >
+                            <img
+                                src={img.image}
+                                alt={img.caption || 'Evidence'}
+                                className='size-full object-cover transition-transform hover:scale-105'
+                            />
+                        </button>
+                    ))}
+                </div>
+            )}
+            <ImageLightbox images={urls} index={viewing} onIndexChange={setViewing} />
+        </Card>
+    )
+}
 
 const EvidenceReports = ({ eventId }: { eventId: number }) => {
     const { isOperator } = useAuth()

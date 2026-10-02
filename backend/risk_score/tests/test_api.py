@@ -11,11 +11,11 @@ from risk_score.constants import RiskCategory
 from risk_score.models import RiskScore
 
 
-def make_barangay(name="Tumaga", code="T1", height=1.0):
+def make_barangay(name="Tumaga", code="T1"):
     poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
     return Barangay.objects.create(
         name=name, code=code, province_code="PH0907332",
-        boundary=MultiPolygon(poly), land_height_mean=height,
+        boundary=MultiPolygon(poly),
     )
 
 
