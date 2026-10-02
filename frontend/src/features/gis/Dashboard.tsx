@@ -9,6 +9,7 @@ import Legend from './component/Legend'
 import LayersControl from './component/LayersControl'
 import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
+import UnderEvacuationCard from './component/UnderEvacuationCard'
 import HighRiskStreetsPanel from './component/HighRiskStreetsPanel'
 import { useRiskMap } from './hooks/useRiskMap'
 import { SUSCEPTIBILITY_LAYER_KEYS, type LayerKey, type LayerVisibility } from './constants/layers'
@@ -146,6 +147,8 @@ const Dashboard = () => {
                     />
                 </>
             )}
+
+            {!barangayPanelVisible && <UnderEvacuationCard />}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
             {selectedId != null && panelHidden && (

@@ -94,7 +94,7 @@ const GISMap = ({
             {/* Barangay search, centered above the map. */}
             <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2'>
                 <BarangaySearch data={data} onSelect={onSelect} />
-                {isOperator && (
+                {isOperator && selectedId == null && (
                     <MassEvacuationControls
                         active={massActive}
                         selectedCount={massIds.length}
