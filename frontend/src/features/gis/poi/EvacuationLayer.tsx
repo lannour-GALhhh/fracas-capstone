@@ -1,8 +1,10 @@
 import type { Feature, Point } from 'geojson'
 import type { ReactNode } from 'react'
 import { Phone, Tent, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { MapMarker, MarkerContent, MarkerPopup } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
+import { Button } from '@/common/ui/button'
 import { useEvacuationCenters } from './usePoi'
 import type { EvacuationProperties } from './types'
 
@@ -13,7 +15,7 @@ interface Props {
 }
 
 const Pin = ({ tone }: { tone: 'active' | 'inactive' }) => {
-    const color = tone === 'inactive' ? 'bg-slate-400' : 'bg-emerald-600'
+    const color = tone === 'inactive' ? 'bg-slate-400 opacity-60 grayscale' : 'bg-emerald-600'
     return (
         <div
             className={`flex size-7 items-center justify-center rounded-full border-2 border-white shadow-lg ${color}`}
@@ -33,7 +35,9 @@ const Row = ({ icon, label, value }: { icon: ReactNode; label: string; value: st
     </div>
 )
 
-const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
+const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => {
+    const navigate = useNavigate()
+    return (
     <div className='flex w-80 flex-col gap-2.5 font-sans'>
         <div className='flex items-start justify-between gap-3'>
             <span className='text-[15px] font-semibold tracking-wide uppercase'>{p.name}</span>
@@ -70,8 +74,16 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => (
                 ))}
             </div>
         )}
+        <Button
+            size='sm'
+            variant='outline'
+            onClick={() => navigate(`/evacuation-centers?center=${p.id}`)}
+        >
+            View evacuation center
+        </Button>
     </div>
-)
+    )
+}
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 

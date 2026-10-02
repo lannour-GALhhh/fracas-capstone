@@ -43,7 +43,7 @@ const InfoRow = ({
 )
 
 /** Wide card: main photo on the left half, details + actions on the right half. */
-const CenterCard = ({ center }: { center: EvacFeature }) => {
+const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; highlighted?: boolean }) => {
     const navigate = useNavigate()
     const del = useDeleteEvacuationCenter()
     const [viewing, setViewing] = useState<number | null>(null)
@@ -52,7 +52,12 @@ const CenterCard = ({ center }: { center: EvacFeature }) => {
     const urls = p.images.map((i) => i.image)
 
     return (
-        <div className='bg-card flex min-h-60 overflow-hidden rounded-lg border shadow-sm'>
+        <div
+            id={`center-${p.id}`}
+            className={`bg-card flex min-h-60 overflow-hidden rounded-lg border shadow-sm ${
+                highlighted ? 'ring-primary ring-2' : ''
+            }`}
+        >
             <div className='bg-muted relative w-1/2 shrink-0'>
                 {urls[0] ? (
                     <button
