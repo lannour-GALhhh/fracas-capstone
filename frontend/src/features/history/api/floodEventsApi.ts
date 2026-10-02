@@ -75,7 +75,13 @@ export const resolveFloodEvent = async (
     return data
 }
 
-/** Undo a soft-delete within the recovery window. */
+/** Archive an event (operator-only); restorable for 30 days. */
+export const archiveFloodEvent = async (id: number): Promise<FloodEventDetail> => {
+    const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/archive/`)
+    return data
+}
+
+/** Undo a soft-delete or an archive within the recovery window. */
 export const restoreFloodEvent = async (id: number): Promise<FloodEventDetail> => {
     const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/restore/`)
     return data

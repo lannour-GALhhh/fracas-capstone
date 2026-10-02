@@ -46,6 +46,7 @@ export interface FloodEventReport {
 /** One row of GET /api/flood-events/ (mirrors FloodEventSerializer). */
 export interface FloodEvent {
     id: number
+    archived_at: string | null
     barangay: number
     barangay_name: string
     occurred_at: string
@@ -103,6 +104,7 @@ export interface FloodEventDetail extends FloodEvent {
     reported_by: number | null
     confirmed_at: string | null
     deleted_at: string | null
+    archived_at: string | null
     timeline: FloodTimelineEntry[]
     telemetry: FloodTelemetry
 }
@@ -114,6 +116,7 @@ export type FloodChangeAction =
     | 'confirmed'
     | 'resolved'
     | 'deleted'
+    | 'archived'
     | 'restored'
 
 export interface FloodEventChange {
@@ -136,6 +139,8 @@ export interface FloodEventFilters {
     /** Inclusive ISO date (YYYY-MM-DD) upper bound on occurred_at. */
     occurred_before?: string
     page?: number
+    /** Operator-only: list archived events instead of live ones. */
+    archived?: boolean
 }
 
 /** One timeline row in a write payload. */

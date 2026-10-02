@@ -62,6 +62,7 @@ export type FloodActivityAction =
     | 'confirmed'
     | 'resolved'
     | 'deleted'
+    | 'archived'
     | 'restored'
 
 /** One row of GET /api/flood-events/my-activity/. */

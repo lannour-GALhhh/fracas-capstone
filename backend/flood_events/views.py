@@ -14,6 +14,7 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from poi.views import is_operator_user
 from users.permissions import IsAdmin, IsOperator
 
 from .models import AutoDetectConfig, FloodEvent, FloodEventChange, FloodEventReport
@@ -40,13 +41,21 @@ class _OperatorWriteMixin:
 
 # Live events only (soft-deleted rows are hidden until purged / restored).
 def _live_qs():
-    return FloodEvent.objects.filter(deleted_at__isnull=True).select_related("barangay")
+    return FloodEvent.objects.filter(
+        deleted_at__isnull=True, archived_at__isnull=True
+    ).select_related("barangay")
 
 
 class FloodEventListView(_OperatorWriteMixin, ListCreateAPIView):
     def get_queryset(self):
-        queryset = _live_qs()
         params = self.request.query_params
+        # Archived events are hidden except in the operator archive view.
+        if params.get("archived") == "true" and is_operator_user(self.request.user):
+            queryset = FloodEvent.objects.filter(
+                deleted_at__isnull=True, archived_at__isnull=False
+            ).select_related("barangay")
+        else:
+            queryset = _live_qs()
         # Accepts one id or a comma-separated list (multi-select filter).
         ids = [b for b in (params.get("barangay") or "").split(",") if b.strip().isdigit()]
         if ids:
@@ -152,14 +161,27 @@ class FloodEventResolveView(_EventActionView):
         return self.detail_response(event)
 
 
+class FloodEventArchiveView(_EventActionView):
+    def post(self, request, pk):
+        event = self.get_event(pk)
+        if event.archived_at is None:
+            event.archived_at = timezone.now()
+            event.save(update_fields=["archived_at"])
+            changes.log_action(event, FloodEventChange.Action.ARCHIVED, request.user)
+        return self.detail_response(event)
+
+
 class FloodEventRestoreView(_EventActionView):
+    """Undo a soft-delete or an archive."""
+
     include_deleted = True
 
     def post(self, request, pk):
         event = self.get_event(pk)
-        if event.deleted_at is not None:
+        if event.deleted_at is not None or event.archived_at is not None:
             event.deleted_at = None
-            event.save(update_fields=["deleted_at"])
+            event.archived_at = None
+            event.save(update_fields=["deleted_at", "archived_at"])
             changes.log_action(event, FloodEventChange.Action.RESTORED, request.user)
         return self.detail_response(event)
 

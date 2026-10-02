@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
+    archiveFloodEvent,
     confirmFloodEvent,
     resolveFloodEvent,
     restoreFloodEvent,
@@ -53,7 +54,26 @@ export const useResolveFloodEvent = () => {
     })
 }
 
-/** Undo a soft-delete within the recovery window. */
+/** Archive an event; it leaves the history until restored (or purged after 30 days). */
+export const useArchiveFloodEvent = () => {
+    const invalidate = useEventInvalidator()
+    return useMutation({
+        mutationFn: (id: number) => archiveFloodEvent(id),
+        onSuccess: (event) => {
+            invalidate(event)
+            toast.success('Flood event archived', {
+                description: 'Restore it from the archive within 30 days.',
+            })
+        },
+        onError: () => {
+            toast.error('Couldn’t archive the flood event', {
+                description: 'Please try again.',
+            })
+        },
+    })
+}
+
+/** Undo a soft-delete or an archive within the recovery window. */
 export const useRestoreFloodEvent = () => {
     const invalidate = useEventInvalidator()
     return useMutation({

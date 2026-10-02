@@ -4,8 +4,9 @@ import type { FloodEventFilters } from '../types/api'
 import { floodEventKeys } from './queryKeys'
 
 /** Paginated flood-history list. Keeps the previous page visible while loading. */
-export const useFloodEvents = (filters: FloodEventFilters) =>
+export const useFloodEvents = (filters: FloodEventFilters, enabled = true) =>
     useQuery({
+        enabled,
         queryKey: floodEventKeys.list(filters),
         queryFn: () => getFloodEvents(filters),
         placeholderData: keepPreviousData,

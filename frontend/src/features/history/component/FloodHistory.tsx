@@ -42,6 +42,7 @@ import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useFloodEvents } from '../hooks/useFloodEvents'
 import { SEVERITY_COLORS, SEVERITY_LABELS, SEVERITY_FILTERS } from '../constants/floodEvents'
 import BarangayMultiSelect from './BarangayMultiSelect'
+import ArchivedEventsDialog from './ArchivedEventsDialog'
 import FloodEventForm from './FloodEventForm'
 import UndoDeleteBanner from './UndoDeleteBanner'
 import type { FloodSeverity } from '../types/api'
@@ -164,14 +165,17 @@ const FloodHistory = () => {
                     </p>
                 </div>
                 {isOperator && (
-                    <FloodEventForm
-                        trigger={
-                            <Button size='lg' className='cursor-pointer px-3'>
-                                <Plus className='size-4' />
-                                Record New Flood Event
-                            </Button>
-                        }
-                    />
+                    <div className='flex items-center gap-2'>
+                        <ArchivedEventsDialog />
+                        <FloodEventForm
+                            trigger={
+                                <Button size='lg' className='cursor-pointer px-3'>
+                                    <Plus className='size-4' />
+                                    Record New Flood Event
+                                </Button>
+                            }
+                        />
+                    </div>
                 )}
             </div>
 

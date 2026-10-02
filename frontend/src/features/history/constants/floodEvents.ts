@@ -44,6 +44,7 @@ export const CHANGE_ACTION_LABELS: Record<string, string> = {
     confirmed: 'Confirmed',
     resolved: 'Resolved',
     deleted: 'Deleted',
+    archived: 'Archived',
     restored: 'Restored',
 }
 

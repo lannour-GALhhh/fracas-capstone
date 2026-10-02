@@ -64,6 +64,8 @@ class FloodEvent(models.Model):
 
     # Soft delete: hidden immediately, hard-purged by a task after a grace window.
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Archive: hidden from the history, restorable for a longer window, then purged.
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     # --- who reported it ---
     source_type = models.CharField(
@@ -102,6 +104,10 @@ class FloodEvent(models.Model):
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
 
+    @property
+    def is_archived(self) -> bool:
+        return self.archived_at is not None
+
 
 class FloodEventChange(models.Model):
     """Append-only audit trail: who changed what on a flood event, and when."""
@@ -112,6 +118,7 @@ class FloodEventChange(models.Model):
         CONFIRMED = "confirmed", "Confirmed"
         RESOLVED = "resolved", "Resolved"
         DELETED = "deleted", "Deleted"
+        ARCHIVED = "archived", "Archived"
         RESTORED = "restored", "Restored"
 
     flood_event = models.ForeignKey(

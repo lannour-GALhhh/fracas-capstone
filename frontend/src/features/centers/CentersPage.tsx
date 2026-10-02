@@ -11,15 +11,15 @@ const CentersPage = () => {
             <div className='flex flex-wrap items-center justify-between gap-2'>
                 <h1 className='text-2xl font-semibold'>Evacuation centers</h1>
                 <div className='flex items-center gap-2'>
+                    <ArchiveDialog />
                     <CenterFormDialog
                         trigger={
-                            <Button size='sm'>
+                            <Button size='lg' className='cursor-pointer px-3'>
                                 <Plus className='size-4' />
                                 Add center
                             </Button>
                         }
                     />
-                    <ArchiveDialog />
                 </div>
             </div>
 

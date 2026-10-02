@@ -127,3 +127,57 @@ class FloodEventWriteApiTests(APITestCase):
         self.assertEqual(event.reported_by, self.operator)
         detail = self.client.get(reverse("flood-event-detail", args=[event.id]))
         self.assertEqual(detail.data["reported_by_name"], self.operator.get_username())
+
+
+class FloodEventArchiveTests(APITestCase):
+    def setUp(self):
+        self.barangay = make_barangay()
+        self.operator = get_user_model().objects.create_user(
+            "operator", password="pw", is_operator=True
+        )
+        self.client.force_authenticate(self.operator)
+
+    def _event(self, **kwargs):
+        return FloodEvent.objects.create(
+            barangay=self.barangay, occurred_at=timezone.now(), severity="minor", **kwargs
+        )
+
+    def test_archive_hides_then_lists_in_archive_view(self):
+        event = self._event()
+        resp = self.client.post(reverse("flood-event-archive", args=[event.id]))
+        self.assertEqual(resp.status_code, 200)
+        event.refresh_from_db()
+        self.assertIsNotNone(event.archived_at)
+        self.assertTrue(event.changes.filter(action="archived").exists())
+        self.assertEqual(self.client.get(reverse("flood-event-list")).data["count"], 0)
+        archived = self.client.get(reverse("flood-event-list"), {"archived": "true"})
+        self.assertEqual([e["id"] for e in archived.data["results"]], [event.id])
+        self.assertEqual(
+            self.client.get(reverse("flood-event-detail", args=[event.id])).status_code, 404
+        )
+
+    def test_resident_cannot_archive_or_see_archive(self):
+        event = self._event(archived_at=timezone.now())
+        resident = get_user_model().objects.create_user("resident", password="pw")
+        self.client.force_authenticate(resident)
+        resp = self.client.post(reverse("flood-event-archive", args=[event.id]))
+        self.assertEqual(resp.status_code, 403)
+        listed = self.client.get(reverse("flood-event-list"), {"archived": "true"})
+        self.assertEqual(listed.data["count"], 0)
+
+    def test_restore_and_purge(self):
+        from datetime import timedelta
+
+        from flood_events.tasks import ARCHIVE_RETENTION_DAYS, purge_archived_flood_events
+
+        old = self._event(
+            archived_at=timezone.now() - timedelta(days=ARCHIVE_RETENTION_DAYS + 1)
+        )
+        recent = self._event(archived_at=timezone.now())
+        resp = self.client.post(reverse("flood-event-restore", args=[recent.id]))
+        self.assertEqual(resp.status_code, 200)
+        recent.refresh_from_db()
+        self.assertIsNone(recent.archived_at)
+        self.assertEqual(purge_archived_flood_events(), {"purged": 1})
+        self.assertFalse(FloodEvent.objects.filter(id=old.id).exists())
+        self.assertTrue(FloodEvent.objects.filter(id=recent.id).exists())

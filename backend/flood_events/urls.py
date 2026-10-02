@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AutoDetectConfigView,
+    FloodEventArchiveView,
     FloodEventChangesView,
     FloodEventConfirmView,
     FloodEventDetailView,
@@ -21,5 +22,6 @@ urlpatterns = [
     path("flood-events/<int:pk>/reports/", FloodEventReportsView.as_view(), name="flood-event-reports"),
     path("flood-events/<int:pk>/confirm/", FloodEventConfirmView.as_view(), name="flood-event-confirm"),
     path("flood-events/<int:pk>/resolve/", FloodEventResolveView.as_view(), name="flood-event-resolve"),
+    path("flood-events/<int:pk>/archive/", FloodEventArchiveView.as_view(), name="flood-event-archive"),
     path("flood-events/<int:pk>/restore/", FloodEventRestoreView.as_view(), name="flood-event-restore"),
 ]

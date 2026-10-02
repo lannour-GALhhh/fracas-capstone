@@ -12,7 +12,8 @@ from risk_score.models import RiskScore, ValidationRun
 def _confirmed_events(since):
     """Confirmed, not-soft-deleted flood events since `since`."""
     return FloodEvent.objects.filter(
-        occurred_at__gte=since, deleted_at__isnull=True, is_confirmed=True
+        occurred_at__gte=since, deleted_at__isnull=True,
+        archived_at__isnull=True, is_confirmed=True
     )
 
 

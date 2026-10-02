@@ -127,7 +127,7 @@ const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; high
                     </InfoRow>
                 </div>
 
-                <div className='flex flex-wrap items-center gap-1.5'>
+                <div className='flex flex-wrap items-center justify-end gap-1.5'>
                     <ConfirmDialog
                         title='Archive evacuation center?'
                         description={`“${p.name}” will be removed from the map and the resident app. You can restore it from the archive within 30 days, after which it is permanently deleted.`}

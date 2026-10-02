@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { format, isSameDay } from 'date-fns'
-import { ArrowLeft, BadgeCheck, CheckCircle2, Pencil } from 'lucide-react'
+import { Archive, ArrowLeft, BadgeCheck, CheckCircle2, Pencil } from 'lucide-react'
 import NotFound from '@/common/pages/NotFound'
 import ErrorState from '@/common/components/ErrorState'
 import { Badge } from '@/common/ui/badge'
@@ -10,7 +10,8 @@ import { Map } from '@/common/ui/map'
 import { Separator } from '@/common/ui/separator'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useFloodEvent } from '../hooks/useFloodEvent'
-import { useConfirmFloodEvent } from '../hooks/useFloodEventActions'
+import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
+import { useArchiveFloodEvent, useConfirmFloodEvent } from '../hooks/useFloodEventActions'
 import FloodEventForm from './FloodEventForm'
 import ChangeHistoryModal from './ChangeHistoryModal'
 import DeleteEventDialog from './DeleteEventDialog'
@@ -129,6 +130,7 @@ const ConfirmationBadge = ({
 const FloodEventDetail = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const archive = useArchiveFloodEvent()
     const { isOperator } = useAuth()
 
     const numericId = id ? Number(id) : undefined
@@ -180,6 +182,21 @@ const FloodEventDetail = () => {
                                 <Button size='sm' variant='outline' className='cursor-pointer'>
                                     <Pencil className='size-4' />
                                     Edit
+                                </Button>
+                            }
+                        />
+                        <ConfirmDialog
+                            title='Archive flood event?'
+                            description={`This event for Barangay ${event.barangay_name} will be removed from the flood history and analytics. You can restore it from the archive within 30 days, after which it is permanently deleted.`}
+                            confirmLabel='Archive'
+                            isPending={archive.isPending}
+                            onConfirm={() =>
+                                archive.mutate(event.id, { onSuccess: () => navigate('/history') })
+                            }
+                            trigger={
+                                <Button size='sm' variant='outline' className='cursor-pointer'>
+                                    <Archive className='size-4' />
+                                    Archive
                                 </Button>
                             }
                         />

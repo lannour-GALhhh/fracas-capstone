@@ -47,6 +47,7 @@ class FloodEventSerializer(serializers.ModelSerializer):
             "is_confirmed",
             "confirmed_by_name",
             "is_resolved",
+            "archived_at",
         ]
 
     def get_confirmed_by_name(self, event) -> str | None:
@@ -129,6 +130,7 @@ class FloodEventDetailSerializer(serializers.ModelSerializer):
             "confirmed_by_name",
             "confirmed_at",
             "deleted_at",
+            "archived_at",
             "timeline",
             "telemetry",
         ]
