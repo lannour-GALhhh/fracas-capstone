@@ -7,6 +7,6 @@ export const gisKeys = {
     rainfallHistory: (id: number, days: number, granularity: 'hour' | 'day' = 'hour') =>
         ['gis', 'rainfall', 'history', id, days, granularity] as const,
     hazardZones: ['gis', 'hazard-zones'] as const,
-    hazardZonesDetailed: ['gis', 'hazard-zones', 'detailed'] as const,
+    hazardZonesDetailed: (bbox: string) => ['gis', 'hazard-zones', 'detailed', bbox] as const,
     zoneRisk: ['gis', 'risk', 'zones'] as const,
 }

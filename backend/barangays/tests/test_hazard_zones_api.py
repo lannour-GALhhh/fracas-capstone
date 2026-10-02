@@ -24,13 +24,39 @@ class HazardZoneApiTests(APITestCase):
     def test_requires_authentication(self):
         self.assertEqual(self.client.get(reverse("hazard-zone-list")).status_code, 401)
 
-    def test_returns_unpaginated_feature_collection(self):
+    def test_returns_feature_collection(self):
         self.client.force_authenticate(self.user)
         resp = self.client.get(reverse("hazard-zone-list"))
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data["type"], "FeatureCollection")
-        self.assertNotIn("results", resp.data)  # unpaginated, unlike the default viewset pagination
-        feature = resp.data["features"][0]
+        body = resp.json()
+        self.assertEqual(body["type"], "FeatureCollection")
+        feature = body["features"][0]
         self.assertEqual(feature["geometry"]["type"], "MultiPolygon")
-        self.assertEqual(feature["properties"]["level"], "high")
-        self.assertEqual(feature["properties"]["barangay"], self.barangay.id)
+        self.assertEqual(feature["properties"], {"barangay": self.barangay.id, "level": "high"})
+
+    def test_bbox_filters_simplified_zones(self):
+        self.client.force_authenticate(self.user)
+        url = reverse("hazard-zone-list")
+        hit = self.client.get(url, {"bbox": "0.5,0.5,2,2"}).json()
+        miss = self.client.get(url, {"bbox": "5,5,6,6"}).json()
+        self.assertEqual(len(hit["features"]), 1)
+        self.assertEqual(miss["features"], [])
+
+    def test_detail_full_requires_bbox(self):
+        self.client.force_authenticate(self.user)
+        self.assertEqual(self.client.get(reverse("hazard-zone-list"), {"detail": "full"}).status_code, 400)
+
+    def test_detail_full_rejects_oversized_bbox(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(reverse("hazard-zone-list"), {"detail": "full", "bbox": "0,0,5,5"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_detail_full_with_bbox(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.get(reverse("hazard-zone-list"), {"detail": "full", "bbox": "0,0,0.4,0.4"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()["features"]), 1)
+
+    def test_malformed_bbox_is_400(self):
+        self.client.force_authenticate(self.user)
+        self.assertEqual(self.client.get(reverse("hazard-zone-list"), {"bbox": "a,b"}).status_code, 400)

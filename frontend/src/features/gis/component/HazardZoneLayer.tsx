@@ -15,7 +15,19 @@ const FILL = 'hazard-zone-fill'
 const LINE = 'hazard-zone-line'
 
 /** Zoom level at which the layer swaps to full-precision geometry. */
-const DETAIL_ZOOM_THRESHOLD = 13
+const DETAIL_ZOOM_THRESHOLD = 14
+
+/** Viewport bbox is snapped outward to this grid so small pans reuse the same (cached) request. */
+const BBOX_GRID_DEG = 0.05
+
+const snappedBbox = (map: MapLibreMap): string => {
+    const b = map.getBounds()
+    const lo = (v: number) => Math.floor(v / BBOX_GRID_DEG) * BBOX_GRID_DEG
+    const hi = (v: number) => Math.ceil(v / BBOX_GRID_DEG) * BBOX_GRID_DEG
+    return [lo(b.getWest()), lo(b.getSouth()), hi(b.getEast()), hi(b.getNorth())]
+        .map((v) => v.toFixed(2))
+        .join(',')
+}
 
 /** Colors each zone by its computed risk category; grey before scores load. */
 const riskColorExpression: ExpressionSpecification = [
@@ -48,17 +60,22 @@ const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { map, isLoaded } = useMap()
     const [zoom, setZoom] = useState(() => map?.getZoom() ?? 0)
     const { data: simplified } = useHazardZones()
+    const [bbox, setBbox] = useState<string | null>(null)
     const showDetailed = zoom >= DETAIL_ZOOM_THRESHOLD
-    const { data: detailed } = useHazardZonesDetailed(showDetailed)
+    const { data: detailed } = useHazardZonesDetailed(showDetailed ? bbox : null)
     const { data: zoneRisk } = useZoneRisk()
 
     useEffect(() => {
         if (!map) return
         const handleZoom = () => setZoom(map.getZoom())
+        const handleMoveEnd = () => setBbox(snappedBbox(map))
         handleZoom()
+        handleMoveEnd()
         map.on('zoom', handleZoom)
+        map.on('moveend', handleMoveEnd)
         return () => {
             map.off('zoom', handleZoom)
+            map.off('moveend', handleMoveEnd)
         }
     }, [map])
 
