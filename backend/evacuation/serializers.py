@@ -53,7 +53,7 @@ class EvacuationCenterSerializer(GeoFeatureModelSerializer):
         id_field = False
         fields = [
             "id", "name", "capacity", "contact", "contacts", "images",
-            "is_active", "barangay", "barangay_name",
+            "is_active", "barangay", "barangay_name", "archived_at",
         ]
 
 

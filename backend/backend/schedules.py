@@ -19,4 +19,9 @@ BEAT_SCHEDULE = {
         "task": "flood_events.tasks.purge_deleted_flood_events",
         "schedule": crontab(minute=0),
     },
+    "purge-archived-evacuation-centers-daily": {
+        # Hard-delete evacuation centers archived more than 30 days ago.
+        "task": "evacuation.tasks.purge_archived_centers",
+        "schedule": crontab(hour=3, minute=30),
+    },
 }

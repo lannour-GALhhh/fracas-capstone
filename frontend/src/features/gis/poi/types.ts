@@ -32,6 +32,8 @@ export interface EvacuationProperties {
     is_active: boolean
     barangay: number | null
     barangay_name: string | null
+    /** ISO timestamp when archived; null for live centers. */
+    archived_at: string | null
 }
 
 export type EvacuationCollection = FeatureCollection<Point, EvacuationProperties>
@@ -47,7 +49,7 @@ export interface EvacuationInput {
 }
 
 export type PoiKind = 'evacuation' | 'hotspot'
-export type PoiAction = 'created' | 'updated' | 'moved' | 'deleted'
+export type PoiAction = 'created' | 'updated' | 'moved' | 'deleted' | 'archived' | 'restored'
 
 /** One row from GET /api/poi/logs/. */
 export interface PoiLog {

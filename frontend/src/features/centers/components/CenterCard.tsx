@@ -11,14 +11,14 @@ import {
     Pencil,
     Phone,
     Tent,
-    Trash2,
+    Archive,
     Users,
 } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
 import ImageLightbox from '@/common/components/ImageLightbox'
 import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
-import { useDeleteEvacuationCenter } from '@/features/gis/poi/usePoi'
+import { useArchiveEvacuationCenter } from '@/features/gis/poi/usePoi'
 import type { EvacuationProperties } from '@/features/gis/poi/types'
 import CenterFormDialog from './CenterFormDialog'
 
@@ -45,7 +45,7 @@ const InfoRow = ({
 /** Wide card: main photo on the left half, details + actions on the right half. */
 const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; highlighted?: boolean }) => {
     const navigate = useNavigate()
-    const del = useDeleteEvacuationCenter()
+    const del = useArchiveEvacuationCenter()
     const [viewing, setViewing] = useState<number | null>(null)
     const [lng, lat] = center.geometry.coordinates
     const p = center.properties
@@ -129,10 +129,9 @@ const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; high
 
                 <div className='flex flex-wrap items-center gap-1.5'>
                     <ConfirmDialog
-                        title='Delete evacuation center?'
-                        description={`“${p.name}” will be removed from the map and the resident app.`}
-                        confirmLabel='Delete'
-                        destructive
+                        title='Archive evacuation center?'
+                        description={`“${p.name}” will be removed from the map and the resident app. You can restore it from the archive within 30 days, after which it is permanently deleted.`}
+                        confirmLabel='Archive'
                         isPending={del.isPending}
                         onConfirm={() => del.mutate(p.id)}
                         trigger={
@@ -141,8 +140,8 @@ const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; high
                                 variant='ghost'
                                 className='text-destructive hover:text-destructive'
                             >
-                                <Trash2 />
-                                Delete
+                                <Archive />
+                                Archive
                             </Button>
                         }
                     />

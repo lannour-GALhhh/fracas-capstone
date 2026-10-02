@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
     createEvacuationCenter,
-    deleteEvacuationCenter,
+    archiveEvacuationCenter,
     deleteEvacuationImage,
+    getArchivedEvacuationCenters,
     getEvacuationCenters,
+    restoreEvacuationCenter,
     getPoiLogs,
     reorderEvacuationImages,
     updateEvacuationCenter,
@@ -14,6 +16,7 @@ import type { CenterPhoto, EvacuationInput, PoiKind } from './types'
 
 export const poiKeys = {
     evacuation: ['gis', 'poi', 'evacuation'] as const,
+    archived: ['gis', 'poi', 'evacuation-archived'] as const,
     logsRoot: ['gis', 'poi', 'logs'] as const,
     logs: (poiType?: PoiKind) => ['gis', 'poi', 'logs', poiType ?? 'all'] as const,
 }
@@ -73,19 +76,49 @@ export const useSaveEvacuationCenter = () => {
     })
 }
 
-/** Delete an evacuation center, then refresh the map + audit log. */
-export const useDeleteEvacuationCenter = () => {
+/** Archive an evacuation center, then refresh the map, archive list + audit log. */
+export const useArchiveEvacuationCenter = () => {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (id: number) => deleteEvacuationCenter(id),
+        mutationFn: (id: number) => archiveEvacuationCenter(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: poiKeys.evacuation })
+            queryClient.invalidateQueries({ queryKey: poiKeys.archived })
             queryClient.invalidateQueries({ queryKey: poiKeys.logsRoot })
-            toast.success('Evacuation center deleted')
+            toast.success('Evacuation center archived', {
+                description: 'It can be restored from the archive for 30 days.',
+            })
         },
         onError: () => {
-            toast.error('Couldn’t delete the center', {
+            toast.error('Couldn’t archive the center', {
                 description: 'The center is unchanged. Please try again.',
+            })
+        },
+    })
+}
+
+/** Archived centers (operator). Only fetched while `enabled`. */
+export const useArchivedCenters = (enabled = true) =>
+    useQuery({
+        queryKey: poiKeys.archived,
+        queryFn: getArchivedEvacuationCenters,
+        enabled,
+    })
+
+/** Restore an archived center back onto the map. */
+export const useRestoreEvacuationCenter = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (id: number) => restoreEvacuationCenter(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: poiKeys.evacuation })
+            queryClient.invalidateQueries({ queryKey: poiKeys.archived })
+            queryClient.invalidateQueries({ queryKey: poiKeys.logsRoot })
+            toast.success('Evacuation center restored')
+        },
+        onError: () => {
+            toast.error('Couldn’t restore the center', {
+                description: 'It is still in the archive. Please try again.',
             })
         },
     })

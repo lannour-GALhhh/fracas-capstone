@@ -191,8 +191,32 @@ class EvacuationCenterOperatorTests(APITestCase):
         )
         resp = self.client.delete(reverse("evacuation-center-detail", args=[center.id]))
         self.assertEqual(resp.status_code, 204)
-        self.assertFalse(EvacuationCenter.objects.filter(id=center.id).exists())
-        self.assertTrue(MapPoiChange.objects.filter(poi_id=center.id, action="deleted").exists())
+        # Archived, not deleted.
+        center.refresh_from_db()
+        self.assertIsNotNone(center.archived_at)
+        self.assertTrue(MapPoiChange.objects.filter(poi_id=center.id, action="archived").exists())
+        listed = self.client.get(reverse("evacuation-center-list")).data["features"]
+        self.assertNotIn(center.id, [f["properties"]["id"] for f in listed])
+        archived = self.client.get(reverse("evacuation-center-list"), {"archived": "true"})
+        self.assertEqual([f["properties"]["id"] for f in archived.data["features"]], [center.id])
+
+    def test_restore_and_purge(self):
+        from evacuation.tasks import ARCHIVE_RETENTION_DAYS, purge_archived_centers
+
+        old = EvacuationCenter.objects.create(
+            name="Old", location=Point(0.5, 0.5, srid=4326),
+            archived_at=timezone.now() - timedelta(days=ARCHIVE_RETENTION_DAYS + 1),
+        )
+        recent = EvacuationCenter.objects.create(
+            name="Recent", location=Point(0.5, 0.5, srid=4326), archived_at=timezone.now()
+        )
+        resp = self.client.post(reverse("evacuation-center-restore", args=[recent.id]))
+        self.assertEqual(resp.status_code, 200)
+        recent.refresh_from_db()
+        self.assertIsNone(recent.archived_at)
+        self.assertEqual(purge_archived_centers(), {"purged": 1})
+        self.assertFalse(EvacuationCenter.objects.filter(id=old.id).exists())
+        self.assertTrue(EvacuationCenter.objects.filter(id=recent.id).exists())
 
     def test_poi_log_endpoint_lists_changes(self):
         self.client.post(

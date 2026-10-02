@@ -17,6 +17,8 @@ class EvacuationCenter(models.Model):
     )
     capacity = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    # Set when archived (the operator "delete"); hard-purged after a grace period.
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["name"]

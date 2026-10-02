@@ -55,9 +55,22 @@ export const deleteEvacuationImage = async (id: number, imageId: number): Promis
     await apiClient.delete(`${EVAC_URL}${id}/images/${imageId}/`)
 }
 
-/** Delete an evacuation center (operator only). */
-export const deleteEvacuationCenter = async (id: number): Promise<void> => {
+/** Archive an evacuation center (operator only); it is purged after 30 days. */
+export const archiveEvacuationCenter = async (id: number): Promise<void> => {
     await apiClient.delete(`${EVAC_URL}${id}/`)
+}
+
+/** Archived centers awaiting purge (operator only). */
+export const getArchivedEvacuationCenters = async (): Promise<EvacuationCollection> => {
+    const { data } = await apiClient.get<EvacuationCollection>(EVAC_URL, {
+        params: { archived: 'true' },
+    })
+    return data
+}
+
+/** Bring an archived center back (operator only). */
+export const restoreEvacuationCenter = async (id: number): Promise<void> => {
+    await apiClient.post(`${EVAC_URL}${id}/restore/`)
 }
 
 /** POI audit log (operator). Optionally scoped to a POI kind. */

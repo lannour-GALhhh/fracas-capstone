@@ -16,6 +16,8 @@ const ACTION_TONE: Record<PoiAction, string> = {
     updated: 'border-blue-500/40 text-blue-600',
     moved: 'border-amber-500/40 text-amber-600',
     deleted: 'border-red-500/40 text-red-600',
+    archived: 'border-slate-500/40 text-slate-600',
+    restored: 'border-emerald-500/40 text-emerald-600',
 }
 
 /** Human summary of the "what" for a log row. */
@@ -26,6 +28,8 @@ const summarize = (log: PoiLog): string => {
     if (log.action === 'updated' && fields.length) return `Changed ${fields.join(', ')}`
     if (log.action === 'created') return 'Added'
     if (log.action === 'deleted') return 'Removed'
+    if (log.action === 'archived') return 'Moved to archive'
+    if (log.action === 'restored') return 'Restored from archive'
     return '—'
 }
 

@@ -1,12 +1,13 @@
 """Evacuation-center API."""
 
 from django.db.models import Max
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from poi.views import PoiViewSet
+from poi.views import PoiViewSet, is_operator_user
 from users.permissions import IsOperator
 
 from .models import EvacuationCenter, EvacuationCenterImage
@@ -25,6 +26,32 @@ class EvacuationCenterViewSet(PoiViewSet):
     write_serializer_class = EvacuationCenterWriteSerializer
     poi_type = "evacuation"
     tracked_fields = ["name", "capacity", "is_active"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Archived centers are hidden everywhere except the operator archive view
+        # (`?archived=true`) and the restore action.
+        want_archived = self.action == "restore" or (
+            self.request.query_params.get("archived") == "true"
+            and is_operator_user(self.request.user)
+        )
+        return qs.filter(archived_at__isnull=not want_archived)
+
+    def perform_destroy(self, instance):
+        """'Delete' archives; the purge task hard-deletes after the grace period."""
+        instance.archived_at = timezone.now()
+        instance.save(update_fields=["archived_at"])
+        self._log(instance, "archived")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsOperator])
+    def restore(self, request, pk=None):
+        center = self.get_object()
+        center.archived_at = None
+        center.save(update_fields=["archived_at"])
+        self._log(center, "restored")
+        return Response(
+            EvacuationCenterSerializer(center, context={"request": request}).data
+        )
 
     @action(
         detail=True,

@@ -18,6 +18,8 @@ class MapPoiChange(models.Model):
         UPDATED = "updated", "Updated"
         MOVED = "moved", "Moved"
         DELETED = "deleted", "Deleted"
+        ARCHIVED = "archived", "Archived"
+        RESTORED = "restored", "Restored"
 
     editor = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
