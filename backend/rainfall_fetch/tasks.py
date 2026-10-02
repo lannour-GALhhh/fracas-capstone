@@ -1,6 +1,7 @@
 import requests
 import logging
 import time
+from datetime import timedelta
 
 from celery import shared_task
 
@@ -9,7 +10,7 @@ from django.utils import timezone
 from barangays.models import Barangay
 from monitoring.constants import SOURCE_RAINFALL
 from monitoring.services.recorder import record_failure, record_success
-from .models import Rainfall
+from .models import HourlyRainfall, Rainfall
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +23,15 @@ CALL_DELAY = 1  # seconds between the hourly and minutely calls within a chunk
 REQUEST_TIMEOUT = 20
 RETRY_BACKOFF = 5
 
+# Trailing windows (hours) for the accumulation fields, summed from our own hourly records.
+ACCUMULATION_WINDOWS = {"accumulated_6hr": 6, "accumulated_12hr": 12, "accumulated_24hr": 24, "accumulated_7day": 24 * 7}
+
 # Every 15-minute step out to 4 hours (16 points).
 FORECAST_STEPS_MIN = [15 * n for n in range(1, 17)]
 
 
 def hourly_url(latitudes: str, longitudes: str) -> str:
+    # Only used by `backfill_rainfall_history`; the regular fetch no longer asks for history.
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
@@ -36,11 +41,11 @@ def hourly_url(latitudes: str, longitudes: str) -> str:
 
 
 def minutely_url(latitudes: str, longitudes: str) -> str:
-    # Kept separate from hourly_url: past_days + minutely_15 together times out.
+    # `current` rides along so the regular fetch needs just this one request per chunk.
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
-        f"&minutely_15=precipitation&forecast_days=1"
+        f"&current=precipitation&minutely_15=precipitation&forecast_days=1"
     )
 
 
@@ -74,49 +79,55 @@ def _get_with_retry(url, *, retries=2):
     raise last_exc
 
 
-def _accumulate(precipitation, index, hours):
-    """Sum the `hours` hourly buckets ending at (and including) `index`."""
-    start = max(0, index - hours + 1)
-    return round(sum(v or 0 for v in precipitation[start:index + 1]), 2)
+def _quarter_index(data):
+    """Index of the current 15-minute bucket in `minutely_15`, or None if it isn't there."""
+    return next(
+        (i for i, t in enumerate(data['minutely_15']['time']) if t == data['current']['time']), None
+    )
+
 
 def parse_rainfall_data(data, barangay_name=None):
-    current_rainfall = data['current']['precipitation']
-    current_time = data['current']['time']
-    current_hour = current_time[:13]
-    times = data['hourly']['time']
-    precipitation = data['hourly']['precipitation']
-
-    index = next((i for i, t in enumerate(times) if t.startswith(current_hour)), None)
-
-    quarter_times = data['minutely_15']['time']
-    quarter_precipitation = data['minutely_15']['precipitation']
-    quarter_index = next((i for i, t in enumerate(quarter_times) if t == current_time), None)
-
-    if index is None or quarter_index is None:
-        logger.warning(f"Current hour not found in forecast for {barangay_name}. Defaulting to 0")
+    """Current intensity + 4h forecast from one location's response. Accumulations are
+    computed separately from our stored hourly records (see `_accumulations`)."""
+    quarter_index = _quarter_index(data)
+    if quarter_index is None:
+        logger.warning(f"Current time not found in forecast for {barangay_name}. Defaulting to 0")
         return {key: 0 for key in [
             'current_rainfall_strength',
             *[f'forecast_strength_{m}min' for m in FORECAST_STEPS_MIN],
-            'accumulated_6hr',
-            'accumulated_12hr',
-            'accumulated_24hr',
-            'accumulated_7day',
             ]}
 
+    quarter_precipitation = data['minutely_15']['precipitation']
     # `x` is a count of 15-minute buckets ahead of now.
     forecast_quarter = lambda x: (quarter_precipitation[quarter_index + x] or 0) if quarter_index + x < len(quarter_precipitation) else 0
 
     return {
-        'current_rainfall_strength': current_rainfall or 0,
+        'current_rainfall_strength': data['current']['precipitation'] or 0,
         **{
             f'forecast_strength_{m}min': forecast_quarter(m // 15)
             for m in FORECAST_STEPS_MIN
         },
-        'accumulated_6hr': _accumulate(precipitation, index, 6),
-        'accumulated_12hr': _accumulate(precipitation, index, 12),
-        'accumulated_24hr': _accumulate(precipitation, index, 24),
-        'accumulated_7day': _accumulate(precipitation, index, 24 * 7),
     }
+
+
+def _accumulations(barangay_ids, hour):
+    """{barangay_id: {accumulated_6hr: mm, ...}} summed from stored hourly buckets.
+
+    Each window is the last N buckets ending at (and including) `hour`; hours we never
+    recorded count as 0, so totals ramp up over the first week after a cold start
+    (see `backfill_rainfall_history`)."""
+    longest = max(ACCUMULATION_WINDOWS.values())
+    rows = HourlyRainfall.objects.filter(
+        barangay_id__in=barangay_ids, hour__gt=hour - timedelta(hours=longest), hour__lte=hour
+    ).values_list("barangay_id", "hour", "precipitation")
+    result = {bid: dict.fromkeys(ACCUMULATION_WINDOWS, 0.0) for bid in barangay_ids}
+    for bid, row_hour, mm in rows:
+        age_hours = int((hour - row_hour).total_seconds() // 3600)
+        for field, window in ACCUMULATION_WINDOWS.items():
+            if age_hours < window:
+                result[bid][field] += mm
+    return {bid: {f: round(v, 2) for f, v in accs.items()} for bid, accs in result.items()}
+
 
 def _query_groups(barangays):
     """Group barangays by the Open-Meteo grid-cell they actually resolve to
@@ -143,7 +154,8 @@ def _query_groups(barangays):
 def fetch_rainfall_information():
     barangays = list(Barangay.objects.select_related("rainfall_grid").all())
     timestamp = timezone.now()
-    readings = []
+    hour = timestamp.replace(minute=0, second=0, microsecond=0)
+    parsed_by_barangay = {}  # barangay -> (parsed forecast, located-in-response)
 
     groups = _query_groups(barangays)
     chunks = list(_chunked(groups, CHUNK_SIZE))
@@ -152,32 +164,19 @@ def fetch_rainfall_information():
         lons = ",".join(str(g["lon"]) for g in chunk)
 
         try:
-            hourly_batch = _get_with_retry(hourly_url(lats, lons)).json()
-            time.sleep(CALL_DELAY)
-            minutely_batch = _get_with_retry(minutely_url(lats, lons)).json()
+            batch = _get_with_retry(minutely_url(lats, lons)).json()
             # A single-location batch comes back as an object, not a list.
-            if isinstance(hourly_batch, dict):
-                hourly_batch = [hourly_batch]
-            if isinstance(minutely_batch, dict):
-                minutely_batch = [minutely_batch]
+            if isinstance(batch, dict):
+                batch = [batch]
         except Exception as e:
             names = ", ".join(b.name for g in chunk for b in g["members"])
             logger.error(f"Failed to fetch rainfall batch for [{names}]: {e}")
         else:
-            for group, hourly_data, minutely_data in zip(chunk, hourly_batch, minutely_batch):
-                data = hourly_data
-                data['minutely_15'] = minutely_data['minutely_15']
+            for group, data in zip(chunk, batch):
                 for barangay in group["members"]:
                     try:
-                        parsed_data = parse_rainfall_data(data, barangay.name)
-
-                        readings.append(Rainfall(
-                            barangay=barangay,
-                            recorded_at=timestamp,
-                            **parsed_data
-                        ))
-
-                        logger.info(f"Fetched rainfall information for {barangay.name}: {parsed_data}")
+                        parsed = parse_rainfall_data(data, barangay.name)
+                        parsed_by_barangay[barangay] = (parsed, _quarter_index(data) is not None)
                     except Exception as e:
                         logger.error(f"Failed to parse rainfall information for: {barangay.name}: {e}")
                         continue
@@ -185,10 +184,26 @@ def fetch_rainfall_information():
         if chunk_num < len(chunks) - 1:
             time.sleep(CHUNK_DELAY)
 
-    if readings:
-        Rainfall.objects.bulk_create(readings)
-        logger.info(f"Stored {len(readings)} rainfall readings.")
-        record_success(SOURCE_RAINFALL)
-    else:
+    if not parsed_by_barangay:
         logger.error("No rainfall readings stored this cycle.")
         record_failure(SOURCE_RAINFALL, "no readings stored")
+        return
+
+    # Record this hour's reading once (the first run of the hour wins) at the exact hour mark.
+    # Skip responses we couldn't locate: their zeroed placeholder must not claim the hour.
+    HourlyRainfall.objects.bulk_create(
+        [
+            HourlyRainfall(barangay=b, hour=hour, precipitation=parsed["current_rainfall_strength"])
+            for b, (parsed, located) in parsed_by_barangay.items() if located
+        ],
+        ignore_conflicts=True,
+    )
+    accumulations = _accumulations([b.id for b in parsed_by_barangay], hour)
+
+    readings = [
+        Rainfall(barangay=b, recorded_at=timestamp, **parsed, **accumulations[b.id])
+        for b, (parsed, _) in parsed_by_barangay.items()
+    ]
+    Rainfall.objects.bulk_create(readings)
+    logger.info(f"Stored {len(readings)} rainfall readings.")
+    record_success(SOURCE_RAINFALL)

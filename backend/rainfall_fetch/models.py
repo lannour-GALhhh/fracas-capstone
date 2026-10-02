@@ -24,6 +24,26 @@ class BarangayRainfallGrid(models.Model):
         return f"{self.barangay} -> ({self.grid_lat}, {self.grid_lon})"
 
 
+class HourlyRainfall(models.Model):
+    """Our own per-barangay hourly record: the reading seen at the top of each hour.
+
+    Source of the 6h/12h/24h/7d accumulations, so we don't re-download a week of
+    history from Open-Meteo on every run. `hour` is always on the hour (10:00, 11:00...).
+    """
+
+    barangay = models.ForeignKey(Barangay, on_delete=models.CASCADE, related_name="hourly_rainfall")
+    hour = models.DateTimeField()
+    precipitation = models.FloatField(default=0)  # mm, as reported at `hour`
+
+    class Meta:
+        ordering = ["-hour"]
+        constraints = [models.UniqueConstraint(fields=["barangay", "hour"], name="uniq_hourly_rainfall")]
+        indexes = [models.Index(fields=["hour"])]
+
+    def __str__(self):
+        return f"{self.barangay} @ {self.hour:%Y-%m-%d %H:00}: {self.precipitation} mm"
+
+
 class Rainfall(models.Model):
     barangay = models.ForeignKey(Barangay,on_delete=models.CASCADE, related_name="rainfall_readings", null=True, blank=True)
 

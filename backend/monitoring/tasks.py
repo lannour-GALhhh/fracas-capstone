@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def cleanup_old_data() -> dict:
     from evacuation.models import Evacuation, EvacuationStatus
-    from rainfall_fetch.models import Rainfall
+    from rainfall_fetch.models import HourlyRainfall, Rainfall
     from risk_score.models import RiskScore
 
     from monitoring.models import RetentionPolicy
@@ -22,6 +22,8 @@ def cleanup_old_data() -> dict:
     rain_deleted, _ = Rainfall.objects.filter(
         recorded_at__lt=now - timedelta(days=policy.rainfall_retention_days)
     ).delete()
+    # Hourly buckets only feed the 7-day window; keep a day of slack.
+    HourlyRainfall.objects.filter(hour__lt=now - timedelta(days=8)).delete()
     score_deleted, _ = RiskScore.objects.filter(
         computed_at__lt=now - timedelta(days=policy.risk_score_retention_days)
     ).delete()
