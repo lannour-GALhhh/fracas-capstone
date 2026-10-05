@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { differenceInDays, format, formatDistanceToNow } from 'date-fns'
 import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
@@ -60,7 +60,9 @@ const UserChangeLog = ({ userId }: { userId: number }) => {
                                     className='shrink-0 text-xs text-black/50'
                                     title={when.toLocaleString()}
                                 >
-                                    {formatDistanceToNow(when, { addSuffix: true })}
+                                    {differenceInDays(new Date(), when) > 7
+                                        ? format(when, 'MM/dd/yyyy')
+                                        : formatDistanceToNow(when, { addSuffix: true })}
                                 </span>
                             </div>
                             {!isPassword && (

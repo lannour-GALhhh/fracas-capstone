@@ -16,7 +16,6 @@ const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage')
 const CentersPage = lazy(() => import('@/features/centers/CentersPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const AccountsPage = lazy(() => import('@/features/accounts/AccountsPage'))
-const AccountDetailPage = lazy(() => import('@/features/accounts/AccountDetailPage'))
 const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPage'))
 const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
@@ -39,7 +38,6 @@ const Routers = () => {
           <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
           <Route path='/evacuation-centers' element={<OperatorRoute><CentersPage /></OperatorRoute>} />
           <Route path='/accounts' element={<AdminRoute><AccountsPage /></AdminRoute>} />
-          <Route path='/accounts/:id' element={<AdminRoute><AccountDetailPage /></AdminRoute>} />
           {/* Analytics is hidden for now: re-add the route + nav link to bring it back. */}
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route index element={<Navigate to='model/config' replace />} />

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Eye, MoreVertical, UserCheck, UserX } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import {
@@ -13,8 +12,7 @@ import { useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations
 import type { AdminUser } from '@/features/admin/types/user'
 
 /** Kebab menu per row: open the account, or deactivate/reactivate it (confirmed). */
-const AccountRowActions = ({ user }: { user: AdminUser }) => {
-    const navigate = useNavigate()
+const AccountRowActions = ({ user, onView }: { user: AdminUser; onView: () => void }) => {
     const update = useUpdateAdminUser(user.id)
     // The dialog lives outside the menu so it survives the menu closing.
     const [confirming, setConfirming] = useState(false)
@@ -35,7 +33,7 @@ const AccountRowActions = ({ user }: { user: AdminUser }) => {
                     <MoreVertical />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='end' className='w-44'>
-                    <DropdownMenuItem onClick={() => navigate(`/accounts/${user.id}`)}>
+                    <DropdownMenuItem onClick={onView}>
                         <Eye />
                         View details
                     </DropdownMenuItem>

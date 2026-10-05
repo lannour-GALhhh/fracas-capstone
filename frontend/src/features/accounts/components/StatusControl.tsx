@@ -11,7 +11,7 @@ const StatusControl = ({ user }: { user: AdminUser }) => {
         return (
             <ConfirmDialog
                 trigger={
-                    <Button size='sm' variant='destructive'>
+                    <Button variant='destructive'>
                         Deactivate
                     </Button>
                 }
@@ -28,7 +28,7 @@ const StatusControl = ({ user }: { user: AdminUser }) => {
     return (
         <ConfirmDialog
             trigger={
-                <Button size='sm' variant='outline'>
+                <Button variant='outline'>
                     Reactivate
                 </Button>
             }

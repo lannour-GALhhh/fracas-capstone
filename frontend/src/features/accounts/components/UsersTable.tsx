@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
     Table,
     TableBody,
@@ -35,6 +34,7 @@ import UserActiveBadge, { STATUS_LABEL } from '@/features/user/components/UserAc
 import type { UserStatus } from '@/features/admin/types/user'
 import AccountAvatar from './AccountAvatar'
 import AccountRowActions from './AccountRowActions'
+import AccountDetailDialog from './AccountDetailDialog'
 import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
 import type { ConsoleRole } from '@/features/admin/types/user'
 
@@ -43,7 +43,7 @@ const COLS = 8
 
 /** Operator/admin accounts only; residents are excluded server-side. */
 const UsersTable = () => {
-    const navigate = useNavigate()
+    const [viewingId, setViewingId] = useState<number | null>(null)
     const [search, setSearch] = useState('')
     const [role, setRole] = useState<ConsoleRole | 'all'>('all')
     const [status, setStatus] = useState<'all' | UserStatus>('all')
@@ -166,7 +166,7 @@ const UsersTable = () => {
                         <TableRow
                             key={u.id}
                             className='cursor-pointer'
-                            onClick={() => navigate(`/accounts/${u.id}`)}
+                            onClick={() => setViewingId(u.id)}
                         >
                             <TableCell className='w-12 py-2 pr-0'>
                                 <AccountAvatar name={u.first_name.trim() || u.username} />
@@ -186,7 +186,7 @@ const UsersTable = () => {
                                 <UserActiveBadge isActive={u.is_active} status={u.status} />
                             </TableCell>
                             <TableCell className='w-12 py-2 pl-0' onClick={(e) => e.stopPropagation()}>
-                                <AccountRowActions user={u} />
+                                <AccountRowActions user={u} onView={() => setViewingId(u.id)} />
                             </TableCell>
                         </TableRow>
                     ))}
@@ -239,6 +239,7 @@ const UsersTable = () => {
                     </TableRow>
                 </TableFooter>
             </Table>
+            <AccountDetailDialog userId={viewingId} onClose={() => setViewingId(null)} />
         </div>
     )
 }

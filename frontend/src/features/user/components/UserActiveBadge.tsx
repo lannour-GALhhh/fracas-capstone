@@ -18,12 +18,13 @@ const TONE: Record<UserStatus, { badge: string; dot: string; text: string }> = {
 const UserActiveBadge = ({
     isActive = true,
     status,
-}: { isActive: boolean; status?: UserStatus }) => {
+    showDot = true,
+}: { isActive: boolean; status?: UserStatus; showDot?: boolean }) => {
     const key: UserStatus = status ?? (isActive ? 'active' : 'inactive')
     const tone = TONE[key]
     return (
         <Badge className={cn('gap-2', tone.badge)}>
-            <div className={cn('h-2 aspect-square rounded-full', tone.dot)} />
+            {showDot && <div className={cn('h-2 aspect-square rounded-full', tone.dot)} />}
             <p className={tone.text}>{STATUS_LABEL[key]} Account</p>
         </Badge>
     )
