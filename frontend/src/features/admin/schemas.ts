@@ -1,14 +1,17 @@
 import { z } from 'zod'
-import { PhoneProp, RequiredString } from '@/common/schema/schemas'
+import { PhoneProp, RequiredString, ZipProp } from '@/common/schema/schemas'
 
-/** New-account form: username + a system password (no email flow exists yet). */
+/** New-account form: contact + location; credentials are system-generated on submit. */
 export const CreateUserSchema = z.object({
-    username: RequiredString('Username'),
-    password: z.string().trim().min(8, 'Password must be at least 8 characters'),
-    first_name: z.string().trim(),
-    last_name: z.string().trim(),
-    email: z.union([z.literal(''), z.string().trim().email('Enter a valid email address')]),
-    phone_number: PhoneProp,
+    first_name: RequiredString('First name'),
+    last_name: RequiredString('Last name'),
+    email: z.string().trim().min(1, 'Email is required').email('Enter a valid email address'),
+    phone_number: PhoneProp.refine((v) => v !== '', 'Phone number is required'),
+    street: RequiredString('Street'),
+    province: RequiredString('Province'),
+    city: RequiredString('City'),
+    barangay: RequiredString('Barangay'),
+    zip_code: ZipProp.refine((v) => v !== '', 'Zip code is required'),
 })
 
 /** Scoring config form: mirrors RiskConfig.clean() ordering/weight rules. */

@@ -1,3 +1,4 @@
+import type { Address } from '@/features/user/types'
 import type { Role } from '@/common/types/Role'
 
 /** Console-managed roles; residents are excluded server-side. */
@@ -34,12 +35,11 @@ export interface AdminUserFilters {
 
 /** POST /api/admin/users/ payload — provisions a new console account. */
 export interface CreateUserPayload {
-    username: string
-    password: string
-    email?: string
-    first_name?: string
-    last_name?: string
+    email: string
+    first_name: string
+    last_name: string
     phone_number?: string
+    address?: Address
     is_operator?: boolean
     is_staff?: boolean
 }

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -98,46 +100,102 @@ class AdminUserApiTests(APITestCase):
 
     # --- create -------------------------------------------------------
 
-    def test_admin_can_create_operator(self):
+    PAYLOAD = {"first_name": "New", "last_name": "Op", "email": "newop@example.com"}
+
+    def test_admin_can_create_pending_operator(self):
         self.client.force_authenticate(self.admin)
-        resp = self.client.post(
-            self.list_url(),
-            {
-                "username": "newop",
-                "password": "correct-horse-battery-staple",
-                "first_name": "New",
-                "last_name": "Op",
-                "is_operator": True,
-            },
-        )
+        resp = self.client.post(self.list_url(), self.PAYLOAD)
         self.assertEqual(resp.status_code, 201, resp.data)
-        user = User.objects.get(username="newop")
+        user = User.objects.get(pk=resp.data["id"])
+        self.assertEqual(user.username, "new_op")
         self.assertTrue(user.is_operator)
         self.assertFalse(user.is_staff)
-        self.assertTrue(user.check_password("correct-horse-battery-staple"))
+        self.assertFalse(user.is_activated)
+        self.assertTrue(user.has_usable_password())
+        self.assertEqual(resp.data["status"], "pending")
 
-    def test_create_cannot_set_superuser(self):
+    def test_status_follows_activation_not_last_login(self):
+        self.client.force_authenticate(self.admin)
+        created = self.client.post(self.list_url(), self.PAYLOAD)
+        user = User.objects.get(pk=created.data["id"])
+        listed = lambda status: {  # noqa: E731
+            r["id"] for r in self.client.get(self.list_url(), {"status": status}).data["results"]
+        }
+        self.assertIn(user.pk, listed("pending"))
+        self.assertNotIn(user.pk, listed("active"))
+        user.is_activated = True
+        user.save()  # activated but has never signed in
+        self.assertEqual(self.client.get(self.detail_url(user)).data["status"], "active")
+        self.assertIn(user.pk, listed("active"))
+        self.assertNotIn(user.pk, listed("pending"))
+
+    def test_username_collision_is_numbered(self):
+        self.client.force_authenticate(self.admin)
+        self.client.post(self.list_url(), self.PAYLOAD)
+        resp = self.client.post(self.list_url(), {**self.PAYLOAD, "email": "other@example.com"})
+        self.assertEqual(resp.data["username"], "new_op2")
+
+    def test_all_identity_fields_required_and_email_unique(self):
+        self.client.force_authenticate(self.admin)
+        for missing in ("first_name", "last_name", "email"):
+            data = {k: v for k, v in self.PAYLOAD.items() if k != missing}
+            self.assertEqual(self.client.post(self.list_url(), data).status_code, 400, missing)
+        self.client.post(self.list_url(), self.PAYLOAD)
+        dup = self.client.post(self.list_url(), {**self.PAYLOAD, "first_name": "Dup"})
+        self.assertEqual(dup.status_code, 400)
+
+    def test_create_queues_activation_email(self):
+        self.client.force_authenticate(self.admin)
+        with patch("users.api_views.send_activation_email_task.delay") as delay:
+            with self.captureOnCommitCallbacks(execute=True):
+                resp = self.client.post(self.list_url(), self.PAYLOAD)
+        self.assertEqual(resp.status_code, 201, resp.data)
+        pk, token = delay.call_args.args
+        self.assertEqual(pk, resp.data["id"])
+        self.assertTrue(token)
+
+    def test_create_cannot_set_superuser_or_activation(self):
         self.client.force_authenticate(self.admin)
         resp = self.client.post(
-            self.list_url(),
-            {
-                "username": "sneaky",
-                "password": "correct-horse-battery-staple",
-                "is_operator": True,
-                "is_superuser": True,
-            },
+            self.list_url(), {**self.PAYLOAD, "is_superuser": True, "is_activated": True}
         )
         self.assertEqual(resp.status_code, 201, resp.data)
-        self.assertFalse(User.objects.get(username="sneaky").is_superuser)
+        user = User.objects.get(pk=resp.data["id"])
+        self.assertFalse(user.is_superuser)
+        self.assertFalse(user.is_activated)
 
     def test_cannot_create_a_resident(self):
         self.client.force_authenticate(self.admin)
         resp = self.client.post(
-            self.list_url(),
-            {"username": "newresident", "password": "correct-horse-battery-staple"},
+            self.list_url(), {**self.PAYLOAD, "is_operator": False, "is_staff": False}
         )
         self.assertEqual(resp.status_code, 400)
-        self.assertFalse(User.objects.filter(username="newresident").exists())
+        self.assertFalse(User.objects.filter(email="newop@example.com").exists())
+
+    def test_resend_activation_reissues_and_queues(self):
+        self.client.force_authenticate(self.admin)
+        created = self.client.post(self.list_url(), self.PAYLOAD)
+        user = User.objects.get(pk=created.data["id"])
+        old_hash = user.password
+        url = reverse("admin-user-resend-activation", args=[user.pk])
+        with patch("users.api_views.send_activation_email_task.delay") as delay:
+            with self.captureOnCommitCallbacks(execute=True):
+                resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 200)
+        user.refresh_from_db()
+        self.assertNotEqual(user.password, old_hash)
+        delay.assert_called_once()
+
+    def test_resend_refused_for_activated(self):
+        self.client.force_authenticate(self.admin)
+        url = reverse("admin-user-resend-activation", args=[self.operator.pk])
+        self.assertEqual(self.client.post(url).status_code, 400)
+
+    def test_reset_password_refused_for_pending(self):
+        self.client.force_authenticate(self.admin)
+        created = self.client.post(self.list_url(), self.PAYLOAD)
+        url = reverse("admin-user-reset-password", args=[created.data["id"]])
+        self.assertEqual(self.client.post(url).status_code, 400)
 
     # --- update / guardrails -----------------------------------------
 

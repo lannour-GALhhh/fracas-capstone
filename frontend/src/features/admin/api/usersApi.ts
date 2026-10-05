@@ -42,6 +42,10 @@ export const resetAdminUserPassword = async (id: number): Promise<ResetPasswordR
     return data
 }
 
+export const resendAdminUserActivation = async (id: number): Promise<void> => {
+    await apiClient.post(`/api/admin/users/${id}/resend-activation/`)
+}
+
 export const getAdminUserChanges = async (
     id: number,
     page = 1,

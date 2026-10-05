@@ -2,6 +2,7 @@
 
 import secrets
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import mixins
 from rest_framework.decorators import action
@@ -24,7 +25,8 @@ from .serializers import (
     OperatorSerializer,
     SubscriptionSerializer,
 )
-from .services import account_changes
+from .services import account_changes, activation
+from .tasks import send_activation_email_task
 from .services.otp import OTPError, generate_and_send, verify
 
 
@@ -80,6 +82,22 @@ class AdminUserViewSet(
     def get_serializer_class(self):
         return AdminUserCreateSerializer if self.action == "create" else AdminUserSerializer
 
+    def perform_create(self, serializer):
+        """Create the account, then email the owner their activation link."""
+        user = serializer.save()
+        token = serializer.activation_token
+        transaction.on_commit(lambda: send_activation_email_task.delay(user.pk, token))
+
+    @action(detail=True, methods=["post"], url_path="resend-activation")
+    def resend_activation(self, request, pk=None):
+        """Email a fresh activation link (new temporary password) to a pending account."""
+        user = self.get_object()
+        if user.is_activated:
+            raise ValidationError("This account is already activated.")
+        token = activation.reissue(user)
+        transaction.on_commit(lambda: send_activation_email_task.delay(user.pk, token))
+        return Response({"detail": "Activation email sent."})
+
     def get_queryset(self):
         qs = super().get_queryset()
         params = self.request.query_params
@@ -106,9 +124,9 @@ class AdminUserViewSet(
         if status == "inactive":
             qs = qs.filter(is_active=False)
         elif status == "pending":
-            qs = qs.filter(is_active=True, last_login__isnull=True)
+            qs = qs.filter(is_active=True, is_activated=False)
         elif status == "active":
-            qs = qs.filter(is_active=True, last_login__isnull=False)
+            qs = qs.filter(is_active=True, is_activated=True)
 
         is_active = params.get("is_active")
         if is_active is not None:
@@ -139,6 +157,10 @@ class AdminUserViewSet(
     def reset_password(self, request, pk=None):
         """Generate a new random password for this account and return it once."""
         user = self.get_object()
+        if not user.is_activated:
+            raise ValidationError(
+                "This account hasn't been activated yet — resend the activation email instead."
+            )
         new_password = secrets.token_urlsafe(9)
         user.set_password(new_password)
         user.save(update_fields=["password"])

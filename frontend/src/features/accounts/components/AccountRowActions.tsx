@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, MoreVertical, UserCheck, UserX } from 'lucide-react'
+import { Eye, MailCheck, MoreVertical, UserCheck, UserX } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import {
     DropdownMenu,
@@ -8,12 +8,13 @@ import {
     DropdownMenuTrigger,
 } from '@/common/ui/dropdown-menu'
 import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
-import { useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
+import { useResendActivation, useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
 import type { AdminUser } from '@/features/admin/types/user'
 
-/** Kebab menu per row: open the account, or deactivate/reactivate it (confirmed). */
+/** Kebab menu per row: open the account, resend a pending account's activation email, or deactivate/reactivate it (confirmed). */
 const AccountRowActions = ({ user, onView }: { user: AdminUser; onView: () => void }) => {
     const update = useUpdateAdminUser(user.id)
+    const resend = useResendActivation(user.id)
     // The dialog lives outside the menu so it survives the menu closing.
     const [confirming, setConfirming] = useState(false)
     const deactivating = user.is_active
@@ -37,6 +38,15 @@ const AccountRowActions = ({ user, onView }: { user: AdminUser; onView: () => vo
                         <Eye />
                         View details
                     </DropdownMenuItem>
+                    {user.status === 'pending' && (
+                        <DropdownMenuItem
+                            disabled={resend.isPending}
+                            onClick={() => resend.mutate()}
+                        >
+                            <MailCheck />
+                            Resend activation
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                         variant={deactivating ? 'destructive' : 'default'}
                         onClick={() => setConfirming(true)}

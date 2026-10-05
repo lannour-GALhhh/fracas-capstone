@@ -14,59 +14,10 @@ import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { ProfileSchema } from '../schemas'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/common/ui/select'
+import PlaceSelect from './PlaceSelect'
 import { useUpdateProfile } from '../hooks/useCurrentUser'
 import { useCities, useProvinces, usePsgcBarangays } from '../hooks/usePsgc'
 import { emptyAddress, type Address, type CurrentUser, type ProfileUpdate } from '../types'
-import type { PsgcPlace } from '../api/psgc'
-
-/** A PSGC cascade dropdown (province / city / barangay). */
-const PlaceSelect = ({
-    id,
-    value,
-    displayName,
-    options,
-    loading,
-    disabled,
-    onSelect,
-}: {
-    id: string
-    value: string
-    displayName: string
-    options: PsgcPlace[]
-    loading: boolean
-    disabled?: boolean
-    onSelect: (place: PsgcPlace) => void
-}) => (
-    <Select
-        id={id}
-        value={value}
-        onValueChange={(code) => {
-            const place = options.find((o) => o.code === String(code))
-            if (place) onSelect(place)
-        }}
-        disabled={disabled || loading}
-    >
-        <SelectTrigger className="w-full">
-            <SelectValue placeholder={loading ? 'Loading…' : disabled ? '—' : 'Select…'}>
-                {displayName}
-            </SelectValue>
-        </SelectTrigger>
-        <SelectContent className="max-h-72">
-            {options.map((o) => (
-                <SelectItem key={o.code} value={o.code}>
-                    {o.name}
-                </SelectItem>
-            ))}
-        </SelectContent>
-    </Select>
-)
 
 /** Edit the signed-in user's name, contact details and PSGC home address. */
 const EditProfileDialog = ({ user }: { user: CurrentUser }) => {

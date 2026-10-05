@@ -61,11 +61,32 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=1),
+    "UPDATE_LAST_LOGIN": True,  # keeps User.last_login meaningful (admin "Last login")
     "AUTH_COOKIE": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SECURE": False,
     "AUTH_COOKIE_SAMESITE": "Lax",
 }
+
+# Email: delivered through Brevo when BREVO_API_KEY is set, otherwise printed to the log.
+BREVO_API_KEY = config("BREVO_API_KEY", default="")
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default=(
+        "backend.email_backend.BrevoEmailBackend"
+        if BREVO_API_KEY
+        else "django.core.mail.backends.console.EmailBackend"
+    ),
+)
+# Must be a sender/domain verified in Brevo.
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="FRACAS <no-reply@localhost>")
+# Public URL of the web app, used to build links in emails.
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost")
+# How long an account-activation link stays valid (seconds).
+ACTIVATION_LINK_TTL = config("ACTIVATION_LINK_TTL", default=3 * 24 * 3600, cast=int)
+
+# Pending (not yet activated) accounts fail authentication like a wrong password.
+AUTHENTICATION_BACKENDS = ["users.auth_backends.ActivatedModelBackend"]
 
 # Djoser: expose the console profile on `/api/auth/users/me/`.
 DJOSER = {

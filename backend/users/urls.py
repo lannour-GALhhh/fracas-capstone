@@ -12,6 +12,7 @@ from .api_views import (
     SubscriptionViewSet,
     VerifyPhoneOTPView,
 )
+from .activation_views import ActivationCompleteView, ActivationVerifyView
 from .registration_views import (
     RegisterResendView,
     RegisterSetPasswordView,
@@ -32,6 +33,10 @@ urlpatterns = [
     path("auth/register/resend/", RegisterResendView.as_view(), name="register-resend"),
     path("auth/register/verify/", RegisterVerifyView.as_view(), name="register-verify"),
     path("auth/register/set-password/", RegisterSetPasswordView.as_view(), name="register-set-password"),
+
+    # Console-account activation from the emailed link (anonymous).
+    path("auth/account-activation/verify/", ActivationVerifyView.as_view(), name="activation-verify"),
+    path("auth/account-activation/", ActivationCompleteView.as_view(), name="activation-complete"),
 
     path("account/phone/otp/request/", RequestPhoneOTPView.as_view(), name="phone-otp-request"),
     path("account/phone/otp/verify/", VerifyPhoneOTPView.as_view(), name="phone-otp-verify"),
