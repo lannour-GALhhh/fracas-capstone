@@ -3,11 +3,11 @@
 from celery.schedules import crontab
 
 BEAT_SCHEDULE = {
-    "scoring-pipeline-5min": {
+    "scoring-pipeline-10min": {
         # Chains: fetch rainfall -> compute risk scores (so compute runs on
-        # fresh data). Runs every 5 minutes for near-real-time warning.
+        # fresh data). Runs every 10 minutes.
         "task": "risk_score.tasks.run_scoring_pipeline",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/10"),
     },
     "cleanup-old-data-daily": {
         # Prune old rainfall / risk-score rows past their retention window.

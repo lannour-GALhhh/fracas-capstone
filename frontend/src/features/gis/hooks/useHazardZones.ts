@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getHazardZones, getHazardZonesDetailed } from '../api/gisApi'
 import { gisKeys } from './queryKeys'
 
@@ -11,12 +11,13 @@ export const useHazardZones = () =>
         gcTime: Infinity,
     })
 
-/** Full-precision hazard-zone geometries; only fetched once `enabled`. */
-export const useHazardZonesDetailed = (enabled: boolean) =>
+/** Full-precision geometries for one viewport bbox; only fetched once `bbox` is set. */
+export const useHazardZonesDetailed = (bbox: string | null) =>
     useQuery({
-        queryKey: gisKeys.hazardZonesDetailed,
-        queryFn: getHazardZonesDetailed,
-        enabled,
+        queryKey: gisKeys.hazardZonesDetailed(bbox ?? ''),
+        queryFn: () => getHazardZonesDetailed(bbox as string),
+        enabled: bbox !== null,
+        placeholderData: keepPreviousData, // keep the old viewport's zones on screen while panning
         staleTime: Infinity,
-        gcTime: Infinity,
+        gcTime: 10 * 60 * 1000,
     })

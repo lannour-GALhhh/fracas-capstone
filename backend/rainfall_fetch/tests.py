@@ -9,41 +9,26 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from rainfall_fetch.models import BarangayRainfallGrid, Rainfall
-from rainfall_fetch.tasks import _accumulate, _query_groups, fetch_rainfall_information, parse_rainfall_data
-
-
-class AccumulateTests(SimpleTestCase):
-    def test_window_sum(self):
-        precip = [1, 2, 3, 4, 5, 6, 7, 8]
-        self.assertEqual(_accumulate(precip, 7, 3), 21)  # 6 + 7 + 8
-
-    def test_window_clamps_at_start(self):
-        precip = [1, 2, 3, 4]
-        self.assertEqual(_accumulate(precip, 2, 6), 6)  # only 1 + 2 + 3 available
+from rainfall_fetch.models import BarangayRainfallGrid, HourlyRainfall, Rainfall
+from rainfall_fetch.tasks import _accumulations, _query_groups, fetch_rainfall_information, parse_rainfall_data
 
 
 class ParseRainfallTests(SimpleTestCase):
     def _payload(self):
-        times = [f"2026-07-01T{h:02d}:00" for h in range(0, 8)]
-        precip = [1, 1, 1, 1, 10, 2, 3, 4]  # current hour = index 4 (04:00)
         quarter_times = [
             f"2026-07-01T{h:02d}:{m:02d}" for h in range(0, 8) for m in (0, 15, 30, 45)
         ]
         quarter_precip = list(range(len(quarter_times)))  # current 15-min bucket = index 16 (04:00)
         return {
             "current": {"time": "2026-07-01T04:00", "precipitation": 10},
-            "hourly": {"time": times, "precipitation": precip},
             "minutely_15": {"time": quarter_times, "precipitation": quarter_precip},
         }
 
-    def test_parses_intensity_and_accumulation(self):
+    def test_parses_intensity(self):
         result = parse_rainfall_data(self._payload())
         self.assertEqual(result["current_rainfall_strength"], 10)
         self.assertEqual(result["forecast_strength_60min"], 20)  # index 16 + 4
-        self.assertEqual(result["accumulated_6hr"], 14)  # indices 0..4 -> 1+1+1+1+10
-        self.assertEqual(result["accumulated_24hr"], 14)
-        self.assertEqual(result["accumulated_7day"], 14)  # only 5 hours of history available
+        self.assertNotIn("accumulated_6hr", result)  # accumulations come from stored hourly rows
 
     def test_parses_quarter_hour_forecasts(self):
         result = parse_rainfall_data(self._payload())
@@ -55,12 +40,10 @@ class ParseRainfallTests(SimpleTestCase):
         self.assertEqual(result["forecast_strength_210min"], 30)  # index 16 + 14
         self.assertEqual(result["forecast_strength_240min"], 0)  # index 16 + 16 -> out of range
 
-    def test_missing_current_hour_defaults_to_zero(self):
+    def test_missing_current_time_defaults_to_zero(self):
         data = self._payload()
-        data["current"]["time"] = "2026-07-01T23:00"  # not in hourly or minutely_15 times
+        data["current"]["time"] = "2026-07-01T23:00"  # not in minutely_15 times
         result = parse_rainfall_data(data)
-        self.assertEqual(result["accumulated_24hr"], 0)
-        self.assertEqual(result["accumulated_7day"], 0)
         self.assertEqual(result["current_rainfall_strength"], 0)
         self.assertEqual(result["forecast_strength_30min"], 0)
 
@@ -76,7 +59,6 @@ def _mock_forecast_payload(n):
     """One Open-Meteo response object per queried location."""
     payload = {
         "current": {"time": "2026-07-01T04:00", "precipitation": 5},
-        "hourly": {"time": ["2026-07-01T04:00"], "precipitation": [5]},
         "minutely_15": {"time": ["2026-07-01T04:00"], "precipitation": [5]},
     }
     return [dict(payload) for _ in range(n)]
@@ -142,8 +124,9 @@ class FetchRainfallDedupTests(TestCase):
         fetch_rainfall_information()
 
         # Two distinct query points went out (the shared cell + Gamma's own centroid),
-        # not three -- one HTTP call per hourly/minutely leg, i.e. 2 calls total.
-        self.assertEqual(mock_get.call_count, 2)
+        # not three -- and a single (minutely) HTTP call, since history is stored locally.
+        self.assertEqual(mock_get.call_count, 1)
+        self.assertNotIn("past_days", mock_get.call_args_list[0].args[0])
         queried_url = mock_get.call_args_list[0].args[0]
         latitude_param = queried_url.split("latitude=")[1].split("&")[0]
         self.assertEqual(len(latitude_param.split(",")), 2)  # 2 query points, not 3
@@ -153,6 +136,57 @@ class FetchRainfallDedupTests(TestCase):
         self.assertEqual(Rainfall.objects.filter(barangay=b1).count(), 1)
         self.assertEqual(Rainfall.objects.filter(barangay=b2).count(), 1)
         self.assertEqual(Rainfall.objects.filter(barangay=b3).count(), 1)
+
+
+class AccumulationTests(TestCase):
+    def test_sums_trailing_windows_from_stored_hours(self):
+        b = make_barangay()
+        now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        for age, mm in [(0, 1.0), (5, 2.0), (6, 4.0), (23, 8.0), (24, 16.0), (100, 32.0)]:
+            HourlyRainfall.objects.create(barangay=b, hour=now - timedelta(hours=age), precipitation=mm)
+
+        acc = _accumulations([b.id], now)[b.id]
+
+        self.assertEqual(acc["accumulated_6hr"], 3.0)   # ages 0..5
+        self.assertEqual(acc["accumulated_12hr"], 7.0)  # + age 6
+        self.assertEqual(acc["accumulated_24hr"], 15.0)  # + age 23
+        self.assertEqual(acc["accumulated_7day"], 63.0)  # everything
+
+    def test_no_history_is_zero(self):
+        b = make_barangay()
+        now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        self.assertEqual(_accumulations([b.id], now)[b.id]["accumulated_24hr"], 0)
+
+
+class HourlyRecordingTests(TestCase):
+    def _run(self, mock_get, precipitation):
+        mock_get.return_value.raise_for_status.return_value = None
+        payload = _mock_forecast_payload(1)
+        payload[0]["current"]["precipitation"] = precipitation
+        mock_get.return_value.json.return_value = payload
+        fetch_rainfall_information()
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_records_on_the_hour_and_first_reading_wins(self, mock_get):
+        b = make_barangay()
+        self._run(mock_get, 5)
+        self._run(mock_get, 9)  # later run, same hour: must not overwrite
+
+        row = HourlyRainfall.objects.get(barangay=b)
+        self.assertEqual((row.hour.minute, row.hour.second), (0, 0))
+        self.assertEqual(row.precipitation, 5)
+        self.assertEqual(Rainfall.objects.filter(barangay=b).count(), 2)
+        self.assertEqual(Rainfall.objects.filter(barangay=b).first().accumulated_6hr, 5)
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_unlocatable_response_does_not_claim_the_hour(self, mock_get):
+        b = make_barangay()
+        mock_get.return_value.raise_for_status.return_value = None
+        payload = _mock_forecast_payload(1)
+        payload[0]["current"]["time"] = "2026-07-01T23:00"
+        mock_get.return_value.json.return_value = payload
+        fetch_rainfall_information()
+        self.assertFalse(HourlyRainfall.objects.filter(barangay=b).exists())
 
 
 class RainfallHistoryApiTests(APITestCase):

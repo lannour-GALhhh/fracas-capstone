@@ -29,7 +29,7 @@ export function EvacuationCard({ nearest, emptyMessage }: Props) {
     }
 
     const { center, distanceKm } = nearest
-    const { name, barangay_name, capacity, contact } = center.properties
+    const { name, barangay_name, capacity, capacity_unit, contact } = center.properties
 
     return (
         <Card style={styles.card}>
@@ -49,7 +49,7 @@ export function EvacuationCard({ nearest, emptyMessage }: Props) {
                 ) : null}
                 {capacity != null ? (
                     <Text variant="caption" color="textMuted">
-                        · Capacity {capacity}
+                        · Capacity {capacity}{capacity_unit ? ` ${capacity_unit}` : ''}
                     </Text>
                 ) : null}
             </View>

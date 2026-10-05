@@ -90,7 +90,7 @@ const CenterCard = ({ center, highlighted = false }: { center: EvacFeature; high
                         {p.barangay_name ?? '—'}
                     </InfoRow>
                     <InfoRow icon={<Users className='size-4' />} title='Capacity'>
-                        {p.capacity != null ? p.capacity.toLocaleString() : '—'}
+                        {p.capacity != null ? `${p.capacity.toLocaleString()} ${p.capacity_unit}`.trim() : '—'}
                     </InfoRow>
                     <InfoRow icon={<Phone className='size-4' />} title='Contacts'>
                         {p.contacts.length === 0

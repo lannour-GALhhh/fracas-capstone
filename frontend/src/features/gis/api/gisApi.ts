@@ -33,10 +33,10 @@ export const getHazardZones = async (): Promise<HazardZoneCollection> => {
     return data
 }
 
-/** Full-precision zone geometry, fetched once the map is zoomed in far enough. */
-export const getHazardZonesDetailed = async (): Promise<HazardZoneCollection> => {
+/** Full-precision zone geometry for one viewport (`west,south,east,north`); the server requires a bbox. */
+export const getHazardZonesDetailed = async (bbox: string): Promise<HazardZoneCollection> => {
     const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/', {
-        params: { detail: 'full' },
+        params: { detail: 'full', bbox },
     })
     return data
 }

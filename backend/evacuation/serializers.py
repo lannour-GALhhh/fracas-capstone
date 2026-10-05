@@ -52,7 +52,7 @@ class EvacuationCenterSerializer(GeoFeatureModelSerializer):
         # Keep `id` in properties (see BarangayListSerializer for the rationale).
         id_field = False
         fields = [
-            "id", "name", "capacity", "contact", "contacts", "images",
+            "id", "name", "capacity", "capacity_unit", "contact", "contacts", "images",
             "is_active", "barangay", "barangay_name", "archived_at",
         ]
 
@@ -70,7 +70,7 @@ class EvacuationCenterWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EvacuationCenter
-        fields = ["id", "name", "capacity", "contacts", "is_active", "barangay", "latitude", "longitude"]
+        fields = ["id", "name", "capacity", "capacity_unit", "contacts", "is_active", "barangay", "latitude", "longitude"]
 
     def _apply_location(self, validated):
         lat = validated.pop("latitude", None)

@@ -34,30 +34,6 @@ class BarangayPublicSerializer(GeoFeatureModelSerializer):
         fields = ["id", "name"]
 
 
-class HazardZoneSerializer(GeoFeatureModelSerializer):
-    """One flood-susceptibility zone, simplified geometry for low zoom levels."""
-
-    geom_simplified = GeometryField(precision=GEOJSON_PRECISION)
-
-    class Meta:
-        model = BarangaySusceptibility
-        geo_field = "geom_simplified"
-        id_field = False
-        fields = ["id", "barangay", "level"]
-
-
-class HazardZoneDetailedSerializer(GeoFeatureModelSerializer):
-    """Same zones as `HazardZoneSerializer` but full-precision, for close-in zoom."""
-
-    geom = GeometryField(precision=GEOJSON_PRECISION)
-
-    class Meta:
-        model = BarangaySusceptibility
-        geo_field = "geom"
-        id_field = False
-        fields = ["id", "barangay", "level"]
-
-
 class StreetSerializer(serializers.ModelSerializer):
     """Plain (non-geo) list — Street carries no geometry."""
 

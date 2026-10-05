@@ -33,6 +33,7 @@ const emptyForm = {
     latitude: '',
     longitude: '',
     capacity: '',
+    capacityUnit: '',
     contacts: [{ label: '', phone: '' }] as EvacuationContact[],
     isActive: true,
 }
@@ -48,6 +49,7 @@ const toForm = (center?: EvacFeature): FormState => {
         latitude: String(lat),
         longitude: String(lng),
         capacity: p.capacity != null ? String(p.capacity) : '',
+        capacityUnit: p.capacity_unit ?? '',
         contacts: p.contacts.length
             ? p.contacts.map(({ label, phone }) => ({ label, phone }))
             : emptyForm.contacts,
@@ -113,6 +115,7 @@ const CenterFormDialog = ({
             latitude: Number(form.latitude),
             longitude: Number(form.longitude),
             capacity: form.capacity.trim() === '' ? null : Number(form.capacity),
+            capacity_unit: form.capacityUnit.trim(),
             contacts: form.contacts
                 .map((c) => ({ label: c.label.trim(), phone: c.phone.trim() }))
                 .filter((c) => c.phone !== ''),
@@ -175,6 +178,25 @@ const CenterFormDialog = ({
                                     onBlur={onBlur('capacity')}
                                 />
                                 <FieldError errors={fieldError('capacity')} />
+                            </Field>
+
+                            <Field>
+                                <FieldLabel htmlFor='ec-capacity-unit'>
+                                    Capacity unit
+                                </FieldLabel>
+                                <Input
+                                    id='ec-capacity-unit'
+                                    list='ec-capacity-units'
+                                    maxLength={30}
+                                    placeholder='e.g. beds, families'
+                                    value={form.capacityUnit}
+                                    onChange={setStr('capacityUnit')}
+                                />
+                                <datalist id='ec-capacity-units'>
+                                    <option value='beds' />
+                                    <option value='families' />
+                                    <option value='persons' />
+                                </datalist>
                             </Field>
 
                             <div>

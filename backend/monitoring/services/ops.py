@@ -9,7 +9,7 @@ from . import health
 
 # Human-readable cadence per scheduled task (Beat crontabs aren't self-describing).
 CADENCE_LABELS = {
-    "scoring-pipeline-15min": "Every 15 minutes",
+    "scoring-pipeline-10min": "Every 10 minutes",
     "cleanup-old-data-daily": "Daily at 03:00",
     "purge-soft-deleted-flood-events-hourly": "Hourly",
 }
@@ -38,7 +38,7 @@ def _pipeline_stages() -> dict:
         Evacuation.objects.order_by("-opened_at").values_list("opened_at", flat=True).first()
     )
 
-    # Scoring runs every 15 min; allow a cycle of slack before calling it stale.
+    # Scoring runs every 10 min; allow a cycle of slack before calling it stale.
     from datetime import timedelta
 
     return {
