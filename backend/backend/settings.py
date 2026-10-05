@@ -84,6 +84,8 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="FRACAS <no-reply@loca
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost")
 # How long an account-activation link stays valid (seconds).
 ACTIVATION_LINK_TTL = config("ACTIVATION_LINK_TTL", default=3 * 24 * 3600, cast=int)
+# How long a forgot-password link stays valid (seconds).
+PASSWORD_RESET_TIMEOUT = config("PASSWORD_RESET_TIMEOUT", default=3600, cast=int)
 
 # Pending (not yet activated) accounts fail authentication like a wrong password.
 AUTHENTICATION_BACKENDS = ["users.auth_backends.ActivatedModelBackend"]

@@ -8,7 +8,7 @@ import { Button } from '@/common/ui/button'
 import { Stagger, StaggerItem } from '@/common/motion'
 import { useAuth } from './context/useAuth'
 import type { LoginState } from './types/authTypes'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 /** Turn a failed sign-in into one plain-language line for the operator. */
 const humanizeLoginError = (err: unknown): string => {
@@ -138,7 +138,7 @@ const Login = () => {
 							<Field>
 								<div className='flex items-center justify-between'>
 									<FieldLabel htmlFor='password'>Password</FieldLabel>
-									<Button type='button' variant='link' className='h-auto p-0 text-xs'>Forgot password?</Button>
+									<Button type='button' variant='link' nativeButton={false} render={<Link to='/forgot-password' />} className='h-auto p-0 text-xs'>Forgot password?</Button>
 								</div>
 								<div className='flex items-center gap-2'>
 									<Input

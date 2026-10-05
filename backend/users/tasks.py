@@ -9,7 +9,7 @@ from backend.email_backend import BrevoError
 from .constants import Channel, DeliveryStatus
 from .models import NotificationLog, User
 from .senders import SendError, get_push_provider, get_sms_provider
-from .services import activation
+from .services import activation, password_reset
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,21 @@ def send_activation_email_task(self, user_id, token):
             raise
         raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
     except Exception as exc:  # network blips and the like
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
+
+
+@shared_task(bind=True, max_retries=3)
+def send_password_reset_email_task(self, user_id):
+    user = User.objects.filter(pk=user_id, is_active=True, is_activated=True).first()
+    if not (user and user.email):
+        return
+    try:
+        password_reset.send_reset_email(user)
+    except BrevoError as exc:
+        if exc.permanent:
+            raise
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
+    except Exception as exc:
         raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
 
 
