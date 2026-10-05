@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import { Waves } from 'lucide-react'
 import { toast } from 'sonner'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/common/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
 import { useZodForm } from '@/common/hooks/useZodForm'
+import AuthShell from './components/AuthShell'
 import { completeActivation, verifyActivation } from './api/activationApi'
 import { ActivationSchema } from './schemas/ActivationSchema'
 
@@ -25,23 +25,6 @@ const humanizeError = (err: unknown): string =>
     err instanceof AxiosError && !err.response
         ? "We couldn't reach the server. Check your connection and try again."
         : 'This activation link is invalid or has expired.'
-
-const Shell = ({ title, subtitle, children }: { title: string; subtitle: string; children?: React.ReactNode }) => (
-    <div className='flex min-h-screen w-full items-center justify-center bg-blue-950 p-2'>
-        <div className='flex w-full max-w-sm flex-col gap-8 rounded-2xl bg-white p-8'>
-            <div className='flex flex-col gap-3'>
-                <span className='flex size-12 items-center justify-center rounded-xl bg-blue-950'>
-                    <Waves className='size-6 text-blue-200' />
-                </span>
-                <div>
-                    <h1 className='text-2xl font-bold tracking-tight text-blue-950'>{title}</h1>
-                    <FieldDescription className='mt-1'>{subtitle}</FieldDescription>
-                </div>
-            </div>
-            {children}
-        </div>
-    </div>
-)
 
 /** Landing page for the emailed activation link: verify it, set a password, go sign in. */
 const AccountActivation = () => {
@@ -96,23 +79,23 @@ const AccountActivation = () => {
     })
 
     if (link.isPending) {
-        return <Shell title='Checking your link…' subtitle='One moment.' />
+        return <AuthShell title='Checking your link…' subtitle='One moment.' />
     }
     if (link.isError) {
         return (
-            <Shell
+            <AuthShell
                 title='Link unavailable'
                 subtitle='This activation link is invalid, expired, or already used. Ask an administrator to send you a new one.'
             >
                 <Button size='lg' nativeButton={false} render={<Link to='/login' />} className='w-full'>
                     Go to sign in
                 </Button>
-            </Shell>
+            </AuthShell>
         )
     }
 
     return (
-        <Shell
+        <AuthShell
             title={`Welcome, ${link.data.first_name || link.data.suggested_username}`}
             subtitle='Choose your username and password to activate your account.'
         >
@@ -167,7 +150,7 @@ const AccountActivation = () => {
                     {pending ? 'Activating…' : 'Activate account'}
                 </Button>
             </form>
-        </Shell>
+        </AuthShell>
     )
 }
 

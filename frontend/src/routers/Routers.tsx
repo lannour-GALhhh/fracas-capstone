@@ -6,6 +6,8 @@ import OperatorRoute from './OperatorRoute'
 import AdminRoute from './AdminRoute'
 import Login from '@/features/auth/Login'
 import AccountActivation from '@/features/auth/AccountActivation'
+import ForgotPassword from '@/features/auth/ForgotPassword'
+import ResetPassword from '@/features/auth/ResetPassword'
 import RouteFallback from '@/common/components/RouteFallback'
 
 // Heavy route screens are code-split; login + guard/layout wrappers stay eager.
@@ -30,6 +32,8 @@ const Routers = () => {
       <Routes>
         <Route path='/test-auth' element={<TestAuth />} />
         <Route path='/login' element={<Login />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/reset-password/:uid/:token' element={<ResetPassword />} />
         <Route path='/account-activation/:token' element={<AccountActivation />} />
 
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

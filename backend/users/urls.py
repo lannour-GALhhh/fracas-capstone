@@ -13,6 +13,7 @@ from .api_views import (
     VerifyPhoneOTPView,
 )
 from .activation_views import ActivationCompleteView, ActivationVerifyView
+from .password_reset_views import PasswordResetConfirmView, PasswordResetRequestView
 from .registration_views import (
     RegisterResendView,
     RegisterSetPasswordView,
@@ -37,6 +38,10 @@ urlpatterns = [
     # Console-account activation from the emailed link (anonymous).
     path("auth/account-activation/verify/", ActivationVerifyView.as_view(), name="activation-verify"),
     path("auth/account-activation/", ActivationCompleteView.as_view(), name="activation-complete"),
+
+    # Forgot password (anonymous): request an emailed link, then confirm with it.
+    path("auth/password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
+    path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
 
     path("account/phone/otp/request/", RequestPhoneOTPView.as_view(), name="phone-otp-request"),
     path("account/phone/otp/verify/", VerifyPhoneOTPView.as_view(), name="phone-otp-verify"),
