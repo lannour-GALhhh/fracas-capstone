@@ -71,7 +71,7 @@ class AdminUserViewSet(
     mixins.UpdateModelMixin,
     GenericViewSet,
 ):
-    """Admin console: list/create/edit **console** accounts (no delete)."""
+    """Accounts: list/create/edit **console** accounts (deactivate, never delete)."""
 
     permission_classes = [IsAdmin]
     queryset = User.objects.filter(CONSOLE_ACCOUNT).order_by("-date_joined")

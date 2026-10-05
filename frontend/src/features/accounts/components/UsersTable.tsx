@@ -32,8 +32,8 @@ import { cn } from '@/common/utils/utils'
 import { getPageItems } from '@/common/utils/pageItems'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import UserActiveBadge from '@/features/user/components/UserActiveBadge'
-import { useAdminUsers } from '../../hooks/useAdminUsers'
-import type { ConsoleRole } from '../../types/user'
+import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
+import type { ConsoleRole } from '@/features/admin/types/user'
 
 const PAGE_SIZE = 25
 const COLS = 5
@@ -159,7 +159,7 @@ const UsersTable = () => {
                         <TableRow
                             key={u.id}
                             className='cursor-pointer'
-                            onClick={() => navigate(`/admin/users/${u.id}`)}
+                            onClick={() => navigate(`/accounts/${u.id}`)}
                         >
                             <TableCell className='font-medium'>
                                 {`${u.first_name} ${u.last_name}`.trim() || u.username}

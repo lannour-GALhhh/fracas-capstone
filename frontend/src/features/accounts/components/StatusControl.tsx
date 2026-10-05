@@ -1,7 +1,7 @@
 import { Button } from '@/common/ui/button'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import { useUpdateAdminUser } from '../../hooks/useAdminUserMutations'
-import type { AdminUser } from '../../types/user'
+import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
+import { useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
+import type { AdminUser } from '@/features/admin/types/user'
 
 /** Deactivate/reactivate behind a confirm dialog. */
 const StatusControl = ({ user }: { user: AdminUser }) => {

@@ -20,9 +20,9 @@ import {
     SelectValue,
 } from '@/common/ui/select'
 import { useZodForm } from '@/common/hooks/useZodForm'
-import { useCreateAdminUser } from '../../hooks/useAdminUserMutations'
-import { CreateUserSchema } from '../../schemas'
-import type { ConsoleRole } from '../../types/user'
+import { useCreateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
+import { CreateUserSchema } from '@/features/admin/schemas'
+import type { ConsoleRole } from '@/features/admin/types/user'
 
 const emptyForm = {
     username: '',

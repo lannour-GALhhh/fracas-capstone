@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
 import { cn } from '@/common/utils/utils'
-import { useAdminUserChanges } from '../../hooks/useAdminUsers'
+import { useAdminUserChanges } from '@/features/admin/hooks/useAdminUsers'
 
 const PAGE_SIZE = 25
 

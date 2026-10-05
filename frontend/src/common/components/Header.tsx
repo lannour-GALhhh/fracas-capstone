@@ -110,6 +110,7 @@ const NAV_LINKS: { name: string; link: string; minRole: Role }[] = [
     { name: 'Flood History', link: '/history', minRole: 'resident' },
     { name: 'Evacuations', link: '/evacuation', minRole: 'operator' },
     { name: 'Evacuation Centers', link: '/evacuation-centers', minRole: 'operator' },
+    { name: 'Accounts', link: '/accounts', minRole: 'admin' },
     { name: 'Admin', link: '/admin', minRole: 'admin' },
 ]
 

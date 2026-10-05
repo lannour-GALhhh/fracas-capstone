@@ -169,6 +169,11 @@ class AdminUserApiTests(APITestCase):
         resp = self.client.patch(self.detail_url(self.admin), {"is_active": False})
         self.assertEqual(resp.status_code, 403)
 
+    def test_delete_not_allowed(self):
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.delete(self.detail_url(self.operator)).status_code, 405)
+        self.assertTrue(User.objects.filter(pk=self.operator.pk).exists())
+
     def test_is_superuser_not_editable(self):
         self.client.force_authenticate(self.admin)
         resp = self.client.patch(self.detail_url(self.operator), {"is_superuser": True})

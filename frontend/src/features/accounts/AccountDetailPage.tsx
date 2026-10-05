@@ -4,7 +4,7 @@ import { Card } from '@/common/ui/card'
 import ErrorState from '@/common/components/ErrorState'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import UserActiveBadge from '@/features/user/components/UserActiveBadge'
-import { useAdminUser } from '../hooks/useAdminUsers'
+import { useAdminUser } from '@/features/admin/hooks/useAdminUsers'
 import RoleControl from './components/RoleControl'
 import StatusControl from './components/StatusControl'
 import ResetPasswordButton from './components/ResetPasswordButton'
@@ -17,8 +17,8 @@ const Field = ({ label, value }: { label: string; value: string }) => (
     </div>
 )
 
-/** Admin console: one account's profile, role/status controls, and audit trail. */
-const UserDetailPage = () => {
+/** One account's profile, role/status controls, and audit trail. */
+const AccountDetailPage = () => {
     const { id } = useParams()
     const userId = Number(id)
     const { data: user, isLoading, isError, refetch } = useAdminUser(userId)
@@ -40,11 +40,11 @@ const UserDetailPage = () => {
     return (
         <div className='flex flex-col gap-4'>
             <Link
-                to='/admin/users'
+                to='/accounts'
                 className='flex w-fit items-center gap-1 text-sm text-black/50 hover:text-foreground'
             >
                 <ArrowLeft className='size-4' />
-                Back to users
+                Back to accounts
             </Link>
 
             <div className='flex flex-wrap items-center justify-between gap-2'>
@@ -95,4 +95,4 @@ const UserDetailPage = () => {
     )
 }
 
-export default UserDetailPage
+export default AccountDetailPage

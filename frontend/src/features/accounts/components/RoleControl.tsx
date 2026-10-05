@@ -10,9 +10,9 @@ import {
 } from '@/common/ui/select'
 import capitalize from '@/common/utils/capitalize'
 import type { Role } from '@/common/types/Role'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import { useUpdateAdminUser } from '../../hooks/useAdminUserMutations'
-import type { AdminUser, UpdateUserPayload } from '../../types/user'
+import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
+import { useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
+import type { AdminUser, UpdateUserPayload } from '@/features/admin/types/user'
 
 /** Flag combination for each console role. `is_superuser` is never touched here. */
 const ROLE_PATCH: Record<Role, UpdateUserPayload> = {
@@ -40,7 +40,7 @@ const RoleControl = ({ user }: { user: AdminUser }) => {
     const apply = () =>
         update.mutate(ROLE_PATCH[target], {
             onSuccess: () => {
-                if (revoking) navigate('/admin/users')
+                if (revoking) navigate('/accounts')
             },
         })
 
