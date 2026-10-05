@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import {
     createAdminUser,
     resetAdminUserPassword,
+    resendAdminUserActivation,
     updateAdminUser,
 } from '../api/usersApi'
 import type { CreateUserPayload, UpdateUserPayload } from '../types/user'
@@ -52,5 +53,17 @@ export const useResetAdminUserPassword = (id: number) =>
         },
         onError: () => {
             toast.error("Couldn't reset the password", { description: 'Please try again.' })
+        },
+    })
+
+/** Email a pending account a fresh activation link. */
+export const useResendActivation = (id: number) =>
+    useMutation({
+        mutationFn: () => resendAdminUserActivation(id),
+        onSuccess: () => {
+            toast.success('Activation email sent')
+        },
+        onError: () => {
+            toast.error("Couldn't send the activation email", { description: 'Please try again.' })
         },
     })

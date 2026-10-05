@@ -14,6 +14,11 @@ class User(AbstractUser):
     # Self-contained address blob (PSGC), deliberately not linked to Barangay.
     address = models.JSONField(default=dict, blank=True)
 
+    # False only for console accounts an admin created and the owner hasn't yet
+    # activated from the emailed link. Defaults True so residents and every
+    # pre-existing account keep working; set True solely by users.services.activation.
+    is_activated = models.BooleanField(default=True, editable=False)
+
     is_operator = models.BooleanField(
         default=False,
         help_text=(
@@ -31,6 +36,15 @@ class User(AbstractUser):
         if self.is_operator:
             return "operator"
         return "resident"
+
+    @property
+    def status(self) -> str:
+        """`inactive` (disabled), `pending` (awaiting activation), else `active`."""
+        if not self.is_active:
+            return "inactive"
+        if not self.is_activated:
+            return "pending"
+        return "active"
 
     def __str__(self):
         return self.get_username()

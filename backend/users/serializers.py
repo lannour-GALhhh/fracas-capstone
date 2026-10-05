@@ -3,7 +3,7 @@ from djoser.serializers import SetPasswordSerializer
 from rest_framework import serializers
 
 from .models import AccountChange, Device, Notification, NotificationPreference, Subscription, User
-from .services import account_changes
+from .services import account_changes, activation
 
 
 class OperatorSerializer(serializers.ModelSerializer):
@@ -23,6 +23,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     """Full user record for the admin console: profile + role/status flags."""
 
     role = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -35,6 +36,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "phone_number",
             "phone_verified",
             "is_active",
+            "status",
             "is_operator",
             "is_staff",
             "role",
@@ -46,6 +48,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "username",
             "phone_verified",
             "role",
+            "status",
             "date_joined",
             "last_login",
         ]
@@ -59,10 +62,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
-    """Provision a new operator/admin account with an admin-set initial password."""
+    """Provision a console account pending activation.
 
-    password = serializers.CharField(write_only=True, validators=[validate_password])
+    The username and a temporary password are generated here; the owner finishes
+    setup from the emailed link (see `services.activation`). The role defaults to
+    operator when neither role flag is sent.
+    """
+
     role = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    address = serializers.JSONField(required=False)
 
     class Meta:
         model = User
@@ -73,13 +82,28 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone_number",
-            "password",
+            "address",
             "is_operator",
             "is_staff",
             "role",
+            "status",
         ]
+        read_only_fields = ["id", "username"]
+        extra_kwargs = {
+            "email": {"required": True, "allow_blank": False},
+            "first_name": {"required": True, "allow_blank": False},
+            "last_name": {"required": True, "allow_blank": False},
+        }
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+        return value
 
     def validate(self, attrs):
+        # Judge the raw input: form-encoded requests fill absent booleans in as False.
+        if "is_operator" not in self.initial_data and "is_staff" not in self.initial_data:
+            attrs["is_operator"] = True
         if not (attrs.get("is_operator") or attrs.get("is_staff")):
             raise serializers.ValidationError(
                 "Pick a console role — this endpoint provisions operators and admins only."
@@ -87,10 +111,8 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
+        validated_data["address"] = normalize_address(validated_data.get("address"))
+        user, self.activation_token = activation.create_pending_user(**validated_data)
         return user
 
 

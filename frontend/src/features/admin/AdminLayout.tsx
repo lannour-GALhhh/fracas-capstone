@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Users, SlidersHorizontal, FlaskConical, Activity, Settings } from 'lucide-react'
+import { SlidersHorizontal, FlaskConical, Activity, Settings } from 'lucide-react'
 import {
     Sidebar,
     SidebarContent,
@@ -14,7 +14,6 @@ import {
 
 // One entry per admin sub-page.
 const NAV = [
-    { name: 'Users', to: '/admin/users', icon: Users },
     { name: 'Model config', to: '/admin/model/config', icon: SlidersHorizontal },
     { name: 'Validation', to: '/admin/model/validation', icon: FlaskConical },
     { name: 'System', to: '/admin/system', icon: Activity },

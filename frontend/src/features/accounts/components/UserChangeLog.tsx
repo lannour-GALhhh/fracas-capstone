@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { differenceInDays, format, formatDistanceToNow } from 'date-fns'
 import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
 import { cn } from '@/common/utils/utils'
-import { useAdminUserChanges } from '../../hooks/useAdminUsers'
+import { useAdminUserChanges } from '@/features/admin/hooks/useAdminUsers'
 
 const PAGE_SIZE = 25
 
@@ -60,7 +60,9 @@ const UserChangeLog = ({ userId }: { userId: number }) => {
                                     className='shrink-0 text-xs text-black/50'
                                     title={when.toLocaleString()}
                                 >
-                                    {formatDistanceToNow(when, { addSuffix: true })}
+                                    {differenceInDays(new Date(), when) > 7
+                                        ? format(when, 'MM/dd/yyyy')
+                                        : formatDistanceToNow(when, { addSuffix: true })}
                                 </span>
                             </div>
                             {!isPassword && (

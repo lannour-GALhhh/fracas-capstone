@@ -1,6 +1,9 @@
+import type { Address } from '@/features/user/types'
 import type { Role } from '@/common/types/Role'
 
 /** Console-managed roles; residents are excluded server-side. */
+export type UserStatus = 'active' | 'pending' | 'inactive'
+
 export type ConsoleRole = Exclude<Role, 'resident'>
 
 /** One row of GET /api/admin/users/ (mirrors AdminUserSerializer). */
@@ -13,6 +16,7 @@ export interface AdminUser {
     phone_number: string | null
     phone_verified: boolean
     is_active: boolean
+    status: UserStatus
     is_operator: boolean
     is_staff: boolean
     role: Role
@@ -25,17 +29,17 @@ export interface AdminUserFilters {
     search?: string
     role?: ConsoleRole
     is_active?: boolean
+    status?: UserStatus
     page?: number
 }
 
 /** POST /api/admin/users/ payload — provisions a new console account. */
 export interface CreateUserPayload {
-    username: string
-    password: string
-    email?: string
-    first_name?: string
-    last_name?: string
+    email: string
+    first_name: string
+    last_name: string
     phone_number?: string
+    address?: Address
     is_operator?: boolean
     is_staff?: boolean
 }

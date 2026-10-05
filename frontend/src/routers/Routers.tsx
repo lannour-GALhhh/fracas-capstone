@@ -5,6 +5,7 @@ import ProtectedRoute from './ProtectedRoute'
 import OperatorRoute from './OperatorRoute'
 import AdminRoute from './AdminRoute'
 import Login from '@/features/auth/Login'
+import AccountActivation from '@/features/auth/AccountActivation'
 import RouteFallback from '@/common/components/RouteFallback'
 
 // Heavy route screens are code-split; login + guard/layout wrappers stay eager.
@@ -15,8 +16,7 @@ const AccountPage = lazy(() => import('@/features/user/AccountPage'))
 const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage'))
 const CentersPage = lazy(() => import('@/features/centers/CentersPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
-const UsersPage = lazy(() => import('@/features/admin/users/UsersPage'))
-const UserDetailPage = lazy(() => import('@/features/admin/users/UserDetailPage'))
+const AccountsPage = lazy(() => import('@/features/accounts/AccountsPage'))
 const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPage'))
 const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
@@ -30,6 +30,7 @@ const Routers = () => {
       <Routes>
         <Route path='/test-auth' element={<TestAuth />} />
         <Route path='/login' element={<Login />} />
+        <Route path='/account-activation/:token' element={<AccountActivation />} />
 
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path='/' element={<Dashboard />} />
@@ -38,11 +39,11 @@ const Routers = () => {
           <Route path='/me' element={<AccountPage />} />
           <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
           <Route path='/evacuation-centers' element={<OperatorRoute><CentersPage /></OperatorRoute>} />
+          <Route path='/accounts' element={<AdminRoute><AccountsPage /></AdminRoute>} />
           {/* Analytics is hidden for now: re-add the route + nav link to bring it back. */}
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<Navigate to='users' replace />} />
-            <Route path='users' element={<UsersPage />} />
-            <Route path='users/:id' element={<UserDetailPage />} />
+            <Route index element={<Navigate to='model/config' replace />} />
+            <Route path='users' element={<Navigate to='/accounts' replace />} />
             <Route path='model/config' element={<ModelConfigPage />} />
             <Route path='model/validation' element={<ModelValidationPage />} />
             <Route path='evacuation' element={<Navigate to='/evacuation-centers' replace />} />

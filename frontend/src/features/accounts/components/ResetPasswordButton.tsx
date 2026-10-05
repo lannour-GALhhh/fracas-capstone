@@ -9,9 +9,9 @@ import {
     DialogTitle,
 } from '@/common/ui/dialog'
 import { Button } from '@/common/ui/button'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import { useResetAdminUserPassword } from '../../hooks/useAdminUserMutations'
-import type { AdminUser } from '../../types/user'
+import ConfirmDialog from '@/features/admin/components/ConfirmDialog'
+import { useResetAdminUserPassword } from '@/features/admin/hooks/useAdminUserMutations'
+import type { AdminUser } from '@/features/admin/types/user'
 
 /** Generate a new password for the account and reveal it once. */
 const ResetPasswordButton = ({ user }: { user: AdminUser }) => {
