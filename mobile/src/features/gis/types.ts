@@ -140,6 +140,8 @@ export interface EvacuationCenterProperties {
     id: number
     name: string
     capacity: number | null
+    /** What capacity counts ("beds", "families"…); absent in older/offline data. */
+    capacity_unit?: string
     contact: string
     barangay: number | null
     barangay_name: string | null

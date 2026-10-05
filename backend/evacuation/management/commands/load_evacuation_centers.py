@@ -46,6 +46,7 @@ class Command(BaseCommand):
                     location=point,
                     defaults={
                         "capacity": _as_int(row.get("capacity")),
+                        "capacity_unit": (row.get("capacity_unit") or "").strip(),
                         "barangay": barangay,
                         "is_active": True,
                     },

@@ -25,7 +25,7 @@ class EvacuationCenterViewSet(PoiViewSet):
     read_serializer_class = EvacuationCenterSerializer
     write_serializer_class = EvacuationCenterWriteSerializer
     poi_type = "evacuation"
-    tracked_fields = ["name", "capacity", "is_active"]
+    tracked_fields = ["name", "capacity", "capacity_unit", "is_active"]
 
     def get_queryset(self):
         qs = super().get_queryset()

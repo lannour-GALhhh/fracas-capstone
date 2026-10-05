@@ -25,6 +25,7 @@ export interface EvacuationProperties {
     id: number
     name: string
     capacity: number | null
+    capacity_unit: string
     /** First contact's number — kept for older clients; prefer `contacts`. */
     contact: string
     contacts: EvacuationContact[]
@@ -44,6 +45,7 @@ export interface EvacuationInput {
     latitude: number
     longitude: number
     capacity: number | null
+    capacity_unit: string
     contacts: EvacuationContact[]
     is_active: boolean
 }

@@ -61,7 +61,7 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => {
                     <Row
                         icon={<Users className='size-4' />}
                         label='Capacity'
-                        value={p.capacity.toLocaleString()}
+                        value={`${p.capacity.toLocaleString()} ${p.capacity_unit}`.trim()}
                     />
                 )}
                 {p.contacts.map((c) => (

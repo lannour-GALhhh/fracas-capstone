@@ -16,6 +16,10 @@ class EvacuationCenter(models.Model):
         related_name="evacuation_centers",
     )
     capacity = models.PositiveIntegerField(null=True, blank=True)
+    # Free text so the unit stays flexible ("beds", "families", "persons"...).
+    capacity_unit = models.CharField(
+        max_length=30, blank=True, help_text="What `capacity` counts, e.g. 'beds'."
+    )
     is_active = models.BooleanField(default=True, db_index=True)
     # Set when archived (the operator "delete"); hard-purged after a grace period.
     archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
