@@ -29,6 +29,10 @@ TESTING = "test" in sys.argv
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config("SECRET_KEY")
 
+# Rain intensities below this (mm/hr) are treated as 0: the forecast model reports trace drizzle
+# that doesn't physically occur.
+RAINFALL_NOISE_FLOOR_MM_HR = config("RAINFALL_NOISE_FLOOR_MM_HR", default=2.0, cast=float)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 # cast=bool is required — without it a "False" env string is truthy.
 DEBUG = config("DEBUG", default=False, cast=bool)

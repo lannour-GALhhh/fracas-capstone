@@ -10,7 +10,9 @@ from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
 from rainfall_fetch.models import BarangayRainfallGrid, HourlyRainfall, Rainfall
-from rainfall_fetch.tasks import _accumulations, _query_groups, fetch_rainfall_information, parse_rainfall_data
+from rainfall_fetch.tasks import (
+    _accumulations, _hour_total, _query_groups, fetch_rainfall_information, parse_rainfall_data,
+)
 
 
 class ParseRainfallTests(SimpleTestCase):
@@ -24,20 +26,20 @@ class ParseRainfallTests(SimpleTestCase):
             "minutely_15": {"time": quarter_times, "precipitation": quarter_precip},
         }
 
-    def test_parses_intensity(self):
+    def test_parses_intensity_as_mm_per_hour(self):
         result = parse_rainfall_data(self._payload())
-        self.assertEqual(result["current_rainfall_strength"], 10)
-        self.assertEqual(result["forecast_strength_60min"], 20)  # index 16 + 4
+        self.assertEqual(result["current_rainfall_strength"], 40)  # 10 mm/15min -> 40 mm/hr
+        self.assertEqual(result["forecast_strength_60min"], 80)  # index 16 + 4 -> 20 mm/15min
         self.assertNotIn("accumulated_6hr", result)  # accumulations come from stored hourly rows
 
     def test_parses_quarter_hour_forecasts(self):
         result = parse_rainfall_data(self._payload())
-        self.assertEqual(result["forecast_strength_15min"], 17)  # index 16 + 1
-        self.assertEqual(result["forecast_strength_30min"], 18)  # index 16 + 2
-        self.assertEqual(result["forecast_strength_45min"], 19)  # index 16 + 3
-        self.assertEqual(result["forecast_strength_90min"], 22)  # index 16 + 6
-        self.assertEqual(result["forecast_strength_150min"], 26)  # index 16 + 10
-        self.assertEqual(result["forecast_strength_210min"], 30)  # index 16 + 14
+        self.assertEqual(result["forecast_strength_15min"], 68)  # index 16 + 1
+        self.assertEqual(result["forecast_strength_30min"], 72)  # index 16 + 2
+        self.assertEqual(result["forecast_strength_45min"], 76)  # index 16 + 3
+        self.assertEqual(result["forecast_strength_90min"], 88)  # index 16 + 6
+        self.assertEqual(result["forecast_strength_150min"], 104)  # index 16 + 10
+        self.assertEqual(result["forecast_strength_210min"], 120)  # index 16 + 14
         self.assertEqual(result["forecast_strength_240min"], 0)  # index 16 + 16 -> out of range
 
     def test_missing_current_time_defaults_to_zero(self):
@@ -55,11 +57,16 @@ def make_barangay(name="Tumaga", code="T1"):
     )
 
 
-def _mock_forecast_payload(n):
+def _this_hour():
+    return timezone.now().replace(minute=0, second=0, microsecond=0)
+
+
+def _mock_forecast_payload(n, hour_total=5):
     """One Open-Meteo response object per queried location."""
     payload = {
         "current": {"time": "2026-07-01T04:00", "precipitation": 5},
         "minutely_15": {"time": ["2026-07-01T04:00"], "precipitation": [5]},
+        "hourly": {"time": [_this_hour().strftime("%Y-%m-%dT%H:%M")], "precipitation": [hour_total]},
     }
     return [dict(payload) for _ in range(n)]
 
@@ -158,11 +165,34 @@ class AccumulationTests(TestCase):
         self.assertEqual(_accumulations([b.id], now)[b.id]["accumulated_24hr"], 0)
 
 
+class NoiseFloorTests(SimpleTestCase):
+    def test_trace_intensity_is_zeroed_after_conversion_to_mm_per_hour(self):
+        data = {
+            "current": {"time": "2026-07-01T00:00", "precipitation": 0.4},  # 1.6 mm/hr: drizzle
+            "minutely_15": {"time": ["2026-07-01T00:00", "2026-07-01T00:15"], "precipitation": [0.4, 0.5]},
+        }
+        result = parse_rainfall_data(data)
+        self.assertEqual(result["current_rainfall_strength"], 0)
+        self.assertEqual(result["forecast_strength_15min"], 2.0)  # 0.5 mm/15min = 2 mm/hr, at the floor
+
+    def test_heavy_rain_is_scaled_not_flattened(self):
+        data = {
+            "current": {"time": "2026-07-01T00:00", "precipitation": 5.0},
+            "minutely_15": {"time": ["2026-07-01T00:00"], "precipitation": [5.0]},
+        }
+        self.assertEqual(parse_rainfall_data(data)["current_rainfall_strength"], 20.0)
+
+    def test_hour_total_matched_by_hour_label_and_not_scaled(self):
+        hour = _this_hour()
+        label = hour.strftime("%Y-%m-%dT%H:%M")
+        self.assertEqual(_hour_total({"hourly": {"time": [label], "precipitation": [1.7]}}, hour), 1.7)
+        self.assertIsNone(_hour_total({"hourly": {"time": ["1999-01-01T00:00"], "precipitation": [9]}}, hour))
+
+
 class HourlyRecordingTests(TestCase):
     def _run(self, mock_get, precipitation):
         mock_get.return_value.raise_for_status.return_value = None
-        payload = _mock_forecast_payload(1)
-        payload[0]["current"]["precipitation"] = precipitation
+        payload = _mock_forecast_payload(1, hour_total=precipitation)
         mock_get.return_value.json.return_value = payload
         fetch_rainfall_information()
 
@@ -179,11 +209,21 @@ class HourlyRecordingTests(TestCase):
         self.assertEqual(Rainfall.objects.filter(barangay=b).first().accumulated_6hr, 5)
 
     @patch("rainfall_fetch.tasks.requests.get")
-    def test_unlocatable_response_does_not_claim_the_hour(self, mock_get):
+    def test_stores_hourly_total_not_the_15_minute_current_value(self, mock_get):
+        b = make_barangay()
+        mock_get.return_value.raise_for_status.return_value = None
+        payload = _mock_forecast_payload(1, hour_total=1.7)
+        payload[0]["current"]["precipitation"] = 0.4  # last 15 min only
+        mock_get.return_value.json.return_value = payload
+        fetch_rainfall_information()
+        self.assertEqual(HourlyRainfall.objects.get(barangay=b).precipitation, 1.7)
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_response_without_the_hour_does_not_claim_it(self, mock_get):
         b = make_barangay()
         mock_get.return_value.raise_for_status.return_value = None
         payload = _mock_forecast_payload(1)
-        payload[0]["current"]["time"] = "2026-07-01T23:00"
+        payload[0]["hourly"]["time"] = ["1999-01-01T00:00"]
         mock_get.return_value.json.return_value = payload
         fetch_rainfall_information()
         self.assertFalse(HourlyRainfall.objects.filter(barangay=b).exists())
