@@ -1,15 +1,30 @@
 import { Badge } from '@/common/ui/badge'
 import { cn } from '@/common/utils/utils'
+import type { UserStatus } from '@/features/admin/types/user'
 
+export const STATUS_LABEL: Record<UserStatus, string> = {
+    active: 'Active',
+    pending: 'Pending',
+    inactive: 'Inactive',
+}
+
+const TONE: Record<UserStatus, { badge: string; dot: string; text: string }> = {
+    active: { badge: 'bg-green-100', dot: 'bg-green-500', text: 'text-green-600' },
+    pending: { badge: 'bg-amber-100', dot: 'bg-amber-500', text: 'text-amber-600' },
+    inactive: { badge: 'bg-red-100', dot: 'bg-red-500', text: 'text-red-600' },
+}
+
+/** `status` wins when given; `isActive` keeps older callers (own-account card) working. */
 const UserActiveBadge = ({
-    isActive = true
-}: { isActive: boolean }) => {
+    isActive = true,
+    status,
+}: { isActive: boolean; status?: UserStatus }) => {
+    const key: UserStatus = status ?? (isActive ? 'active' : 'inactive')
+    const tone = TONE[key]
     return (
-        <Badge className={cn('bg-green-100 gap-2', !isActive && 'bg-red-100')}>
-            <div className={cn('h-2 aspect-square rounded-full bg-green-500', !isActive && 'bg-red-500')} />
-            <p className={cn('text-green-600', !isActive && 'text-red-600')}>
-                {isActive ? 'Active Account' : 'Inactive Account'}
-            </p>
+        <Badge className={cn('gap-2', tone.badge)}>
+            <div className={cn('h-2 aspect-square rounded-full', tone.dot)} />
+            <p className={tone.text}>{STATUS_LABEL[key]} Account</p>
         </Badge>
     )
 }

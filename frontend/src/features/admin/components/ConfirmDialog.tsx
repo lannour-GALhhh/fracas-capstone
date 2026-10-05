@@ -14,6 +14,8 @@ import { Button } from '@/common/ui/button'
 /** A trigger that opens a confirm-then-act dialog. */
 const ConfirmDialog = ({
     trigger,
+    open: controlledOpen,
+    onOpenChange,
     title,
     description,
     confirmLabel = 'Confirm',
@@ -21,7 +23,10 @@ const ConfirmDialog = ({
     isPending = false,
     onConfirm,
 }: {
-    trigger: ReactElement
+    /** Omit when controlling the dialog via `open`/`onOpenChange` (e.g. from a menu item). */
+    trigger?: ReactElement
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
     title: string
     description: string
     confirmLabel?: string
@@ -29,11 +34,13 @@ const ConfirmDialog = ({
     isPending?: boolean
     onConfirm: () => void
 }) => {
-    const [open, setOpen] = useState(false)
+    const [innerOpen, setInnerOpen] = useState(false)
+    const open = controlledOpen ?? innerOpen
+    const setOpen = onOpenChange ?? setInnerOpen
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={trigger} />
+            {trigger && <DialogTrigger render={trigger} />}
             <DialogContent className='sm:max-w-sm'>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>

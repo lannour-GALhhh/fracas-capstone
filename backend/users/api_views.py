@@ -102,6 +102,14 @@ class AdminUserViewSet(
         elif role == "resident":
             qs = qs.none()
 
+        status = params.get("status")
+        if status == "inactive":
+            qs = qs.filter(is_active=False)
+        elif status == "pending":
+            qs = qs.filter(is_active=True, last_login__isnull=True)
+        elif status == "active":
+            qs = qs.filter(is_active=True, last_login__isnull=False)
+
         is_active = params.get("is_active")
         if is_active is not None:
             qs = qs.filter(is_active=is_active.lower() in ("1", "true", "yes"))

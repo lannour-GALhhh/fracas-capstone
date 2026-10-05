@@ -31,26 +31,29 @@ import {
 import { cn } from '@/common/utils/utils'
 import { getPageItems } from '@/common/utils/pageItems'
 import RoleBadge from '@/features/user/components/RoleBadge'
-import UserActiveBadge from '@/features/user/components/UserActiveBadge'
+import UserActiveBadge, { STATUS_LABEL } from '@/features/user/components/UserActiveBadge'
+import type { UserStatus } from '@/features/admin/types/user'
+import AccountAvatar from './AccountAvatar'
+import AccountRowActions from './AccountRowActions'
 import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
 import type { ConsoleRole } from '@/features/admin/types/user'
 
 const PAGE_SIZE = 25
-const COLS = 5
+const COLS = 8
 
 /** Operator/admin accounts only; residents are excluded server-side. */
 const UsersTable = () => {
     const navigate = useNavigate()
     const [search, setSearch] = useState('')
     const [role, setRole] = useState<ConsoleRole | 'all'>('all')
-    const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all')
+    const [status, setStatus] = useState<'all' | UserStatus>('all')
     const [page, setPage] = useState(1)
 
     const filters = {
         page,
         ...(search.trim() && { search: search.trim() }),
         ...(role !== 'all' && { role }),
-        ...(status !== 'all' && { is_active: status === 'active' }),
+        ...(status !== 'all' && { status }),
     }
     const { data, isLoading, isError } = useAdminUsers(filters)
 
@@ -92,16 +95,17 @@ const UsersTable = () => {
 
                 <Select
                     value={status}
-                    onValueChange={(v) => resetTo(setStatus)(v as 'all' | 'active' | 'inactive')}
+                    onValueChange={(v) => resetTo(setStatus)(v as 'all' | UserStatus)}
                 >
                     <SelectTrigger className='w-36'>
                         <SelectValue>
-                            {(v) => (v === 'all' ? 'All statuses' : v === 'active' ? 'Active' : 'Inactive')}
+                            {(v) => (v === 'all' ? 'All statuses' : STATUS_LABEL[v as UserStatus])}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value='all'>All statuses</SelectItem>
                         <SelectItem value='active'>Active</SelectItem>
+                        <SelectItem value='pending'>Pending</SelectItem>
                         <SelectItem value='inactive'>Inactive</SelectItem>
                     </SelectContent>
                 </Select>
@@ -126,11 +130,14 @@ const UsersTable = () => {
             <Table className='rounded border border-border'>
                 <TableHeader className='bg-accent'>
                     <TableRow>
+                        <TableHead className='w-12 pr-0' aria-label='Avatar' />
                         <TableHead>Name</TableHead>
+                        <TableHead>Username</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead>Contact No.</TableHead>
+                        <TableHead>Email</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Joined</TableHead>
+                        <TableHead className='w-12 pl-0' aria-label='Actions' />
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -161,23 +168,25 @@ const UsersTable = () => {
                             className='cursor-pointer'
                             onClick={() => navigate(`/accounts/${u.id}`)}
                         >
-                            <TableCell className='font-medium'>
-                                {`${u.first_name} ${u.last_name}`.trim() || u.username}
-                                <span className='ml-2 text-xs font-normal text-black/40'>
-                                    @{u.username}
-                                </span>
+                            <TableCell className='w-12 py-2 pr-0'>
+                                <AccountAvatar name={u.first_name.trim() || u.username} />
                             </TableCell>
+                            <TableCell className='py-2 font-medium'>
+                                {`${u.first_name} ${u.last_name}`.trim() || u.username}
+                            </TableCell>
+                            <TableCell className='py-2 text-black/60'>{u.username}</TableCell>
                             <TableCell>
                                 <RoleBadge role={u.role} />
                             </TableCell>
+                            <TableCell className='py-2 text-black/60'>
+                                {u.phone_number || '—'}
+                            </TableCell>
+                            <TableCell className='py-2 text-black/60'>{u.email || '—'}</TableCell>
                             <TableCell>
-                                <UserActiveBadge isActive={u.is_active} />
+                                <UserActiveBadge isActive={u.is_active} status={u.status} />
                             </TableCell>
-                            <TableCell className='text-black/60'>
-                                {u.email || u.phone_number || '—'}
-                            </TableCell>
-                            <TableCell className='text-black/60'>
-                                {new Date(u.date_joined).toLocaleDateString()}
+                            <TableCell className='w-12 py-2 pl-0' onClick={(e) => e.stopPropagation()}>
+                                <AccountRowActions user={u} />
                             </TableCell>
                         </TableRow>
                     ))}

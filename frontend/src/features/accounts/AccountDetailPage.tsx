@@ -54,7 +54,7 @@ const AccountDetailPage = () => {
                 </div>
                 <div className='flex items-center gap-2'>
                     <RoleBadge role={user.role} />
-                    <UserActiveBadge isActive={user.is_active} />
+                    <UserActiveBadge isActive={user.is_active} status={user.status} />
                 </div>
             </div>
 

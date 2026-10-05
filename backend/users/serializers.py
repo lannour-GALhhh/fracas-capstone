@@ -23,6 +23,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     """Full user record for the admin console: profile + role/status flags."""
 
     role = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -35,6 +36,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "phone_number",
             "phone_verified",
             "is_active",
+            "status",
             "is_operator",
             "is_staff",
             "role",
@@ -46,6 +48,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "username",
             "phone_verified",
             "role",
+            "status",
             "date_joined",
             "last_login",
         ]

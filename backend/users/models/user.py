@@ -32,5 +32,14 @@ class User(AbstractUser):
             return "operator"
         return "resident"
 
+    @property
+    def status(self) -> str:
+        """`inactive` (disabled), `pending` (created but never signed in), else `active`."""
+        if not self.is_active:
+            return "inactive"
+        if self.last_login is None:
+            return "pending"
+        return "active"
+
     def __str__(self):
         return self.get_username()

@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import {
     Dialog,
@@ -73,7 +74,14 @@ const CreateUserDialog = () => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTrigger render={<Button size='sm' />}>New account</DialogTrigger>
+            <DialogTrigger
+                render={
+                    <Button size='lg' className='cursor-pointer px-3'>
+                        <Plus className='size-4' />
+                        Create New Account
+                    </Button>
+                }
+            />
             <DialogContent className='sm:max-w-md'>
                 <form onSubmit={onSubmit} className='flex flex-col gap-4'>
                     <DialogHeader>
