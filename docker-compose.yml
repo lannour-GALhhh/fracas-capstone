@@ -31,6 +31,7 @@ services:
       - ./backend:/backend
       - static_volume:/backend/staticfiles
       - media_volume:/backend/media
+      - gis_import_volume:/backend/gis_imports
     env_file: .env
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(); s.connect(('localhost', 8000)); s.close()\""]
@@ -54,6 +55,7 @@ services:
     env_file: .env
     volumes:
       - ./backend:/backend
+      - gis_import_volume:/backend/gis_imports
     depends_on:
       db:
         condition: service_healthy
@@ -111,4 +113,5 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  gis_import_volume:
   frontend_node_modules:

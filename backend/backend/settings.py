@@ -229,6 +229,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Scratch space for admin-uploaded GIS archives, shared by the web and celery containers.
+GIS_IMPORT_DIR = config('GIS_IMPORT_DIR', default=str(BASE_DIR / 'gis_imports'))
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
