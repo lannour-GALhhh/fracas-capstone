@@ -11,5 +11,7 @@ export const adminKeys = {
     validationRun: (id: number) => ['admin', 'validation-runs', 'detail', id] as const,
     systemStatus: () => ['admin', 'system', 'status'] as const,
     autoDetect: () => ['admin', 'system', 'auto-detect'] as const,
+    gisActive: () => ['admin', 'gis-imports', 'active'] as const,
+    gisImports: () => ['admin', 'gis-imports'] as const,
     settings: (group: SettingsGroup) => ['admin', 'settings', group] as const,
 }

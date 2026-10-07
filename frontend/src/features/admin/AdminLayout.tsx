@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { SlidersHorizontal, FlaskConical, Activity, Settings } from 'lucide-react'
+import { SlidersHorizontal, FlaskConical, Activity, Settings, Map } from 'lucide-react'
 import {
     Sidebar,
     SidebarContent,
@@ -17,6 +17,7 @@ const NAV = [
     { name: 'Model config', to: '/admin/model/config', icon: SlidersHorizontal },
     { name: 'Validation', to: '/admin/model/validation', icon: FlaskConical },
     { name: 'System', to: '/admin/system', icon: Activity },
+    { name: 'GIS data', to: '/admin/gis', icon: Map },
     { name: 'Settings', to: '/admin/settings', icon: Settings },
 ]
 

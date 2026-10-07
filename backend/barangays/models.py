@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.gis.db import models
 
 from .constants import SusceptibilityLevel
@@ -57,3 +58,34 @@ class Street(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.barangay.name})"
+
+
+class GisImport(models.Model):
+    """One admin-uploaded GIS layer and the outcome of processing it."""
+
+    class Kind(models.TextChoices):
+        BOUNDARY = "boundary", "Barangay boundaries"
+        SUSCEPTIBILITY = "susceptibility", "Flood susceptibility"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    filename = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} import #{self.pk} ({self.status})"

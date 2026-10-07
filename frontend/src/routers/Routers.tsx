@@ -21,6 +21,7 @@ const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const AccountsPage = lazy(() => import('@/features/accounts/AccountsPage'))
 const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPage'))
 const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
+const GisDataPage = lazy(() => import('@/features/admin/gis/GisDataPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'))
 const TestAuth = lazy(() => import('@/common/test/TestAuth'))
@@ -52,6 +53,7 @@ const Routers = () => {
             <Route path='model/validation' element={<ModelValidationPage />} />
             <Route path='evacuation' element={<Navigate to='/evacuation-centers' replace />} />
             <Route path='system' element={<SystemPage />} />
+            <Route path='gis' element={<GisDataPage />} />
             <Route path='settings' element={<SettingsPage />} />
           </Route>
         </Route>
