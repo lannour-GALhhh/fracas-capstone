@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import { useMap } from '@/common/ui/map'
-import { useHazardZones, useHazardZonesDetailed } from '../hooks/useHazardZones'
+import { useHazardZones } from '../hooks/useHazardZones'
 import { useZoneRisk } from '../hooks/useZoneRisk'
 import { NO_DATA_COLOR, RISK_COLORS } from '../constants/risk'
 import {
@@ -13,21 +13,6 @@ import type { HazardZoneCollection, SusceptibilityLevel } from '../types/api'
 const SOURCE = 'hazard-zones'
 const FILL = 'hazard-zone-fill'
 const LINE = 'hazard-zone-line'
-
-/** Zoom level at which the layer swaps to full-precision geometry. */
-const DETAIL_ZOOM_THRESHOLD = 14
-
-/** Viewport bbox is snapped outward to this grid so small pans reuse the same (cached) request. */
-const BBOX_GRID_DEG = 0.05
-
-const snappedBbox = (map: MapLibreMap): string => {
-    const b = map.getBounds()
-    const lo = (v: number) => Math.floor(v / BBOX_GRID_DEG) * BBOX_GRID_DEG
-    const hi = (v: number) => Math.ceil(v / BBOX_GRID_DEG) * BBOX_GRID_DEG
-    return [lo(b.getWest()), lo(b.getSouth()), hi(b.getEast()), hi(b.getNorth())]
-        .map((v) => v.toFixed(2))
-        .join(',')
-}
 
 /** Colors each zone by its computed risk category; grey before scores load. */
 const riskColorExpression: ExpressionSpecification = [
@@ -58,28 +43,8 @@ const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
 /** Flood-susceptibility zones, colored by computed per-cycle risk. */
 const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { map, isLoaded } = useMap()
-    const [zoom, setZoom] = useState(() => map?.getZoom() ?? 0)
-    const { data: simplified } = useHazardZones()
-    const [bbox, setBbox] = useState<string | null>(null)
-    const showDetailed = zoom >= DETAIL_ZOOM_THRESHOLD
-    const { data: detailed } = useHazardZonesDetailed(showDetailed ? bbox : null)
+    const { data } = useHazardZones()
     const { data: zoneRisk } = useZoneRisk()
-
-    useEffect(() => {
-        if (!map) return
-        const handleZoom = () => setZoom(map.getZoom())
-        const handleMoveEnd = () => setBbox(snappedBbox(map))
-        handleZoom()
-        handleMoveEnd()
-        map.on('zoom', handleZoom)
-        map.on('moveend', handleMoveEnd)
-        return () => {
-            map.off('zoom', handleZoom)
-            map.off('moveend', handleMoveEnd)
-        }
-    }, [map])
-
-    const data = showDetailed && detailed ? detailed : simplified
 
     // Key on the sorted level set so the filter effect only re-runs on a real change.
     const levelKey = [...visibleLevels].sort().join(',')
