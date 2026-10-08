@@ -1,11 +1,13 @@
 /** Shapes for admin GIS uploads (/api/admin/gis-imports/). */
 
 export type GisImportKind = 'boundary' | 'susceptibility'
+/** Every kind of job in the history; `streets` is detected server-side, not uploaded. */
+export type GisJobKind = GisImportKind | 'streets'
 export type GisImportStatus = 'pending' | 'running' | 'succeeded' | 'failed'
 
 export interface GisImport {
     id: number
-    kind: GisImportKind
+    kind: GisJobKind
     status: GisImportStatus
     filename: string
     message: string

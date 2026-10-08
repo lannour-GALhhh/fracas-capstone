@@ -28,7 +28,7 @@ class GisImportSerializer(serializers.ModelSerializer):
 
 
 class GisImportUploadSerializer(serializers.Serializer):
-    kind = serializers.ChoiceField(choices=GisImport.Kind.choices)
+    kind = serializers.ChoiceField(choices=[c for c in GisImport.Kind.choices if c[0] != GisImport.Kind.STREETS])
     file = serializers.FileField()
 
     def validate_file(self, value):
@@ -62,6 +62,22 @@ class GisImportListCreateView(APIView):
                 out.write(chunk)
 
         log_change(request.user, "GIS data", action="gis_import", field=kind, new_value=upload.name)
+        process_gis_import.delay(job.pk)
+        return Response(GisImportSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+
+
+class DetectStreetsView(APIView):
+    """Start detecting the named streets that cross high / very high flood zones."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        if GisImport.objects.filter(status__in=[GisImport.Status.PENDING, GisImport.Status.RUNNING]).exists():
+            return Response({"detail": "Another import is still processing."}, status=status.HTTP_409_CONFLICT)
+        job = GisImport.objects.create(
+            kind=GisImport.Kind.STREETS, filename="OpenStreetMap (Overpass)", created_by=request.user
+        )
+        log_change(request.user, "GIS data", action="gis_import", field=job.kind, new_value=job.filename)
         process_gis_import.delay(job.pk)
         return Response(GisImportSerializer(job).data, status=status.HTTP_202_ACCEPTED)
 

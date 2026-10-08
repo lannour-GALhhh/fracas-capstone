@@ -3,7 +3,7 @@
 from unittest.mock import patch
 
 from django.contrib.gis.geos import MultiPolygon, Polygon
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 from django.test import TestCase
 
 from barangays.constants import SusceptibilityLevel
@@ -29,10 +29,6 @@ def make_susceptibility(barangay, level, coords, flood_value=1.0):
     )
 
 
-def overpass_response(elements):
-    return {"json.return_value": {"elements": elements}, "raise_for_status.return_value": None}
-
-
 class HighRiskStreetsLoaderTests(TestCase):
     # Two adjacent ~1km squares.
     HIGH_RISK_SQUARE = [(122.00, 6.90), (122.00, 6.91), (122.01, 6.91), (122.01, 6.90), (122.00, 6.90)]
@@ -46,47 +42,55 @@ class HighRiskStreetsLoaderTests(TestCase):
         make_susceptibility(self.low_risk, SusceptibilityLevel.LOW, self.LOW_RISK_SQUARE)
 
     def _run(self, elements):
-        with patch("barangays.management.commands.load_high_risk_streets.requests.post") as mock_post:
-            mock_post.return_value.json.return_value = {"elements": elements}
-            mock_post.return_value.raise_for_status.return_value = None
+        with patch("barangays.importers.streets.fetch_named_ways", return_value=elements) as fetch:
             call_command("load_high_risk_streets")
-        return mock_post
+        return fetch
 
-    def test_only_high_risk_barangay_streets_saved(self):
-        elements = [
-            {"tags": {"name": "Rizal St"}, "center": {"lat": 6.905, "lon": 122.005}},  # inside high-risk
-            {"tags": {"name": "Hilltop Ave"}, "center": {"lat": 6.905, "lon": 122.015}},  # inside low-risk
-        ]
-        self._run(elements)
+    @staticmethod
+    def way(name, *lonlats):
+        return {"tags": {"name": name}, "geometry": [{"lon": lon, "lat": lat} for lon, lat in lonlats]}
 
-        streets = Street.objects.all()
-        self.assertEqual(streets.count(), 1)
-        street = streets.first()
+    def test_only_streets_in_high_risk_zones_saved(self):
+        self._run([
+            self.way("Rizal St", (122.002, 6.905), (122.008, 6.905)),  # inside high-risk zone
+            self.way("Hilltop Ave", (122.012, 6.905), (122.018, 6.905)),  # inside low-risk zone
+        ])
+
+        street = Street.objects.get()
         self.assertEqual(street.name, "Rizal St")
         self.assertEqual(street.barangay_id, self.high_risk.id)
         self.assertEqual(street.susceptibility_level, "very_high")
 
+    def test_street_crossing_into_risky_zone_is_saved(self):
+        self._run([self.way("Border Rd", (122.008, 6.905), (122.015, 6.905))])
+
+        self.assertEqual(Street.objects.get().name, "Border Rd")
+
     def test_dedupes_repeated_way_segments(self):
-        elements = [
-            {"tags": {"name": "Rizal St"}, "center": {"lat": 6.902, "lon": 122.002}},
-            {"tags": {"name": "Rizal St"}, "center": {"lat": 6.908, "lon": 122.008}},
-        ]
-        self._run(elements)
+        self._run([
+            self.way("Rizal St", (122.002, 6.902), (122.004, 6.902)),
+            self.way("Rizal St", (122.006, 6.908), (122.008, 6.908)),
+        ])
 
         self.assertEqual(Street.objects.filter(name="Rizal St").count(), 1)
 
-    def test_skips_unnamed_or_centerless_ways(self):
-        elements = [
-            {"tags": {}, "center": {"lat": 6.905, "lon": 122.005}},
-            {"tags": {"name": "No Center St"}},
-        ]
-        self._run(elements)
+    def test_skips_unnamed_or_geometryless_ways(self):
+        self._run([
+            {"tags": {}, "geometry": [{"lon": 122.002, "lat": 6.905}, {"lon": 122.004, "lat": 6.905}]},
+            {"tags": {"name": "No Geometry St"}},
+        ])
 
         self.assertEqual(Street.objects.count(), 0)
 
     def test_idempotent_rerun(self):
-        elements = [{"tags": {"name": "Rizal St"}, "center": {"lat": 6.905, "lon": 122.005}}]
+        elements = [self.way("Rizal St", (122.002, 6.905), (122.008, 6.905))]
         self._run(elements)
         self._run(elements)
 
         self.assertEqual(Street.objects.count(), 1)
+
+    def test_requires_susceptibility_data(self):
+        BarangaySusceptibility.objects.all().delete()
+
+        with self.assertRaises(CommandError):
+            self._run([])

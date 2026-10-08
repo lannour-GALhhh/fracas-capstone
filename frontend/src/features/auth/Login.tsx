@@ -1,11 +1,12 @@
 import { useActionState, useEffect, useState } from 'react'
 import { AxiosError } from 'axios'
-import { Map, Megaphone, History, Waves, Eye, EyeClosed } from 'lucide-react'
+import { Eye, EyeClosed, User, Lock } from 'lucide-react'
 import { LoginSchema } from './schemas/LoginSchema'
 import { Field, FieldSet, FieldLabel, FieldGroup, FieldDescription } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
-import { Stagger, StaggerItem } from '@/common/motion'
+import { Checkbox } from '@/common/ui/checkbox'
+import CityMap from './components/CityMap'
 import { useAuth } from './context/useAuth'
 import type { LoginState } from './types/authTypes'
 import { Link, useNavigate } from 'react-router-dom'
@@ -18,12 +19,6 @@ const humanizeLoginError = (err: unknown): string => {
 	}
 	return 'Something went wrong signing you in. Please try again.'
 }
-
-const FEATURES = [
-	{ icon: Map, title: 'Live risk map', desc: 'Barangay flood hazard, refreshed every 15 minutes.' },
-	{ icon: Megaphone, title: 'Instant advisories', desc: 'Auto-evacuate and notify subscribers the moment risk turns critical.' },
-	{ icon: History, title: 'Flood history', desc: 'A searchable record of past events that validates the model.' },
-]
 
 const Login = () => {
 
@@ -74,43 +69,12 @@ const Login = () => {
     }, [isAuthenticated, navigate])
 
 	return (
-		<div className='bg-blue-950 w-full h-screen flex p-2'>
-			<div className='hidden basis-2/5 items-center justify-center p-10 md:flex'>
-				<Stagger className='flex max-w-sm flex-col gap-8 text-white'>
-					<StaggerItem className='flex items-center gap-3'>
-						<span className='flex size-11 items-center justify-center rounded-xl bg-white/10'>
-							<Waves className='size-6 text-blue-200' />
-						</span>
-						<div>
-							<p className='text-2xl font-bold tracking-tight'>FRACAS</p>
-							<p className='text-sm text-blue-200/80'>Flood-risk early-warning for Zamboanga City</p>
-						</div>
-					</StaggerItem>
-					<div className='flex flex-col gap-5'>
-						{FEATURES.map(({ icon: Icon, title, desc }) => (
-							<StaggerItem key={title} className='flex gap-3'>
-								<Icon className='mt-0.5 size-5 shrink-0 text-blue-300' />
-								<div>
-									<p className='text-sm font-semibold'>{title}</p>
-									<p className='text-sm text-blue-200/70'>{desc}</p>
-								</div>
-							</StaggerItem>
-						))}
-					</div>
-				</Stagger>
-			</div>
-
-			<form className='flex-1 bg-white rounded-2xl flex items-center justify-center flex-col p-6' action={formAction}>
-				<div className='flex w-full max-w-sm flex-col gap-8'>
-					<div className='flex flex-col gap-3'>
-						{/* Brand mark — also gives mobile a logo, since the left panel is hidden there. */}
-						<span className='flex size-12 items-center justify-center rounded-xl bg-blue-950 md:hidden'>
-							<Waves className='size-6 text-blue-200' />
-						</span>
-						<div>
-							<h1 className='text-2xl font-bold tracking-tight text-blue-950'>Welcome back</h1>
-							<FieldDescription className='mt-1'>Sign in to your FRACAS account to continue.</FieldDescription>
-						</div>
+		<div className='flex h-screen w-full bg-white'>
+			<form className='flex flex-1 flex-col items-center px-6 py-8' action={formAction}>
+				<div className='flex w-full max-w-sm flex-1 flex-col justify-center gap-8'>
+					<div className='flex flex-col gap-2 text-blue-950'>
+						<h1 className='text-3xl font-semibold tracking-tight'>Welcome Back</h1>
+						<FieldDescription>Continue to access your dashboard</FieldDescription>
 					</div>
 
 					<FieldSet>
@@ -122,60 +86,84 @@ const Login = () => {
 						<FieldGroup>
 							<Field>
 								<FieldLabel htmlFor='username'>Username</FieldLabel>
-								<Input
-									id='username'
-									name='username'
-									autoComplete='username'
-									autoFocus
-									value={username}
-									onChange={(e) => setUsername(e.target.value)}
-									aria-invalid={!!state.errors.username}
-								/>
+								<div className='relative'>
+									<User className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
+									<Input
+										id='username'
+										name='username'
+										autoComplete='username'
+										placeholder='Enter your username'
+										autoFocus
+										value={username}
+										onChange={(e) => setUsername(e.target.value)}
+										aria-invalid={!!state.errors.username}
+										className='h-11 rounded-xl pl-10'
+									/>
+								</div>
 								{state.errors.username &&
 									<FieldDescription className='text-destructive'>{state.errors.username}</FieldDescription>
 								}
 							</Field>
 							<Field>
-								<div className='flex items-center justify-between'>
-									<FieldLabel htmlFor='password'>Password</FieldLabel>
-									<Button type='button' variant='link' nativeButton={false} render={<Link to='/forgot-password' />} className='h-auto p-0 text-xs'>Forgot password?</Button>
-								</div>
-								<div className='flex items-center gap-2'>
+								<FieldLabel htmlFor='password'>Password</FieldLabel>
+								<div className='relative'>
+									<Lock className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
 									<Input
 										id='password'
-										type={showPassword ? "text" : "password"}
+										type={showPassword ? 'text' : 'password'}
 										name='password'
 										autoComplete='current-password'
+										placeholder='Enter your password'
 										value={password}
 										onChange={(e) => setPassword(e.target.value)}
 										aria-invalid={!!state.errors.password}
+										className='h-11 rounded-xl px-10'
 									/>
-									<Button 
-									variant={"ghost"}
-									onClick={toggleShowPassword}
-									className="cursor-pointer">
-										{showPassword ?
-											<EyeClosed />
-											:
-											<Eye />
-										}
-									</Button>
+									<button
+										type='button'
+										onClick={toggleShowPassword}
+										aria-label={showPassword ? 'Hide password' : 'Show password'}
+										className='absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground'
+									>
+										{showPassword ? <EyeClosed className='size-4' /> : <Eye className='size-4' />}
+									</button>
 								</div>
 								{state.errors.password &&
 									<FieldDescription className='text-destructive'>{state.errors.password}</FieldDescription>
 								}
 							</Field>
+							<div className='flex items-center justify-between'>
+								<label htmlFor='remember' className='flex cursor-pointer items-center gap-2 text-sm'>
+									<Checkbox id='remember' name='remember' />
+									Remember me
+								</label>
+								<Button type='button' variant='link' nativeButton={false} render={<Link to='/forgot-password' />} className='h-auto p-0 text-sm underline'>Forgot Password?</Button>
+							</div>
 						</FieldGroup>
-						<Button size='lg' type='submit' disabled={isPending} className='w-full cursor-pointer'>
+						<Button type='submit' disabled={isPending} className='h-12 w-full cursor-pointer rounded-full text-base'>
 							{isPending ? 'Signing in…' : 'Log In'}
 						</Button>
 					</FieldSet>
-
-					<FieldDescription className='text-center text-xs'>
-						Authorized personnel — Zamboanga City DRRMO
-					</FieldDescription>
 				</div>
 			</form>
+
+			{/* Enlarged past the panel, pinned left, slightly above the bottom; the top/right run off. */}
+			<div className='relative hidden basis-3/5 overflow-hidden border-l border-slate-100 bg-white md:block'>
+				<CityMap className='absolute inset-0 size-full' />
+				{/* Wordmark floats over the map on a white glow that fades to nothing; clicks and hovers pass through. */}
+				<div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+					<div
+						className='px-24 py-16'
+						style={{ background: 'radial-gradient(closest-side, white 25%, transparent 100%)' }}
+					>
+						<div className='flex flex-col items-center gap-2 text-blue-950'>
+							<span className='text-4xl font-bold tracking-tight'>FRACAS</span>
+							<hr className='w-full border-t border-blue-950/40' />
+							<span className='text-sm font-medium uppercase tracking-[0.3em]'>Zamboanga City</span>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }

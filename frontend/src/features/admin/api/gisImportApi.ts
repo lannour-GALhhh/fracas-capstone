@@ -26,3 +26,8 @@ export const getActiveLayers = async (): Promise<ActiveLayers> => {
     const { data } = await apiClient.get<ActiveLayers>('/api/admin/gis-imports/active/')
     return data
 }
+
+export const detectHighRiskStreets = async (): Promise<GisImport> => {
+    const { data } = await apiClient.post<GisImport>('/api/admin/gis-imports/detect-streets/')
+    return data
+}
