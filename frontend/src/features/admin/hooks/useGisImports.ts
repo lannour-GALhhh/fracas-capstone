@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getActiveLayers, listGisImports, uploadGisImport } from '../api/gisImportApi'
+import { detectHighRiskStreets, getActiveLayers, listGisImports, uploadGisImport } from '../api/gisImportApi'
 import type { GisImportKind } from '../types/gisImport'
 import { adminKeys } from './queryKeys'
 
@@ -57,3 +57,18 @@ export const useUploadGisImport = (onProgress?: (percent: number) => void) => {
 /** Files currently in use per layer. */
 export const useActiveLayers = () =>
     useQuery({ queryKey: adminKeys.gisActive(), queryFn: getActiveLayers })
+
+export const useDetectStreets = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: detectHighRiskStreets,
+        onSuccess: () => {
+            toast.success('Street detection started', { description: 'Searching OpenStreetMap in the background.' })
+            queryClient.invalidateQueries({ queryKey: adminKeys.gisImports() })
+        },
+        onError: (err: { response?: { data?: { detail?: string } } }) =>
+            toast.error("Couldn't start street detection", {
+                description: err.response?.data?.detail ?? 'Please try again.',
+            }),
+    })
+}

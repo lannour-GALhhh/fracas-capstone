@@ -149,3 +149,21 @@ class GisImportApiTests(TestCase):
                                 boundary=GEOSGeometry(json.dumps({"type": "MultiPolygon", "coordinates": [[SQUARE]]}), srid=4326))
         active = self.client.get("/api/admin/gis-imports/active/").json()
         self.assertEqual(active["boundary"]["source"], "seed")
+
+    def test_detect_streets_runs_as_job_without_rescoring(self):
+        with patch("barangays.tasks.detect_high_risk_streets", return_value={"streets": 3, "barangays": 2, "replaced": 0}):
+            resp = self.client.post("/api/admin/gis-imports/detect-streets/")
+        self.assertEqual(resp.status_code, 202)
+        job = GisImport.objects.get()
+        self.assertEqual((job.kind, job.status), ("streets", "succeeded"))
+        self.assertEqual(job.result["streets"], 3)
+        self.rescore.assert_not_called()
+
+    def test_detect_streets_without_zones_fails_with_message(self):
+        self.client.post("/api/admin/gis-imports/detect-streets/")
+        job = GisImport.objects.get()
+        self.assertEqual(job.status, "failed")
+        self.assertIn("susceptibility", job.message)
+
+    def test_streets_kind_cannot_be_uploaded(self):
+        self.assertEqual(self._upload("streets", {"a.geojson": boundary_geojson()}).status_code, 400)

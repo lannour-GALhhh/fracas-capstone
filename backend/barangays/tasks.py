@@ -11,12 +11,13 @@ from django.utils import timezone
 
 from .importers.archive import ArchiveError, extract_archive
 from .importers.boundaries import BoundaryImportError, import_boundaries
+from .importers.streets import StreetDetectionError, detect_high_risk_streets
 from .importers.susceptibility import SusceptibilityImportError, import_susceptibility
 from .models import GisImport
 
 logger = logging.getLogger(__name__)
 
-EXPECTED_ERRORS = (ArchiveError, BoundaryImportError, SusceptibilityImportError)
+EXPECTED_ERRORS = (ArchiveError, BoundaryImportError, SusceptibilityImportError, StreetDetectionError)
 # cache_page key prefixes of the views that serve imported geometry.
 GEOMETRY_CACHE_PATTERNS = ("*barangay_list*", "*barangay_public*", "*hazard_zone_list*")
 
@@ -39,11 +40,11 @@ def process_gis_import(import_id: int) -> None:
     job.save(update_fields=["status"])
     folder = import_dir(import_id)
     try:
-        layer = extract_archive(folder / "upload.zip", folder / "extracted")
-        if job.kind == GisImport.Kind.BOUNDARY:
-            result = import_boundaries(layer)
+        if job.kind == GisImport.Kind.STREETS:
+            result = detect_high_risk_streets()
         else:
-            result = import_susceptibility(layer)
+            layer = extract_archive(folder / "upload.zip", folder / "extracted")
+            result = import_boundaries(layer) if job.kind == GisImport.Kind.BOUNDARY else import_susceptibility(layer)
         job.status, job.result = GisImport.Status.SUCCEEDED, result
     except EXPECTED_ERRORS as exc:
         job.status, job.message = GisImport.Status.FAILED, str(exc)
@@ -55,7 +56,7 @@ def process_gis_import(import_id: int) -> None:
 
     job.finished_at = timezone.now()
     job.save()
-    if job.status == GisImport.Status.SUCCEEDED:
+    if job.status == GisImport.Status.SUCCEEDED and job.kind != GisImport.Kind.STREETS:
         _invalidate_geometry_caches()
         from risk_score.tasks import compute_risk_scores  # lazy: risk_score depends on barangays, not vice versa
 

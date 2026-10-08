@@ -2,15 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/common/ui/card'
 import { Badge } from '@/common/ui/badge'
 import type { GisImport } from '../../types/gisImport'
 
-const KIND_LABEL = { boundary: 'Barangay boundaries', susceptibility: 'Flood susceptibility' } as const
+const KIND_LABEL = { boundary: 'Barangay boundaries', susceptibility: 'Flood susceptibility',
+    streets: 'High-risk streets',
+} as const
 
 const summarize = (job: GisImport) => {
     if (job.status === 'failed') return job.message
     if (job.status !== 'succeeded') return 'Processing…'
     const r = job.result
-    return job.kind === 'boundary'
-        ? `${r.created} created, ${r.updated} updated, ${r.skipped} skipped`
-        : `${r.loaded} zone rows loaded (replaced ${r.replaced})`
+    if (job.kind === 'boundary') return `${r.created} created, ${r.updated} updated, ${r.skipped} skipped`
+    if (job.kind === 'streets') return `${r.streets} streets saved across ${r.barangays} barangays`
+    return `${r.loaded} zone rows loaded (replaced ${r.replaced})`
 }
 
 const variant = (s: GisImport['status']) =>

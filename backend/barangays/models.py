@@ -66,6 +66,7 @@ class GisImport(models.Model):
     class Kind(models.TextChoices):
         BOUNDARY = "boundary", "Barangay boundaries"
         SUSCEPTIBILITY = "susceptibility", "Flood susceptibility"
+        STREETS = "streets", "High-risk streets"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
