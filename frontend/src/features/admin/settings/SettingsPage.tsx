@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/common/utils/utils'
 import OrganizationPanel from './panels/OrganizationPanel'
+import RainfallPanel from './panels/RainfallPanel'
 import RegistrationPanel from './panels/RegistrationPanel'
 import RetentionPanel from './panels/RetentionPanel'
 import TogglesPanel from './panels/TogglesPanel'
@@ -8,6 +9,7 @@ import TogglesPanel from './panels/TogglesPanel'
 const TABS = [
     { key: 'organization', label: 'Organization', Panel: OrganizationPanel },
     { key: 'toggles', label: 'Operational', Panel: TogglesPanel },
+    { key: 'rainfall', label: 'Rainfall', Panel: RainfallPanel },
     { key: 'registration', label: 'Registration', Panel: RegistrationPanel },
     { key: 'retention', label: 'Retention', Panel: RetentionPanel },
 ] as const

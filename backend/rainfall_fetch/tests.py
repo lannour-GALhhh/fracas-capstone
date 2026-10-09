@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -9,7 +10,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from rainfall_fetch.models import BarangayRainfallGrid, HourlyRainfall, Rainfall
+from rainfall_fetch.models import BarangayRainfallGrid, HourlyRainfall, Rainfall, RainfallSettings
 from rainfall_fetch.tasks import (
     _accumulations, _hour_total, _query_groups, fetch_rainfall_information, parse_rainfall_data,
 )
@@ -287,3 +288,71 @@ class RainfallHistoryApiTests(APITestCase):
         self.assertEqual(today["peak_mm_hr"], 8)
         self.assertEqual(today["accumulated_mm"], 3.0)  # (4 + 8) * 0.25
         self.assertEqual(len(today["recorded_at"]), 10)  # date-only, e.g. 2026-09-19
+
+
+class RainfallModelParamTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    """The admin-selected weather model is passed to Open-Meteo as `models=`."""
+
+    def _fetched_url(self, mock_get):
+        make_barangay("Alpha", "A1")
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
+        fetch_rainfall_information()
+        return mock_get.call_args_list[0].args[0]
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_default_sends_no_models_param(self, mock_get):
+        self.assertNotIn("models=", self._fetched_url(mock_get))
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_ecmwf_is_requested_when_selected(self, mock_get):
+        settings_row = RainfallSettings.get_solo()
+        settings_row.weather_model = RainfallSettings.WeatherModel.ECMWF
+        settings_row.save()
+        self.assertIn("&models=ecmwf_ifs025", self._fetched_url(mock_get))
+
+
+class RainfallSettingsApiTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        User = get_user_model()
+        self.admin = User.objects.create_user("admin", password="pw", is_staff=True)
+        self.resident = User.objects.create_user("resident", password="pw")
+        self.url = reverse("admin-settings-rainfall")
+
+    def test_resident_forbidden(self):
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_invalid_model_rejected(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.patch(self.url, {"weather_model": "gfs"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    @patch("risk_score.tasks.run_scoring_pipeline.delay")
+    def test_switching_model_reruns_pipeline_and_resets_current_hour(self, mock_delay):
+        barangay = make_barangay("Alpha", "A1")
+        HourlyRainfall.objects.create(barangay=barangay, hour=_this_hour(), precipitation=9)
+        old_hour = _this_hour() - timedelta(hours=1)
+        HourlyRainfall.objects.create(barangay=barangay, hour=old_hour, precipitation=3)
+        self.client.force_authenticate(self.admin)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.patch(self.url, {"weather_model": "ecmwf_ifs025"}, format="json")
+
+        self.assertEqual(resp.status_code, 200)
+        mock_delay.assert_called_once()
+        self.assertFalse(HourlyRainfall.objects.filter(hour=_this_hour()).exists())
+        self.assertTrue(HourlyRainfall.objects.filter(hour=old_hour).exists())
+
+    @patch("risk_score.tasks.run_scoring_pipeline.delay")
+    def test_unchanged_model_does_not_rerun(self, mock_delay):
+        self.client.force_authenticate(self.admin)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.patch(self.url, {"weather_model": "default"}, format="json")
+        mock_delay.assert_not_called()

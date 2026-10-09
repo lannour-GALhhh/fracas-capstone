@@ -1,5 +1,29 @@
 from django.db import models
+
+from audit.models import SingletonModel
 from barangays.models import Barangay
+
+
+class RainfallSettings(SingletonModel):
+    """Admin-editable rainfall ingestion policy (cached singleton)."""
+
+    class WeatherModel(models.TextChoices):
+        DEFAULT = "default", "Open-Meteo default (best match)"
+        ECMWF = "ecmwf_ifs025", "ECMWF IFS 0.25°"
+
+    weather_model = models.CharField(
+        max_length=30, choices=WeatherModel.choices, default=WeatherModel.DEFAULT,
+        help_text="Which Open-Meteo weather model supplies rainfall data.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def model_param(self) -> str:
+        """Open-Meteo `models=` query fragment ('' keeps Open-Meteo's own default)."""
+        return "" if self.weather_model == self.WeatherModel.DEFAULT else f"&models={self.weather_model}"
+
+    def __str__(self):
+        return f"Rainfall settings ({self.weather_model})"
 
 
 class BarangayRainfallGrid(models.Model):

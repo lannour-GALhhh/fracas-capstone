@@ -5,6 +5,7 @@ export type SettingsGroup =
     | 'organization'
     | 'toggles'
     | 'registration'
+    | 'rainfall'
 
 export interface RetentionPolicy {
     rainfall_retention_days: number
@@ -33,10 +34,18 @@ export interface RegistrationPolicy {
     updated_at: string
 }
 
+export type WeatherModel = 'default' | 'ecmwf_ifs025'
+
+export interface RainfallSettings {
+    weather_model: WeatherModel
+    updated_at: string
+}
+
 /** Maps each group to its settings payload type. */
 export interface SettingsByGroup {
     retention: RetentionPolicy
     organization: OrganizationSettings
     toggles: OperationalToggles
     registration: RegistrationPolicy
+    rainfall: RainfallSettings
 }

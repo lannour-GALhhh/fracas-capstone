@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from barangays.models import Barangay
-from rainfall_fetch.models import HourlyRainfall
+from rainfall_fetch.models import HourlyRainfall, RainfallSettings
 from rainfall_fetch.tasks import CHUNK_DELAY, CHUNK_SIZE, _chunked, _get_with_retry, _query_groups, hourly_url
 
 
@@ -19,6 +19,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         now = timezone.now()
+        model_param = RainfallSettings.cached().model_param
         groups = _query_groups(list(Barangay.objects.select_related("rainfall_grid")))
         chunks = list(_chunked(groups, CHUNK_SIZE))
         created = 0
@@ -27,7 +28,7 @@ class Command(BaseCommand):
             lats = ",".join(str(g["lat"]) for g in chunk)
             lons = ",".join(str(g["lon"]) for g in chunk)
             try:
-                batch = _get_with_retry(hourly_url(lats, lons)).json()
+                batch = _get_with_retry(hourly_url(lats, lons, model_param)).json()
             except Exception as e:  # noqa: BLE001 - reported, remaining chunks still run
                 self.stderr.write(f"Backfill chunk {chunk_num + 1}/{len(chunks)} failed: {e}")
                 continue
