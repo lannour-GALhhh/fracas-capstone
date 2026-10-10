@@ -2,10 +2,8 @@
 
 import logging
 
-from celery import chain, shared_task
+from celery import shared_task
 from django.utils import timezone
-
-from rainfall_fetch.tasks import fetch_rainfall_information
 
 from .models import RiskConfig, RiskScore
 from .services import snapshot
@@ -124,9 +122,12 @@ def draft_auto_flood_events() -> dict:
 
 @shared_task
 def run_scoring_pipeline():
-    """Ingest rainfall, then compute scores on the fresh data."""
-    chain(
-        fetch_rainfall_information.si(),
-        compute_risk_scores.si(),
-        draft_auto_flood_events.si(),
-    )()
+    """Kick the ingest -> score -> draft pipeline off in the background.
+
+    Delegates to the cron runner so manual triggers (admin button, model
+    switch) and the external cron share one implementation and one overlap
+    lock, and return immediately instead of blocking the request.
+    """
+    from monitoring.services import cron
+
+    return cron.trigger("pipeline")

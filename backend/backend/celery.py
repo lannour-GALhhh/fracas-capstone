@@ -13,10 +13,6 @@ app = Celery('backend')
 #   should have a `CELERY_` prefix.
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Periodic task schedule (see backend/schedules.py).
-from backend.schedules import BEAT_SCHEDULE  # noqa: E402
-app.conf.beat_schedule = BEAT_SCHEDULE
-
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
