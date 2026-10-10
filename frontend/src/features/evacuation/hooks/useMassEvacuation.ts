@@ -1,13 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { SusceptibilityLevel } from '@/features/gis/types/api'
 import { pingEvacuation } from '../api/evacuationApi'
 import { evacuationKeys } from './queryKeys'
 
 export const useMassEvacuation = () => {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (barangayIds: number[]) =>
-            Promise.allSettled(barangayIds.map(pingEvacuation)),
+        mutationFn: (items: { barangayId: number; zones: SusceptibilityLevel[] }[]) =>
+            Promise.allSettled(items.map((i) => pingEvacuation(i.barangayId, i.zones))),
         onSuccess: (results) => {
             queryClient.invalidateQueries({ queryKey: evacuationKeys.active() })
             const failed = results.filter((r) => r.status === 'rejected').length

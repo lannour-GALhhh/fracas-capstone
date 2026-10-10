@@ -23,13 +23,21 @@ EVAC_LIFTED_BODY = (
 )
 
 
-def send_evac_push(barangay) -> int:
+def send_evac_push(barangay, zones: list[dict] | None = None) -> int:
     from users.services.notify import broadcast
 
+    body = EVAC_PUSH_BODY
+    if zones:
+        names = ", ".join(z["level"].replace("_", " ") for z in zones)
+        body = (
+            f"An evacuation has been declared for the {names} flood-susceptibility "
+            "zone(s) of your barangay. If you are in one, proceed to the nearest "
+            "evacuation center."
+        )
     return broadcast(
         barangay,
         title=EVAC_PUSH_TITLE.format(name=barangay.name),
-        body=EVAC_PUSH_BODY,
+        body=body,
         dispatch_key=f"evac:{barangay.id}:{uuid4().hex}",
     )
 
@@ -69,58 +77,3 @@ def stand_down(evac: Evacuation, *, actor=None) -> Evacuation:
         field="barangay", new_value=f"{evac.barangay.name} (#{evac.barangay_id})",
     )
     return evac
-
-
-def open_automated(barangay) -> Evacuation | None:
-    """Open an automated evacuation for a barangay, firing the push once."""
-    evac, created = Evacuation.objects.get_or_create(
-        barangay=barangay,
-        status=Evacuation.Status.ACTIVE,
-        defaults={"trigger": Evacuation.Trigger.AUTOMATED},
-    )
-    if not created:
-        return None
-    send_evac_push(barangay)
-    log_change(
-        None, "evacuation", action="auto_opened",
-        field="barangay", new_value=f"{barangay.name} (#{barangay.id})",
-    )
-    return evac
-
-
-def reconcile() -> dict:
-    """Open/close automated evacuations to match the barangays currently critical."""
-    from barangays.models import Barangay
-    from risk_score.constants import RiskCategory
-    from risk_score.models import RiskScore
-
-    latest = (
-        RiskScore.objects.order_by("barangay_id", "-computed_at")
-        .distinct("barangay_id")
-        .values_list("barangay_id", "category")
-    )
-    band_ids = {barangay_id for barangay_id, category in latest if category == RiskCategory.CRITICAL}
-
-    active = list(
-        Evacuation.objects.filter(status=Evacuation.Status.ACTIVE).select_related("barangay")
-    )
-    active_barangay_ids = {e.barangay_id for e in active}
-
-    # Open: critical, not already open.
-    opened = 0
-    to_open = band_ids - active_barangay_ids
-    if to_open:
-        for barangay in Barangay.objects.filter(pk__in=to_open):
-            if open_automated(barangay) is not None:
-                opened += 1
-
-    # Close: automated evacuations whose hazard has cleared.
-    closed = 0
-    for evac in active:
-        if evac.trigger == Evacuation.Trigger.AUTOMATED and evac.barangay_id not in band_ids:
-            stand_down(evac)
-            closed += 1
-
-    if opened or closed:
-        snapshot.refresh()
-    return {"opened": opened, "closed": closed}

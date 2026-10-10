@@ -1,5 +1,14 @@
+import type { RiskCategory, SusceptibilityLevel } from '@/features/gis/types'
+
 /** Who opened the evacuation. */
 export type EvacuationTrigger = 'automated' | 'operator'
+
+/** A zone under evacuation, scored as of the declaration. Empty list = the whole barangay. */
+export interface EvacuationZone {
+    level: SusceptibilityLevel
+    score: number
+    category: RiskCategory
+}
 
 /** The resident's own reported status within an evacuation. */
 export type EvacuationStatusValue = 'notified' | 'moving' | 'safe' | 'unaccounted'
@@ -15,6 +24,7 @@ export interface MyEvacuation {
     barangay_id: number
     barangay_name: string
     trigger: EvacuationTrigger
+    zones: EvacuationZone[]
     opened_at: string
     my_status: EvacuationStatusValue | null
 }

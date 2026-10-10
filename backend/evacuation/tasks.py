@@ -10,13 +10,6 @@ ARCHIVE_RETENTION_DAYS = 30
 
 
 @shared_task
-def sync_evacuations() -> dict:
-    from .services.lifecycle import reconcile
-
-    return reconcile()
-
-
-@shared_task
 def purge_archived_centers() -> dict:
     """Hard-delete evacuation centers archived longer than the retention window."""
     from .models import EvacuationCenter

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Card } from '@/common/ui/card'
 import { Badge } from '@/common/ui/badge'
 import { cn } from '@/common/utils/utils'
+import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
 import { TRIGGER_LABELS } from '../constants/evacuation'
 import type { EvacuationAggregate } from '../types/api'
 import EvacProgress from './EvacProgress'
@@ -54,6 +55,15 @@ const EvacuationCard = ({ evac }: EvacuationCardProps) => {
                         <h2 className='text-lg font-semibold'>{evac.barangay.name}</h2>
                         <Badge variant='secondary'>{TRIGGER_LABELS[evac.trigger]}</Badge>
                     </div>
+                    {evac.zones.length > 0 && (
+                        <div className='flex flex-wrap gap-1'>
+                            {evac.zones.map((z) => (
+                                <Badge key={z.level} variant='outline'>
+                                    {SUSCEPTIBILITY_LABELS[z.level]} zone · {Math.round(z.score)}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
                     <span className='text-muted-foreground text-xs'>
                         Declared {formatDistanceToNow(new Date(evac.opened_at), { addSuffix: true })}
                         {' · '}

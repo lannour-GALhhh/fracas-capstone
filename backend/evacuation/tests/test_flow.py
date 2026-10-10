@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.core.cache import cache
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from audit.models import ConfigChangeLog
@@ -34,6 +35,7 @@ class EvacuationFlowTests(APITestCase):
     # --- operator ping ------------------------------------------------------
 
     def test_operator_ping_opens_evacuation_and_logs(self):
+        self._score([{"level": "high", "score": 55, "category": "high"}])
         self.client.force_authenticate(self.operator)
         resp = self.client.post(
             reverse("evacuation-ping"), {"barangay_id": self.barangay.id}
@@ -52,6 +54,7 @@ class EvacuationFlowTests(APITestCase):
         )
 
     def test_ping_is_idempotent(self):
+        self._score([{"level": "high", "score": 55, "category": "high"}])
         self.client.force_authenticate(self.operator)
         first = self.client.post(reverse("evacuation-ping"), {"barangay_id": self.barangay.id})
         second = self.client.post(reverse("evacuation-ping"), {"barangay_id": self.barangay.id})
@@ -59,6 +62,57 @@ class EvacuationFlowTests(APITestCase):
         self.assertEqual(second.status_code, 200)
         self.assertFalse(second.data["created"])
         self.assertEqual(Evacuation.objects.filter(barangay=self.barangay).count(), 1)
+
+    def _score(self, zones):
+        from risk_score.models import RiskScore
+
+        RiskScore.objects.create(
+            barangay=self.barangay, score=50, category="medium",
+            computed_at=timezone.now(), breakdown={"zones": zones},
+        )
+
+    def test_ping_without_zones_picks_high_and_critical_zones(self):
+        self._score([
+            {"level": "very_high", "score": 80, "category": "critical"},
+            {"level": "high", "score": 55, "category": "high"},
+            {"level": "low", "score": 10, "category": "low"},
+        ])
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(reverse("evacuation-ping"), {"barangay_id": self.barangay.id})
+        self.assertEqual(resp.status_code, 201)
+        zones = Evacuation.objects.get().zones
+        self.assertEqual([z["level"] for z in zones], ["very_high", "high"])
+
+    def test_ping_with_chosen_zones_uses_only_those(self):
+        self._score([
+            {"level": "very_high", "score": 80, "category": "critical"},
+            {"level": "low", "score": 10, "category": "low"},
+        ])
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(
+            reverse("evacuation-ping"),
+            {"barangay_id": self.barangay.id, "zones": ["low"]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual([z["level"] for z in Evacuation.objects.get().zones], ["low"])
+
+    def test_ping_skipped_when_no_zone_qualifies(self):
+        self._score([{"level": "low", "score": 10, "category": "low"}])
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(reverse("evacuation-ping"), {"barangay_id": self.barangay.id})
+        self.assertTrue(resp.data["skipped"])
+        self.assertFalse(Evacuation.objects.exists())
+
+    def test_ping_rejects_unknown_zone(self):
+        self._score([{"level": "low", "score": 10, "category": "low"}])
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(
+            reverse("evacuation-ping"),
+            {"barangay_id": self.barangay.id, "zones": ["high"]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
 
     def test_resident_cannot_ping(self):
         self.client.force_authenticate(self.residents[0])

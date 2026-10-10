@@ -64,6 +64,7 @@ def compute() -> list[dict]:
                 "evacuation_id": e.id,
                 "barangay": {"id": e.barangay_id, "name": e.barangay.name},
                 "trigger": e.trigger,
+                "zones": e.zones,
                 "opened_at": e.opened_at.isoformat(),
                 "roster": r,
                 "safe": safe,

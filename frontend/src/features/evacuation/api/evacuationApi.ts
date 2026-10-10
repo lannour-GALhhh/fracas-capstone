@@ -1,4 +1,5 @@
 import apiClient from '@/app/apiClient'
+import type { SusceptibilityLevel } from '@/features/gis/types/api'
 import type {
     EvacuationAggregate,
     EvacuationHistoryEntry,
@@ -28,9 +29,13 @@ export const getEvacuationHistory = async (
 }
 
 /** Operator ping: open (or reuse) an evacuation for a barangay. */
-export const pingEvacuation = async (barangayId: number): Promise<PingResult> => {
+export const pingEvacuation = async (
+    barangayId: number,
+    zones?: SusceptibilityLevel[],
+): Promise<PingResult> => {
     const { data } = await apiClient.post<PingResult>('/api/evacuation/evacuations/', {
         barangay_id: barangayId,
+        zones,
     })
     return data
 }
