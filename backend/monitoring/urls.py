@@ -6,6 +6,7 @@ from .settings_views import (
     PublicConfigView,
     RetentionPolicyView,
 )
+from .cron_views import CronJobView
 from .system_views import PipelineRunView, RetentionRunView, SystemStatusView
 from .views import LivenessView, ReadinessView, StatusView
 
@@ -13,6 +14,9 @@ urlpatterns = [
     path("health/", LivenessView.as_view()),
     path("health/ready/", ReadinessView.as_view()),
     path("health/status/", StatusView.as_view()),
+
+    # External cron triggers (secret-protected; see CRON_SECRET).
+    path("cron/<slug:job>/", CronJobView.as_view(), name="cron-job"),
 
     # Public branding + announcement banner (no auth).
     path("config/", PublicConfigView.as_view(), name="public-config"),

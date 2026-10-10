@@ -2,17 +2,10 @@
 
 from django.utils import timezone
 
-from backend.schedules import BEAT_SCHEDULE
+from backend.schedules import CRON_SCHEDULE
 
 from ..constants import SOURCE_RAINFALL, STALE_AFTER
 from . import health
-
-# Human-readable cadence per scheduled task (Beat crontabs aren't self-describing).
-CADENCE_LABELS = {
-    "scoring-pipeline-10min": "Every 10 minutes",
-    "cleanup-old-data-daily": "Daily at 03:00",
-    "purge-soft-deleted-flood-events-hourly": "Hourly",
-}
 
 
 def _stage(last_run, threshold=None):
@@ -50,11 +43,8 @@ def _pipeline_stages() -> dict:
 
 def _cadence() -> list[dict]:
     return [
-        {
-            "task": key,
-            "cadence": CADENCE_LABELS.get(key, str(entry["schedule"])),
-        }
-        for key, entry in BEAT_SCHEDULE.items()
+        {"task": key, "cadence": entry["label"]}
+        for key, entry in CRON_SCHEDULE.items()
     ]
 
 

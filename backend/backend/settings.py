@@ -65,7 +65,8 @@ SIMPLE_JWT = {
     "AUTH_COOKIE": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SECURE": False,
-    "AUTH_COOKIE_SAMESITE": "Lax",
+    # "None" is required when the SPA and API are on different sites (Vercel + Render).
+    "AUTH_COOKIE_SAMESITE": config("JWT_COOKIE_SAMESITE", default="Lax"),
 }
 
 # Email: delivered through Brevo when BREVO_API_KEY is set, otherwise printed to the log.
@@ -133,6 +134,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serves collected static files (admin CSS etc.) now that nginx is gone.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -183,6 +186,10 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD"),
         "HOST": config("DB_HOST"),
         "PORT": config("DB_PORT"),
+        # Neon (and most hosted Postgres) requires TLS: set DB_SSLMODE=require.
+        **({"OPTIONS": {"sslmode": config("DB_SSLMODE")}} if config("DB_SSLMODE", default="") else {}),
+        # Required behind Neon's pooled (pgbouncer) endpoint; harmless otherwise.
+        "DISABLE_SERVER_SIDE_CURSORS": config("DB_POOLED", default=False, cast=bool),
         # Build the test database from the PostGIS template so GIS types exist.
         "TEST": {"TEMPLATE": "template_postgis"},
     },
@@ -247,7 +254,8 @@ if TESTING:
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    # Whitenoise serves these in production (no nginx on Render).
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
 if MEDIA_STORAGE == "s3":
@@ -270,9 +278,14 @@ elif MEDIA_STORAGE == "cloudinary":
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CELERY_BROKER_URL = config("CELERY_BROKER_URL")
-# When true, tasks run inline (used by the test suite so .delay() executes eagerly).
-CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)
+# No worker/broker in production: .delay() runs the task inline in the calling
+# process. Set CELERY_TASK_ALWAYS_EAGER=False and a real broker URL only if a
+# worker is ever added back.
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="memory://")
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=True, cast=bool)
+
+# Shared secret the external cron service sends as X-Cron-Key. Empty = cron endpoints disabled.
+CRON_SECRET = config("CRON_SECRET", default="")
 
 LOG_LEVEL = config("LOG_LEVEL", default="INFO")
 

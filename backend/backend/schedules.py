@@ -1,32 +1,15 @@
-"""Celery Beat schedule. Single source of truth for periodic tasks."""
+"""Cadence of the periodic jobs. Single source of truth.
 
-from celery.schedules import crontab
+Jobs are fired over HTTP by an external scheduler (cron-job.org) hitting
+POST /api/cron/<job>/ with the X-Cron-Key header. Keys here must match
+`monitoring.services.cron.JOBS`; values are what the admin console displays
+and what to enter in cron-job.org.
+"""
 
-BEAT_SCHEDULE = {
-    "scoring-pipeline-10min": {
-        # Chains: fetch rainfall -> compute risk scores (so compute runs on
-        # fresh data). Runs every 10 minutes.
-        "task": "risk_score.tasks.run_scoring_pipeline",
-        "schedule": crontab(minute="*/10"),
-    },
-    "cleanup-old-data-daily": {
-        # Prune old rainfall / risk-score rows past their retention window.
-        "task": "monitoring.tasks.cleanup_old_data",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    "purge-soft-deleted-flood-events-hourly": {
-        # Hard-delete flood events soft-deleted past their 6h undo window.
-        "task": "flood_events.tasks.purge_deleted_flood_events",
-        "schedule": crontab(minute=0),
-    },
-    "purge-archived-flood-events-daily": {
-        # Hard-delete flood events archived more than 30 days ago.
-        "task": "flood_events.tasks.purge_archived_flood_events",
-        "schedule": crontab(hour=3, minute=45),
-    },
-    "purge-archived-evacuation-centers-daily": {
-        # Hard-delete evacuation centers archived more than 30 days ago.
-        "task": "evacuation.tasks.purge_archived_centers",
-        "schedule": crontab(hour=3, minute=30),
-    },
+CRON_SCHEDULE = {
+    "pipeline": {"cron": "*/10 * * * *", "label": "Every 10 minutes"},
+    "cleanup": {"cron": "0 3 * * *", "label": "Daily at 03:00"},
+    "purge-deleted-flood-events": {"cron": "0 * * * *", "label": "Hourly"},
+    "purge-archived-centers": {"cron": "30 3 * * *", "label": "Daily at 03:30"},
+    "purge-archived-flood-events": {"cron": "45 3 * * *", "label": "Daily at 03:45"},
 }

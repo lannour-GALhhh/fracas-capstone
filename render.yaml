@@ -1,0 +1,89 @@
+# Render Blueprint: New -> Blueprint -> pick this repo.
+# Neon (Postgres), Vercel (frontend) and cron-job.org are set up in their own
+# dashboards; their values are pasted into the `sync: false` vars below.
+services:
+  - type: web
+    name: fracas-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: sh build.sh
+    plan: free              # sleeps when idle; cron-job.org pings /api/health/ to keep it awake
+    healthCheckPath: /api/health/
+    envVars:
+      # --- Django ---
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        sync: false         # e.g. fracas-backend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false         # e.g. https://your-app.vercel.app (no trailing slash)
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false         # same as above
+      - key: FRONTEND_URL
+        sync: false         # https://your-app.vercel.app
+      - key: JWT_COOKIE_SAMESITE
+        value: "None"       # SPA (vercel.app) and API (onrender.com) are cross-site
+      - key: LOG_LEVEL
+        value: INFO
+
+      # --- Database (Neon) ---
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false         # use the pooled host (…-pooler.…neon.tech)
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_POOLED
+        value: "True"
+
+      # --- Redis (Render Key Value, defined below) ---
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: fracas-redis
+          property: connectionString
+
+      # --- No Celery worker: tasks run inline ---
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "True"
+
+      # --- External cron (cron-job.org) ---
+      - key: CRON_SECRET
+        generateValue: true # copy this value into the X-Cron-Key header on cron-job.org
+
+      # --- First admin account (created by build.sh if missing) ---
+      - key: FRACAS_ADMIN_USERNAME
+        sync: false
+      - key: FRACAS_ADMIN_PASSWORD
+        sync: false
+      - key: FRACAS_ADMIN_EMAIL
+        sync: false
+
+      # --- Providers / media (fill in what you use) ---
+      - key: SMS_PROVIDER
+        value: console
+      - key: PUSH_PROVIDER
+        value: console
+      - key: BREVO_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  - type: keyvalue
+    name: fracas-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []         # internal access only (the web service)
