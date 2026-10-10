@@ -26,6 +26,18 @@ export const getFloodEvents = async (
     return data
 }
 
+/** Every event matching the filters, walking all pages. */
+export const getAllFloodEvents = async (
+    filters: Omit<FloodEventFilters, 'page'> = {},
+): Promise<FloodEvent[]> => {
+    const all: FloodEvent[] = []
+    for (let page = 1; ; page++) {
+        const data = await getFloodEvents({ ...filters, page })
+        all.push(...data.results)
+        if (!data.next) return all
+    }
+}
+
 /** Full flood event: stored fields + response timeline + derived telemetry. */
 export const getFloodEvent = async (id: number): Promise<FloodEventDetail> => {
     const { data } = await apiClient.get<FloodEventDetail>(`/api/flood-events/${id}/`)

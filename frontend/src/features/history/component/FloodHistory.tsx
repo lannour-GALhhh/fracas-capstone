@@ -45,6 +45,7 @@ import BarangayMultiSelect from './BarangayMultiSelect'
 import ArchivedEventsDialog from './ArchivedEventsDialog'
 import FloodEventForm from './FloodEventForm'
 import UndoDeleteBanner from './UndoDeleteBanner'
+import ExportFloodHistoryButton from '../report/ExportFloodHistoryButton'
 import type { FloodSeverity } from '../types/api'
 
 const PAGE_SIZE = 25
@@ -138,14 +139,26 @@ const FloodHistory = () => {
                 ? `From ${format(range.from, 'LLL d, y')}`
                 : 'Any date'
 
-    const filters = {
-        page,
+    const baseFilters = {
         ...(severity !== 'all' && { severity }),
         ...(barangayIds.length > 0 && { barangay: barangayIds.join(',') }),
         ...(after && { occurred_after: after }),
         ...(before && { occurred_before: before }),
     }
-    const { data, isLoading, isError, refetch } = useFloodEvents(filters)
+    const filterLabels = [
+        ...(barangayIds.length > 0
+            ? [
+                  `Barangay: ${barangayOptions
+                      .filter((b) => barangayIds.includes(b.id))
+                      .map((b) => b.name)
+                      .join(', ')}`,
+              ]
+            : []),
+        ...(severity !== 'all' ? [`Severity: ${SEVERITY_LABELS[severity]}`] : []),
+        ...(range?.from ? [`From ${format(range.from, 'MMM d, yyyy')}`] : []),
+        ...(range?.to ? [`To ${format(range.to, 'MMM d, yyyy')}`] : []),
+    ]
+    const { data, isLoading, isError, refetch } = useFloodEvents({ page, ...baseFilters })
 
     const events = data?.results ?? []
     const count = data?.count ?? 0
@@ -253,6 +266,10 @@ const FloodHistory = () => {
                         Clear
                     </Button>
                 )}
+
+                <div className='ml-auto'>
+                    <ExportFloodHistoryButton filters={baseFilters} filterLabels={filterLabels} />
+                </div>
             </Card>
 
             <Table className='border-border border rounded'>

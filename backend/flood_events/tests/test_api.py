@@ -40,6 +40,13 @@ class FloodEventApiTests(APITestCase):
         self.assertEqual(resp.data["count"], 1)
         self.assertEqual(resp.data["results"][0]["barangay_name"], "Tumaga")
 
+    def test_filter_confirmed_only(self):
+        FloodEvent.objects.filter(barangay=self.b2).update(is_confirmed=False)
+        resp = self.client.get(reverse("flood-event-list"), {"confirmed": "true"})
+        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(resp.data["results"][0]["barangay_name"], "Tumaga")
+        self.assertIn("people_affected", resp.data["results"][0])
+
     def test_detail(self):
         event = FloodEvent.objects.filter(barangay=self.b1).first()
         resp = self.client.get(reverse("flood-event-detail", args=[event.id]))

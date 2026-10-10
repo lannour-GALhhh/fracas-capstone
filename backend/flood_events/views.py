@@ -62,6 +62,8 @@ class FloodEventListView(_OperatorWriteMixin, ListCreateAPIView):
             queryset = queryset.filter(barangay_id__in=ids)
         if severity := params.get("severity"):
             queryset = queryset.filter(severity=severity)
+        if params.get("confirmed") == "true":
+            queryset = queryset.filter(is_confirmed=True)
         # Date-range filter (inclusive), accepts ISO date or datetime.
         if after := _parse_dt(params.get("occurred_after")):
             queryset = queryset.filter(occurred_at__date__gte=after)

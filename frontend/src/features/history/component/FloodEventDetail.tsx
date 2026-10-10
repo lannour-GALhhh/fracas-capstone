@@ -17,6 +17,7 @@ import ChangeHistoryModal from './ChangeHistoryModal'
 import DeleteEventDialog from './DeleteEventDialog'
 import ResolveDialog from './ResolveDialog'
 import EvidenceReports from './EvidenceReports'
+import ExportFloodEventButton from '../report/ExportFloodEventButton'
 import {
     SEVERITY_COLORS,
     SEVERITY_LABELS,
@@ -173,8 +174,11 @@ const FloodEventDetail = () => {
                     {SEVERITY_LABELS[event.severity]}
                 </Badge>
                 <ConfirmationBadge event={event} isOperator={isOperator} />
+                <div className='ml-auto flex gap-2'>
+                    <ExportFloodEventButton event={event} />
+                </div>
                 {isOperator && (
-                    <div className='ml-auto flex gap-2'>
+                    <div className='flex gap-2'>
                         <ChangeHistoryModal eventId={event.id} />
                         <FloodEventForm
                             event={event}

@@ -39,6 +39,8 @@ class FloodEventSerializer(serializers.ModelSerializer):
             "severity",
             "water_depth_m",
             "peak_rainfall_mm_hr",
+            "people_affected",
+            "people_evacuated",
             "source",
             "source_type",
             "reported_by_name",
