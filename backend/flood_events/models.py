@@ -171,15 +171,42 @@ class AutoDetectConfig(models.Model):
 
 def report_image_path(instance, filename):
     """Group evidence images per flood event in the storage bucket."""
-    return f"flood_reports/{instance.report.flood_event_id}/{filename}"
+    return f"flood_reports/{instance.report.flood_event_id or 'unlinked'}/{filename}"
+
+
+class ReportStatus(models.TextChoices):
+    PENDING = "pending", "Pending review"
+    VERIFIED = "verified", "Verified"
+    REJECTED = "rejected", "Rejected"
 
 
 class FloodEventReport(models.Model):
-    """Operator-authored evidence report attached to a flood event."""
+    """Photo evidence report: operator-authored, or submitted by a resident.
+
+    Resident submissions start ``pending`` and may be unlinked from any event
+    until an operator verifies them; only verified reports count as evidence.
+    """
 
     flood_event = models.ForeignKey(
-        FloodEvent, on_delete=models.CASCADE, related_name="reports"
+        FloodEvent, on_delete=models.CASCADE, related_name="reports", null=True, blank=True
     )
+    barangay = models.ForeignKey(
+        Barangay, on_delete=models.CASCADE, related_name="flood_reports", null=True, blank=True
+    )
+    status = models.CharField(
+        max_length=10, choices=ReportStatus.choices, default=ReportStatus.VERIFIED, db_index=True
+    )
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_flood_reports",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=255, blank=True)
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -196,7 +223,7 @@ class FloodEventReport(models.Model):
         indexes = [models.Index(fields=["flood_event", "-occurred_at"])]
 
     def __str__(self):
-        return f"Report on event #{self.flood_event_id} @ {self.occurred_at:%Y-%m-%d %H:%M}"
+        return f"Report ({self.status}) on event #{self.flood_event_id} @ {self.occurred_at:%Y-%m-%d %H:%M}"
 
 
 class FloodEventReportImage(models.Model):

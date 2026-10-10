@@ -1,9 +1,12 @@
 """Flood-history API. Reads are authenticated; writes are operator-only."""
 
+from datetime import timedelta
+
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
     ListCreateAPIView,
@@ -17,7 +20,7 @@ from rest_framework.views import APIView
 from poi.views import is_operator_user
 from users.permissions import IsAdmin, IsOperator
 
-from .models import AutoDetectConfig, FloodEvent, FloodEventChange, FloodEventReport
+from .models import AutoDetectConfig, FloodEvent, FloodEventChange, FloodEventReport, ReportStatus
 from .serializers import (
     AutoDetectConfigSerializer,
     FloodEventChangeSerializer,
@@ -25,9 +28,11 @@ from .serializers import (
     FloodEventReportSerializer,
     FloodEventSerializer,
     FloodEventWriteSerializer,
+    FloodReportReviewSerializer,
+    FloodReportSubmitSerializer,
     MyFloodActivitySerializer,
 )
-from .services import changes
+from .services import changes, report_linking
 
 
 class _OperatorWriteMixin:
@@ -215,14 +220,18 @@ class FloodEventReportsView(_OperatorWriteMixin, ListCreateAPIView):
 
     def get_queryset(self):
         return (
-            FloodEventReport.objects.filter(flood_event_id=self.kwargs["pk"])
-            .select_related("reporter")
+            FloodEventReport.objects.filter(
+                flood_event_id=self.kwargs["pk"], status=ReportStatus.VERIFIED
+            )
+            .select_related("reporter", "barangay", "reviewed_by")
             .prefetch_related("images")
         )
 
     def perform_create(self, serializer):
         event = get_object_or_404(FloodEvent, pk=self.kwargs["pk"])
-        report = serializer.save(flood_event=event, reporter=self.request.user)
+        report = serializer.save(
+            flood_event=event, barangay=event.barangay, reporter=self.request.user
+        )
         changes.log_action(
             event,
             FloodEventChange.Action.UPDATED,
@@ -230,3 +239,94 @@ class FloodEventReportsView(_OperatorWriteMixin, ListCreateAPIView):
             field="report",
             new_value=f"Added evidence report ({report.images.count()} photo(s))",
         )
+
+
+_REPORT_QS = FloodEventReport.objects.select_related(
+    "reporter", "barangay", "reviewed_by"
+).prefetch_related("images")
+
+# Residents can't flood the review queue: cap submissions per rolling day.
+MAX_SUBMISSIONS_PER_DAY = 20
+
+
+class FloodReportListCreateView(ListCreateAPIView):
+    """Resident photo reports. Operators see the whole queue; residents their own."""
+
+    serializer_class = FloodReportSubmitSerializer
+
+    def get_serializer_class(self):
+        return FloodReportSubmitSerializer if self.request.method == "POST" else FloodEventReportSerializer
+
+    def get_queryset(self):
+        user, params = self.request.user, self.request.query_params
+        queryset = _REPORT_QS.order_by("-created_at")
+        if not is_operator_user(user):
+            return queryset.filter(reporter=user)
+        if (status_ := params.get("status")) in ReportStatus.values:
+            queryset = queryset.filter(status=status_)
+        ids = [b for b in (params.get("barangay") or "").split(",") if b.strip().isdigit()]
+        if ids:
+            queryset = queryset.filter(barangay_id__in=ids)
+        if params.get("unlinked") == "true":
+            queryset = queryset.filter(flood_event__isnull=True)
+        # Date-sent range (inclusive), ISO date or datetime.
+        if after := _parse_dt(params.get("sent_after")):
+            queryset = queryset.filter(created_at__date__gte=after)
+        if before := _parse_dt(params.get("sent_before")):
+            queryset = queryset.filter(created_at__date__lte=before)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        since = timezone.now() - timedelta(days=1)
+        if FloodEventReport.objects.filter(reporter=request.user, created_at__gte=since).count() >= MAX_SUBMISSIONS_PER_DAY:
+            return Response(
+                {"detail": "Daily report limit reached. Please try again tomorrow."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        data = serializer.validated_data
+        barangay = data.get("barangay")
+        if barangay is None:  # located by GPS
+            barangay = report_linking.barangay_at(data["latitude"], data["longitude"])
+            if barangay is None:
+                raise ValidationError({"latitude": "That location isn't inside any Zamboanga City barangay."})
+        event = report_linking.find_event(barangay.id, data["occurred_at"])
+        report = serializer.save(
+            barangay=barangay,
+            flood_event=event,
+            reporter=self.request.user,
+            status=ReportStatus.PENDING,
+        )
+        serializer.instance = _REPORT_QS.get(pk=report.pk)
+
+
+class FloodReportReviewView(APIView):
+    """Operator verifies or rejects a report, optionally (re)linking it to an event."""
+
+    permission_classes = [IsOperator]
+
+    def post(self, request, pk):
+        report = get_object_or_404(_REPORT_QS, pk=pk)
+        form = FloodReportReviewSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        data = form.validated_data
+        if "flood_event" in data:
+            report.flood_event = data["flood_event"]
+        if data["status"] == ReportStatus.VERIFIED and report.flood_event is None:
+            raise ValidationError({"flood_event": "Link a flood event before verifying."})
+        report.status = data["status"]
+        report.review_note = data.get("review_note", report.review_note)
+        report.reviewed_by = request.user
+        report.reviewed_at = timezone.now()
+        report.save()
+        if report.status == ReportStatus.VERIFIED:
+            changes.log_action(
+                report.flood_event,
+                FloodEventChange.Action.UPDATED,
+                request.user,
+                field="report",
+                new_value=f"Verified resident report #{report.pk} ({report.images.count()} photo(s))",
+            )
+        return Response(FloodEventReportSerializer(report, context={"request": request}).data)

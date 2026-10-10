@@ -235,8 +235,12 @@ class FloodEventReportImageSerializer(serializers.ModelSerializer):
 class FloodEventReportSerializer(serializers.ModelSerializer):
     """An evidence report with its photos."""
 
+    MAX_IMAGES = 6
+
     images = FloodEventReportImageSerializer(many=True, read_only=True)
     reporter_name = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.SerializerMethodField()
+    barangay_name = serializers.CharField(source="barangay.name", read_only=True, default=None)
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=False
     )
@@ -246,18 +250,40 @@ class FloodEventReportSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "flood_event",
+            "barangay",
+            "barangay_name",
+            "status",
+            "latitude",
+            "longitude",
             "reporter",
             "reporter_name",
             "description",
             "occurred_at",
             "created_at",
+            "reviewed_by_name",
+            "reviewed_at",
+            "review_note",
             "images",
             "uploaded_images",
         ]
-        read_only_fields = ["flood_event", "reporter"]
+        read_only_fields = [
+            "flood_event",
+            "status",
+            "reporter",
+            "reviewed_at",
+            "review_note",
+        ]
 
     def get_reporter_name(self, obj):
         return display_name(obj.reporter)
+
+    def get_reviewed_by_name(self, obj):
+        return display_name(obj.reviewed_by)
+
+    def validate_uploaded_images(self, images):
+        if len(images) > self.MAX_IMAGES:
+            raise serializers.ValidationError(f"At most {self.MAX_IMAGES} photos per report.")
+        return images
 
     def create(self, validated_data):
         images = validated_data.pop("uploaded_images", [])
@@ -266,3 +292,29 @@ class FloodEventReportSerializer(serializers.ModelSerializer):
             [FloodEventReportImage(report=report, image=image) for image in images]
         )
         return report
+
+
+class FloodReportSubmitSerializer(FloodEventReportSerializer):
+    """Resident submission: needs photos, and a barangay or a GPS point to locate it."""
+
+    def validate(self, attrs):
+        if not attrs.get("uploaded_images"):
+            raise serializers.ValidationError({"uploaded_images": "Attach at least one photo."})
+        lat, lng = attrs.get("latitude"), attrs.get("longitude")
+        if (lat is None) != (lng is None):
+            raise serializers.ValidationError("Provide both latitude and longitude.")
+        if lat is not None and not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise serializers.ValidationError("Coordinates out of range.")
+        if attrs.get("barangay") is None and lat is None:
+            raise serializers.ValidationError({"barangay": "Pick a barangay or share your location."})
+        return attrs
+
+
+class FloodReportReviewSerializer(serializers.Serializer):
+    """Operator decision on a pending report."""
+
+    status = serializers.ChoiceField(choices=["verified", "rejected"])
+    flood_event = serializers.PrimaryKeyRelatedField(
+        queryset=FloodEvent.objects.filter(deleted_at__isnull=True), allow_null=True, required=False
+    )
+    review_note = serializers.CharField(max_length=255, allow_blank=True, required=False)

@@ -54,6 +54,13 @@
           "locationWhenInUsePermission": "Allow FRACAS to detect which barangay you're in and find the nearest evacuation center."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow FRACAS to attach flood photos to your report.",
+          "cameraPermission": "Allow FRACAS to take a photo of the flooding you're reporting."
+        }
+      ],
       "@maplibre/maplibre-react-native",
       "expo-dev-client",
       [
