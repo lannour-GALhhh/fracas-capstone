@@ -7,6 +7,7 @@ const GROUP_URL: Record<SettingsGroup, string> = {
     organization: '/api/admin/settings/organization/',
     toggles: '/api/admin/settings/toggles/',
     registration: '/api/admin/settings/registration/',
+    rainfall: '/api/admin/settings/rainfall/',
 }
 
 export const getSettings = async <G extends SettingsGroup>(

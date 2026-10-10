@@ -14,6 +14,7 @@ import RouteFallback from '@/common/components/RouteFallback'
 const Dashboard = lazy(() => import('@/features/gis/Dashboard'))
 const FloodHistory = lazy(() => import('@/features/history/component/FloodHistory'))
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
+const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
 const AccountPage = lazy(() => import('@/features/user/AccountPage'))
 const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage'))
 const CentersPage = lazy(() => import('@/features/centers/CentersPage'))
@@ -41,6 +42,7 @@ const Routers = () => {
           <Route path='/' element={<Dashboard />} />
           <Route path='/history' element={<FloodHistory />} />
           <Route path='/history/:id' element={<FloodEventDetail />} />
+          <Route path='/reports' element={<OperatorRoute><ReportsPage /></OperatorRoute>} />
           <Route path='/me' element={<AccountPage />} />
           <Route path='/evacuation' element={<OperatorRoute><EvacuationPage /></OperatorRoute>} />
           <Route path='/evacuation-centers' element={<OperatorRoute><CentersPage /></OperatorRoute>} />

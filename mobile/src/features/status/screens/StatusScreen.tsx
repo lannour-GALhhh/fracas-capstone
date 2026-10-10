@@ -70,7 +70,21 @@ export function StatusScreen() {
 
     // Report this device's status as the resident moves (auto) + power the
     // "I've reached safety" button (manual).
-    const reporter = useEvacuationReporter(homeEvac, coords, nearest, riskMap.features)
+    // Standing in the barangay but outside every evacuated zone -> "stand by".
+    const outsideZones = useMemo(() => {
+        const here = localized.data
+        if (!homeEvac || !homeEvac.zones?.length || !here) return false
+        if (here.barangay.id !== homeEvac.barangay_id) return false
+        const level = here.localized?.level
+        return !homeEvac.zones.some((z) => z.level === level)
+    }, [homeEvac, localized.data])
+
+    const reporter = useEvacuationReporter(
+        outsideZones ? null : homeEvac,
+        coords,
+        nearest,
+        riskMap.features,
+    )
 
     // Hide the Home card when the resident is already standing in their home
     // barangay — the two cards would be identical.
@@ -171,6 +185,7 @@ export function StatusScreen() {
                         onMarkSafe={reporter.markSafe}
                         isReporting={reporter.isReporting}
                         locationEnabled={locStatus === 'granted'}
+                        outsideZones={outsideZones}
                     />
                 </View>
             ) : null}

@@ -54,6 +54,8 @@ export interface FloodEvent {
     severity: FloodSeverity
     water_depth_m: number | null
     peak_rainfall_mm_hr: number | null
+    people_affected: number | null
+    people_evacuated: number | null
     source: string
     source_type: FloodSourceType
     reported_by_name: string | null
@@ -141,6 +143,8 @@ export interface FloodEventFilters {
     page?: number
     /** Operator-only: list archived events instead of live ones. */
     archived?: boolean
+    /** Only operator-confirmed events (drops unconfirmed auto-drafts). */
+    confirmed?: boolean
 }
 
 /** One timeline row in a write payload. */

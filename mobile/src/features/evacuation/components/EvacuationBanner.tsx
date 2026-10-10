@@ -12,6 +12,8 @@ interface Props {
     onMarkSafe: () => void
     isReporting: boolean
     locationEnabled: boolean
+    /** The resident is in this barangay but outside every zone being evacuated. */
+    outsideZones?: boolean
 }
 
 const formatDistance = (km: number): string =>
@@ -28,8 +30,26 @@ export function EvacuationBanner({
     onMarkSafe,
     isReporting,
     locationEnabled,
+    outsideZones = false,
 }: Props) {
     const theme = useTheme()
+
+    if (outsideZones) {
+        const names = evacuation.zones.map((z) => z.level.replace('_', ' ')).join(', ')
+        return (
+            <Card style={{ ...styles.card, backgroundColor: RISK_COLORS.high, borderColor: RISK_COLORS.high }}>
+                <Text variant="label" style={styles.white}>
+                    Stand by
+                </Text>
+                <Text variant="subtitle" style={styles.white}>
+                    {evacuation.barangay_name}
+                </Text>
+                <Text variant="body" style={styles.white}>
+                    {`The ${names} flood zone(s) are under evacuation. Your location is outside them, but stay alert and be ready to move if told to.`}
+                </Text>
+            </Card>
+        )
+    }
 
     if (evacuation.my_status === 'safe') {
         return (

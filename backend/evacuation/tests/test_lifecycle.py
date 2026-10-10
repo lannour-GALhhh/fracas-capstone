@@ -1,4 +1,4 @@
-"""Automated open/close reconciliation + retention purge."""
+"""Stand-down, notifications + retention purge."""
 
 from datetime import timedelta
 
@@ -11,9 +11,7 @@ from django.utils import timezone
 from audit.models import ConfigChangeLog
 from barangays.models import Barangay
 from evacuation.models import Evacuation, EvacuationStatus
-from evacuation.services.lifecycle import reconcile
-from risk_score.constants import RiskCategory
-from risk_score.models import RiskScore
+from evacuation.services.lifecycle import send_evac_push, stand_down
 from users.models import Subscription
 
 User = get_user_model()
@@ -26,95 +24,48 @@ def _barangay(name="Tumaga", code="T1"):
     )
 
 
-class ReconcileTests(TestCase):
+class StandDownTests(TestCase):
     def setUp(self):
         cache.clear()  # dashboard cache is process-global
         self.barangay = _barangay()
-        self._tick = 0
         # A roster so the frozen final counts have a denominator.
         for i in range(3):
             u = User.objects.create_user(f"r{i}", password="pw")
             Subscription.objects.create(user=u, barangay=self.barangay)
 
-    def _set_level(self, level):
-        self._tick += 1
-        RiskScore.objects.create(
+    def _open(self, zones=None):
+        return Evacuation.objects.create(
             barangay=self.barangay,
-            score=90 if level == RiskCategory.CRITICAL else 40,
-            category=level,
-            computed_at=timezone.now() + timedelta(seconds=self._tick),
+            trigger=Evacuation.Trigger.OPERATOR,
+            zones=zones or [],
         )
 
-    def test_opens_automated_evacuation_for_barangay_in_band(self):
-        self._set_level(RiskCategory.CRITICAL)
-        result = reconcile()
+    def test_stand_down_freezes_counts_and_audits(self):
+        evac = self._open()
+        stand_down(evac)
 
-        self.assertEqual(result["opened"], 1)
-        evac = Evacuation.objects.get(barangay=self.barangay, status="active")
-        self.assertEqual(evac.trigger, Evacuation.Trigger.AUTOMATED)
-        self.assertIsNone(evac.triggered_by)
-        self.assertTrue(
-            ConfigChangeLog.objects.filter(
-                target="evacuation", action="auto_opened", actor__isnull=True
-            ).exists()
-        )
-
-    def test_reconcile_is_idempotent(self):
-        self._set_level(RiskCategory.CRITICAL)
-        self.assertEqual(reconcile()["opened"], 1)
-        self.assertEqual(reconcile()["opened"], 0)  # already open — no duplicate
-        self.assertEqual(Evacuation.objects.filter(barangay=self.barangay).count(), 1)
-
-    def test_below_band_opens_nothing(self):
-        self._set_level(RiskCategory.HIGH)  # only CRITICAL triggers an automated evacuation
-        self.assertEqual(reconcile()["opened"], 0)
-
-    def test_hazard_clearing_stands_down_automated_evacuation(self):
-        # Open via the reconciler, then drop the barangay out of the band.
-        self._set_level(RiskCategory.CRITICAL)
-        reconcile()
-        self._set_level(RiskCategory.LOW)
-
-        result = reconcile()
-        self.assertEqual(result["closed"], 1)
-        evac = Evacuation.objects.get(barangay=self.barangay)
+        evac.refresh_from_db()
         self.assertEqual(evac.status, Evacuation.Status.STOOD_DOWN)
         self.assertIsNotNone(evac.closed_at)
-        self.assertEqual(evac.final_roster, 3)  # counts frozen on close
+        self.assertEqual(evac.final_roster, 3)
         self.assertTrue(
-            ConfigChangeLog.objects.filter(
-                target="evacuation", action="stood_down", actor__isnull=True
-            ).exists()
+            ConfigChangeLog.objects.filter(target="evacuation", action="stood_down").exists()
         )
 
-    def test_operator_evacuation_is_never_auto_closed(self):
-        Evacuation.objects.create(
-            barangay=self.barangay, trigger=Evacuation.Trigger.OPERATOR
-        )
-        self._set_level(RiskCategory.LOW)  # not in band
-
-        self.assertEqual(reconcile()["closed"], 0)
-        self.assertTrue(
-            Evacuation.objects.filter(barangay=self.barangay, status="active").exists()
-        )
-
-    def test_opening_notifies_every_subscriber_in_app(self):
+    def test_opening_push_notifies_every_subscriber_and_names_zones(self):
         from users.models import Notification
 
-        self._set_level(RiskCategory.CRITICAL)
-        reconcile()
+        send_evac_push(self.barangay, [{"level": "very_high", "score": 80, "category": "critical"}])
 
         notes = Notification.objects.filter(barangay=self.barangay)
         self.assertEqual(notes.count(), 3)  # one per subscriber
         self.assertTrue(notes.first().title.startswith("Evacuate now"))
+        self.assertIn("very high", notes.first().body)
 
     def test_stand_down_sends_an_all_clear_to_subscribers(self):
         from users.models import Notification
 
-        self._set_level(RiskCategory.CRITICAL)
-        reconcile()
-        self._set_level(RiskCategory.LOW)
-        reconcile()  # stands the automated evacuation down
+        stand_down(self._open())
 
         lifted = Notification.objects.filter(
             barangay=self.barangay, title__startswith="Evacuation lifted"

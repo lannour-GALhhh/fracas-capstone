@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { useTheme } from '@/common/theme'
 import { Icon, type IconName } from '@/common/ui'
 import { NotificationBell } from '@/features/alerts/components/NotificationBell'
-import { useUnreadCount } from '@/features/alerts/hooks/useUnreadCount'
 
 /** The one navigator that exposes `openDrawer` — the outer root drawer. */
 type DrawerNavigation = { openDrawer: () => void }
@@ -28,9 +27,9 @@ function MenuButton() {
     )
 }
 
-const TAB_ICONS: Record<'status' | 'alerts' | 'toolkit' | 'account', [IconName, IconName]> = {
+const TAB_ICONS: Record<'status' | 'reports' | 'toolkit' | 'account', [IconName, IconName]> = {
     status: ['map', 'map-outline'],
-    alerts: ['notifications', 'notifications-outline'],
+    reports: ['camera', 'camera-outline'],
     toolkit: ['medkit', 'medkit-outline'],
     account: ['person-circle', 'person-circle-outline'],
 }
@@ -57,8 +56,6 @@ function TabIcon({
  */
 export default function TabsLayout() {
     const theme = useTheme()
-    const unread = useUnreadCount()
-    const unreadCount = unread.data ?? 0
 
     return (
         <Tabs
@@ -92,15 +89,16 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="alerts"
+                name="reports"
                 options={{
-                    title: 'Notifications',
-                    tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+                    title: 'Reports',
                     tabBarIcon: ({ focused, color, size }) => (
-                        <TabIcon name="alerts" focused={focused} color={color as string} size={size} />
+                        <TabIcon name="reports" focused={focused} color={color as string} size={size} />
                     ),
                 }}
             />
+            {/* Alerts live in the header bell; the route stays for its "See all alerts" link. */}
+            <Tabs.Screen name="alerts" options={{ href: null, title: 'Notifications' }} />
             <Tabs.Screen
                 name="toolkit"
                 options={{

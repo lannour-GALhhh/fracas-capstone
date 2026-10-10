@@ -5,13 +5,16 @@ import {
     Dialog,
     DialogClose,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
+import { useZoneRisk } from '@/features/gis/hooks/useZoneRisk'
+import type { SusceptibilityLevel } from '@/features/gis/types/api'
 import { usePingEvacuation } from '../hooks/usePingEvacuation'
+import { zoneRows } from '../utils/zones'
+import ZonePicker from './ZonePicker'
 
 interface PingEvacuationDialogProps {
     barangayId: number
@@ -27,14 +30,22 @@ const PingEvacuationDialog = ({
 }: PingEvacuationDialogProps) => {
     const [open, setOpen] = useState(false)
     const ping = usePingEvacuation()
+    const { data: lookup } = useZoneRisk()
+    const rows = zoneRows(barangayId, lookup)
+    // null = untouched: default to every High/Critical zone.
+    const [picked, setPicked] = useState<SusceptibilityLevel[] | null>(null)
+    const selected = picked ?? rows.filter((r) => r.qualifies).map((r) => r.level)
 
     const onOpenChange = (next: boolean) => {
         setOpen(next)
-        if (next) ping.reset()
+        if (next) {
+            ping.reset()
+            setPicked(null)
+        }
     }
 
     const handleConfirm = () => {
-        ping.mutate(barangayId, { onSuccess: () => setOpen(false) })
+        ping.mutate({ barangayId, zones: selected }, { onSuccess: () => setOpen(false) })
     }
 
     return (
@@ -53,12 +64,9 @@ const PingEvacuationDialog = ({
                         <AlertTriangle className='size-4' />
                         Declare evacuation — {barangayName}?
                     </DialogTitle>
-                    <DialogDescription>
-                        Sends an <span className='font-medium'>evacuate-now</span> alert to every
-                        subscriber in {barangayName} and starts tracking who reaches safety. Stand
-                        it down from the Evacuations page.
-                    </DialogDescription>
                 </DialogHeader>
+
+                <ZonePicker rows={rows} selected={selected} onChange={setPicked} />
 
                 {ping.isError && (
                     <p className='text-destructive text-sm'>Couldn&apos;t declare it. Please try again.</p>
@@ -70,7 +78,7 @@ const PingEvacuationDialog = ({
                         type='button'
                         variant='destructive'
                         className='cursor-pointer'
-                        disabled={ping.isPending}
+                        disabled={ping.isPending || selected.length === 0}
                         onClick={handleConfirm}
                     >
                         <Siren className='size-4' />

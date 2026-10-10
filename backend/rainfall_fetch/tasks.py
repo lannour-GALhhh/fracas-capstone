@@ -11,7 +11,7 @@ from django.utils import timezone
 from barangays.models import Barangay
 from monitoring.constants import SOURCE_RAINFALL
 from monitoring.services.recorder import record_failure, record_success
-from .models import HourlyRainfall, Rainfall
+from .models import HourlyRainfall, Rainfall, RainfallSettings
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +34,22 @@ INTENSITY_PER_STEP = 4
 FORECAST_STEPS_MIN = [15 * n for n in range(1, 17)]
 
 
-def hourly_url(latitudes: str, longitudes: str) -> str:
+def hourly_url(latitudes: str, longitudes: str, model_param: str = "") -> str:
     # Only used by `backfill_rainfall_history`; the regular fetch no longer asks for history.
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
         f"&current=precipitation&hourly=precipitation"
-        f"&past_days=7&forecast_days=1"
+        f"&past_days=7&forecast_days=1{model_param}"
     )
 
 
-def minutely_url(latitudes: str, longitudes: str) -> str:
+def minutely_url(latitudes: str, longitudes: str, model_param: str = "") -> str:
     # `current` and `hourly` ride along so the regular fetch needs just this one request per chunk.
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
-        f"&current=precipitation&minutely_15=precipitation&forecast_days=1"
+        f"&current=precipitation&minutely_15=precipitation&forecast_days=1{model_param}"
     )
 
 
@@ -180,6 +180,7 @@ def fetch_rainfall_information():
     hour = timestamp.replace(minute=0, second=0, microsecond=0)
     parsed_by_barangay = {}  # barangay -> (parsed forecast, mm in the hour ending `hour`, or None)
 
+    model_param = RainfallSettings.cached().model_param
     groups = _query_groups(barangays)
     chunks = list(_chunked(groups, CHUNK_SIZE))
     for chunk_num, chunk in enumerate(chunks):
@@ -187,7 +188,7 @@ def fetch_rainfall_information():
         lons = ",".join(str(g["lon"]) for g in chunk)
 
         try:
-            batch = _get_with_retry(minutely_url(lats, lons)).json()
+            batch = _get_with_retry(minutely_url(lats, lons, model_param)).json()
             # A single-location batch comes back as an object, not a list.
             if isinstance(batch, dict):
                 batch = [batch]

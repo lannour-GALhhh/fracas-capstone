@@ -108,6 +108,7 @@ const ROLE_RANK: Record<Role, number> = { resident: 0, operator: 1, admin: 2 }
 const NAV_LINKS: { name: string; link: string; minRole: Role }[] = [
     { name: 'Dashboard', link: '/', minRole: 'resident' },
     { name: 'Flood History', link: '/history', minRole: 'resident' },
+    { name: 'Reports', link: '/reports', minRole: 'operator' },
     { name: 'Evacuations', link: '/evacuation', minRole: 'operator' },
     { name: 'Evacuation Centers', link: '/evacuation-centers', minRole: 'operator' },
     { name: 'Accounts', link: '/accounts', minRole: 'admin' },

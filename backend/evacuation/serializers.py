@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
+from barangays.constants import SusceptibilityLevel
 from barangays.models import Barangay
 
 from .models import (
@@ -156,6 +157,13 @@ class PingEvacuationSerializer(serializers.Serializer):
     """Operator ping input — the barangay to open an evacuation for."""
 
     barangay_id = serializers.IntegerField()
+    # Susceptibility levels of the zones to evacuate; omitted = every zone
+    # currently scoring High or Critical.
+    zones = serializers.ListField(
+        child=serializers.ChoiceField(choices=SusceptibilityLevel.choices),
+        required=False,
+        allow_empty=False,
+    )
 
 
 class EvacuationHistorySerializer(serializers.ModelSerializer):
@@ -171,6 +179,7 @@ class EvacuationHistorySerializer(serializers.ModelSerializer):
             "id",
             "barangay",
             "trigger",
+            "zones",
             "triggered_by_name",
             "opened_at",
             "closed_at",

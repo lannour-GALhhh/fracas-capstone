@@ -129,6 +129,7 @@ from .serializers import (
     PingEvacuationSerializer,
 )
 from .services import lifecycle, snapshot
+from .services import zones as zone_service
 
 
 class EvacuationReportView(APIView):
@@ -212,6 +213,7 @@ class MyEvacuationsView(APIView):
                     "barangay_id": e.barangay_id,
                     "barangay_name": e.barangay.name,
                     "trigger": e.trigger,
+                    "zones": e.zones,
                     "opened_at": e.opened_at,
                     "my_status": my_status.get(e.id),
                 }
@@ -278,19 +280,35 @@ class PingEvacuationView(APIView):
         serializer.is_valid(raise_exception=True)
         barangay = get_object_or_404(Barangay, pk=serializer.validated_data["barangay_id"])
 
+        zones = zone_service.resolve(barangay, serializer.validated_data.get("zones"))
+        if zones is None:
+            return Response(
+                {"zones": ["One or more zones don't exist in this barangay."]},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        if not zones:
+            # Nothing in this barangay scores High or Critical right now.
+            return Response(
+                {"evacuation_id": None, "created": False, "skipped": True},
+                status=http_status.HTTP_200_OK,
+            )
+
         evac, created = Evacuation.objects.get_or_create(
             barangay=barangay,
             status=Evacuation.Status.ACTIVE,
             defaults={
                 "trigger": Evacuation.Trigger.OPERATOR,
                 "triggered_by": request.user,
+                "zones": zones,
             },
         )
         if created:
-            lifecycle.send_evac_push(barangay)
+            lifecycle.send_evac_push(barangay, zones)
             log_change(
                 request.user, "evacuation", action="pinged",
-                field="barangay", new_value=f"{barangay.name} (#{barangay.id})",
+                field="barangay",
+                new_value=f"{barangay.name} (#{barangay.id}): "
+                + ", ".join(z["level"] for z in zones),
             )
             snapshot.refresh()
 

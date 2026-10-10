@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AlertTriangle, ArrowLeft, Siren } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import {
@@ -7,9 +8,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/common/ui/dialog'
-import { CATEGORY_LABELS, RISK_TEXT_COLORS } from '@/features/gis/constants/risk'
-import type { RiskCategory } from '@/features/gis/types/api'
+import { useZoneRisk } from '@/features/gis/hooks/useZoneRisk'
+import type { RiskCategory, SusceptibilityLevel } from '@/features/gis/types/api'
 import { useMassEvacuation } from '../hooks/useMassEvacuation'
+import { zoneRows } from '../utils/zones'
+import ZonePicker from './ZonePicker'
 
 export interface MassEvacuationTarget {
     id: number
@@ -25,43 +28,56 @@ interface Props {
     onDone: () => void
 }
 
+/** Same zone selection as the single ping, repeated per selected barangay. */
 const MassEvacuationDialog = ({ open, targets, onOpenChange, onDone }: Props) => {
     const mass = useMassEvacuation()
+    const { data: lookup } = useZoneRisk()
+    // Per barangay; absent = untouched, so default to its High/Critical zones.
+    const [picked, setPicked] = useState<Record<number, SusceptibilityLevel[]>>({})
+
+    const items = targets.map((t) => {
+        const rows = zoneRows(t.id, lookup)
+        const selected = picked[t.id] ?? rows.filter((r) => r.qualifies).map((r) => r.level)
+        return { target: t, rows, selected }
+    })
+
+    const handleOpenChange = (next: boolean) => {
+        if (next) {
+            mass.reset()
+            setPicked({})
+        }
+        onOpenChange(next)
+    }
 
     const handleProceed = () =>
         mass.mutate(
-            targets.map((t) => t.id),
+            items.map((i) => ({ barangayId: i.target.id, zones: i.selected })),
             { onSuccess: onDone },
         )
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className='sm:max-w-md'>
                 <DialogHeader>
                     <DialogTitle className='text-destructive flex items-center gap-2'>
                         <AlertTriangle className='size-4' />
-                        Declare Evacuation for these Barangays?
+                        Declare evacuation — {targets.length} barangays?
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className='rounded-lg border'>
-                    <div className='text-muted-foreground flex items-center justify-between border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide'>
-                        <span>Barangay</span>
-                        <span>Flood Risk</span>
-                    </div>
-                    <ul className='flex max-h-72 flex-col divide-y overflow-y-auto'>
-                        {targets.map((t) => (
-                        <li key={t.id} className='flex items-center justify-between px-3 py-2 text-sm'>
-                            <span className='font-medium'>{t.name}</span>
-                            <span
-                                className='font-medium'
-                                style={{ color: t.category ? RISK_TEXT_COLORS[t.category] : undefined }}
-                            >
-                                {t.category ? CATEGORY_LABELS[t.category] : 'No data'}
-                            </span>
-                        </li>
+                <div className='flex max-h-96 flex-col gap-4 overflow-y-auto'>
+                    {items.map(({ target, rows, selected }) => (
+                        <div key={target.id} className='flex flex-col gap-1.5'>
+                            <h3 className='text-sm font-semibold'>{target.name}</h3>
+                            <ZonePicker
+                                rows={rows}
+                                selected={selected}
+                                onChange={(levels) =>
+                                    setPicked((p) => ({ ...p, [target.id]: levels }))
+                                }
+                            />
+                        </div>
                     ))}
-                    </ul>
                 </div>
 
                 {mass.isError && (
@@ -76,17 +92,17 @@ const MassEvacuationDialog = ({ open, targets, onOpenChange, onDone }: Props) =>
                         onClick={() => onOpenChange(false)}
                     >
                         <ArrowLeft className='size-4' />
-                        Go back
+                        Cancel
                     </Button>
                     <Button
                         type='button'
                         variant='destructive'
                         className='cursor-pointer'
-                        disabled={mass.isPending}
+                        disabled={mass.isPending || items.some((i) => i.selected.length === 0)}
                         onClick={handleProceed}
                     >
                         <Siren className='size-4' />
-                        {mass.isPending ? 'Declaring…' : 'Proceed with evacuation'}
+                        {mass.isPending ? 'Declaring…' : 'Declare evacuation'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

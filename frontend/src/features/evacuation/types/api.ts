@@ -1,3 +1,12 @@
+import type { RiskCategory, SusceptibilityLevel } from '@/features/gis/types/api'
+
+/** A zone under evacuation, scored as of the declaration. */
+export interface EvacuationZone {
+    level: SusceptibilityLevel
+    score: number
+    category: RiskCategory
+}
+
 /** What opened an evacuation: the automated pipeline or an operator ping. */
 export type EvacuationTrigger = 'automated' | 'operator'
 
@@ -6,6 +15,7 @@ export interface EvacuationAggregate {
     evacuation_id: number
     barangay: { id: number; name: string }
     trigger: EvacuationTrigger
+    zones: EvacuationZone[]
     opened_at: string
     roster: number
     safe: number
@@ -51,8 +61,10 @@ export interface Paginated<T> {
 
 /** POST /evacuation/evacuations/ response. */
 export interface PingResult {
-    evacuation_id: number
+    evacuation_id: number | null
     created: boolean
+    /** True when no zone of the barangay scores High or Critical. */
+    skipped?: boolean
 }
 
 /** POST /evacuation/evacuations/<id>/stand-down/ response (the "mark safe" action). */

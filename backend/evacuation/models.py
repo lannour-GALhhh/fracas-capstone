@@ -78,7 +78,7 @@ class Evacuation(models.Model):
         STOOD_DOWN = "stood_down", "Stood down"
 
     class Trigger(models.TextChoices):
-        AUTOMATED = "automated", "Automated"   # crossed the trigger band
+        AUTOMATED = "automated", "Automated"   # retired; kept for historical rows
         OPERATOR = "operator", "Operator"      # manual ping / broadcast
 
     barangay = models.ForeignKey(
@@ -96,6 +96,9 @@ class Evacuation(models.Model):
         related_name="+",
         help_text="Operator who pinged; null when automated.",
     )
+    # Zones under evacuation: [{level, score, category}], scores as of the
+    # declaration. Empty = the whole barangay (legacy rows).
+    zones = models.JSONField(default=list, blank=True)
     opened_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
