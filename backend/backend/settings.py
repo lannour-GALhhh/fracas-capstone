@@ -69,8 +69,7 @@ SIMPLE_JWT = {
     "AUTH_COOKIE": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SECURE": False,
-    # "None" is required when the SPA and API are on different sites (Vercel + Render).
-    "AUTH_COOKIE_SAMESITE": config("JWT_COOKIE_SAMESITE", default="Lax"),
+    "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 # Email: delivered through Brevo when BREVO_API_KEY is set, otherwise printed to the log.
@@ -332,3 +331,7 @@ if not DEBUG:
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", cast=Csv())
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
+
+# Token-in-body clients (mobile, web SPA) identify themselves with X-Client.
+from corsheaders.defaults import default_headers  # noqa: E402
+CORS_ALLOW_HEADERS = (*default_headers, "x-client")

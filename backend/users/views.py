@@ -7,8 +7,11 @@ from .serializers_jwt import RoleTokenObtainPairSerializer
 
 
 def _is_mobile(request) -> bool:
-    """True when the client sent ``X-Client: mobile``."""
-    return request.headers.get("X-Client", "").lower() == "mobile"
+    """True when the client keeps the refresh token itself (``X-Client: mobile`` or ``web``).
+
+    Such clients get the refresh token in the response body instead of an HttpOnly cookie.
+    """
+    return request.headers.get("X-Client", "").lower() in {"mobile", "web"}
 
 
 def _set_refresh_cookie(response):
