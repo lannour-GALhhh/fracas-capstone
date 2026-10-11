@@ -12,6 +12,8 @@ from barangays.models import Barangay
 from monitoring.constants import SOURCE_RAINFALL
 from monitoring.services.recorder import record_failure, record_success
 from .models import HourlyRainfall, Rainfall, RainfallSettings
+from .services import budget
+from .services.grid import ensure_grid_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ def minutely_url(latitudes: str, longitudes: str, model_param: str = "") -> str:
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
-        f"&current=precipitation&minutely_15=precipitation&forecast_days=1{model_param}"
+        f"&current=precipitation&hourly=precipitation&minutely_15=precipitation&forecast_days=1{model_param}"
     )
 
 
@@ -64,6 +66,7 @@ def _get_with_retry(url, *, retries=2):
     last_exc = None
     for attempt in range(retries + 1):
         try:
+            budget.record(budget.locations_in(url))  # every attempt counts against Open-Meteo's daily limit
             response = requests.get(url, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             return response
@@ -175,6 +178,7 @@ def _query_groups(barangays):
 
 @shared_task
 def fetch_rainfall_information():
+    ensure_grid_mapping()  # new/unmapped barangays join a shared cell instead of costing a call each
     barangays = list(Barangay.objects.select_related("rainfall_grid").all())
     timestamp = timezone.now()
     hour = timestamp.replace(minute=0, second=0, microsecond=0)
@@ -183,7 +187,16 @@ def fetch_rainfall_information():
     model_param = RainfallSettings.cached().model_param
     groups = _query_groups(barangays)
     chunks = list(_chunked(groups, CHUNK_SIZE))
+    if not budget.has_retry_headroom(len(groups)):
+        logger.warning(
+            f"{len(groups)} Open-Meteo locations x {budget.runs_per_day()} runs/day = "
+            f"{budget.expected_daily_calls(len(groups))} calls/day, too close to the "
+            f"{settings.RAINFALL_DAILY_CALL_LIMIT} cap to leave room for retries."
+        )
     for chunk_num, chunk in enumerate(chunks):
+        if not budget.can_spend(len(chunk)):
+            logger.error(f"Open-Meteo daily call limit ({settings.RAINFALL_DAILY_CALL_LIMIT}) reached; skipping the rest.")
+            break
         lats = ",".join(str(g["lat"]) for g in chunk)
         lons = ",".join(str(g["lon"]) for g in chunk)
 

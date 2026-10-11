@@ -13,5 +13,6 @@ export const adminKeys = {
     autoDetect: () => ['admin', 'system', 'auto-detect'] as const,
     gisActive: () => ['admin', 'gis-imports', 'active'] as const,
     gisImports: () => ['admin', 'gis-imports'] as const,
+    rainfallGrid: () => ['admin', 'settings', 'rainfall', 'grid'] as const,
     settings: (group: SettingsGroup) => ['admin', 'settings', group] as const,
 }

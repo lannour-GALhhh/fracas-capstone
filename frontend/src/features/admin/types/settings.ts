@@ -41,6 +41,19 @@ export interface RainfallSettings {
     updated_at: string
 }
 
+/** How well barangays dedup into Open-Meteo cells, and today's usage of the daily call cap. */
+export interface RainfallGridStatus {
+    barangays: number
+    mapped: number
+    cells: number
+    expected_daily_calls: number
+    calls_today: number
+    daily_limit: number
+    has_retry_headroom: boolean
+    /** Only on the re-map response: barangays that could not be mapped. */
+    failed?: string[]
+}
+
 /** Maps each group to its settings payload type. */
 export interface SettingsByGroup {
     retention: RetentionPolicy

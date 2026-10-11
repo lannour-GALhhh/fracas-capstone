@@ -3,6 +3,7 @@ import { useSettingsForm } from '../../hooks/useSettingsForm'
 import type { RainfallSettings, WeatherModel } from '../../types/settings'
 import { SettingsSection } from '../components/SettingsSection'
 import { SaveBar } from '../components/fields'
+import GridMapping from '../components/GridMapping'
 
 const MODELS: { value: WeatherModel; label: string; description: string }[] = [
     {
@@ -58,7 +59,12 @@ const RainfallPanel = () => (
         title='Rainfall source'
         description='Which Open-Meteo weather model supplies rainfall for the risk engine.'
     >
-        {(initial) => <RainfallForm initial={initial} />}
+        {(initial) => (
+            <>
+                <RainfallForm initial={initial} />
+                <GridMapping />
+            </>
+        )}
     </SettingsSection>
 )
 

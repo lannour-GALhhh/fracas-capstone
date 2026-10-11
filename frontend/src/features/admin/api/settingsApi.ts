@@ -1,5 +1,5 @@
 import apiClient from '@/app/apiClient'
-import type { SettingsByGroup, SettingsGroup } from '../types/settings'
+import type { RainfallGridStatus, SettingsByGroup, SettingsGroup } from '../types/settings'
 
 /** Each settings group is one admin-gated singleton endpoint. */
 const GROUP_URL: Record<SettingsGroup, string> = {
@@ -22,5 +22,17 @@ export const updateSettings = async <G extends SettingsGroup>(
     payload: Partial<SettingsByGroup[G]>,
 ): Promise<SettingsByGroup[G]> => {
     const { data } = await apiClient.patch<SettingsByGroup[G]>(GROUP_URL[group], payload)
+    return data
+}
+
+const RAINFALL_GRID_URL = '/api/admin/settings/rainfall/grid/'
+
+export const getRainfallGrid = async (): Promise<RainfallGridStatus> => {
+    const { data } = await apiClient.get<RainfallGridStatus>(RAINFALL_GRID_URL)
+    return data
+}
+
+export const remapRainfallGrid = async (): Promise<RainfallGridStatus> => {
+    const { data } = await apiClient.post<RainfallGridStatus>(RAINFALL_GRID_URL)
     return data
 }
