@@ -1,5 +1,6 @@
 import axios from 'axios'
 import tokenService from './tokenService'
+import { refreshRequest } from './authRequests'
 
 const BASE_URL = import.meta.env.VITE_API_URL
 
@@ -54,19 +55,14 @@ apiClient.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const { data } = await axios.post(
-                    `${BASE_URL}/api/auth/jwt/refresh/`,
-                    {},
-                    { withCredentials: true }
-                )
+                const access = await refreshRequest()
 
-                tokenService.setAccess(data.access)
-                processQueue(null, data.access);
+                processQueue(null, access);
 
-                originalRequest.headers.Authorization = `Bearer ${data.access}`
+                originalRequest.headers.Authorization = `Bearer ${access}`
                 return apiClient(originalRequest);
             } catch (refreshError) {
-                tokenService.clearAccess();
+                tokenService.clear();
                 processQueue(refreshError, null);
 
                 window.dispatchEvent(new Event('fracas:session-expired'));

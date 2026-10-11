@@ -24,8 +24,6 @@ services:
         sync: false         # same as above
       - key: FRONTEND_URL
         sync: false         # https://your-app.vercel.app
-      - key: JWT_COOKIE_SAMESITE
-        value: "None"       # SPA (vercel.app) and API (onrender.com) are cross-site
       - key: LOG_LEVEL
         value: INFO
 

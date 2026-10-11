@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useCallback} from 'react'
-import axios, { AxiosError } from 'axios'
+import { AxiosError } from 'axios'
 import tokenService from '@/app/tokenService'
-import apiClient from '@/app/apiClient'
+import { loginRequest, refreshRequest } from '@/app/authRequests'
 import { decodeJwt, type UserRole } from '@/app/decodeJwt'
 import type { Login, AuthContextType } from '../types/authTypes'
 import { AuthContext } from './authContext'
@@ -20,7 +20,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     }, []);
 
     const clearAuth = useCallback((): void => {
-        tokenService.clearAccess();
+        tokenService.clear();
         setRole('resident');
         setAuthenticated(false);
     }, []);
@@ -29,12 +29,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         const initializeAuth = async (): Promise<void> => {
             setInitializing(true);
             try {
-                const { data } = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/api/auth/jwt/refresh/`,
-                    {},
-                    { withCredentials: true }
-                );
-                applyAccess(data.access);
+                applyAccess(await refreshRequest());
             } catch {
                 clearAuth();
             } finally {
@@ -54,13 +49,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
         setError(null);
 
         try {
-            const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/auth/jwt/create/`,
-                credentials,
-                { withCredentials: true }
-            );
-
-            applyAccess(data.access);
+            applyAccess(await loginRequest(credentials));
         } catch (error) {
             setError(error as AxiosError);
             throw error;
@@ -68,11 +57,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     }
 
     const logout = async (): Promise<void> => {
-        try {
-            await apiClient.post('/api/auth/logout/', {}, { withCredentials: true });
-        } finally {
-            clearAuth();
-        }
+        clearAuth();
     }
 
     const value: AuthContextType = {
