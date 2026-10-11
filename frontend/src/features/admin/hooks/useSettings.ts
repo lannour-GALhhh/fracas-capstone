@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getSettings, updateSettings } from '../api/settingsApi'
+import { getRainfallGrid, getSettings, remapRainfallGrid, updateSettings } from '../api/settingsApi'
 import type { SettingsByGroup, SettingsGroup } from '../types/settings'
 import { adminKeys } from './queryKeys'
 
@@ -33,5 +33,24 @@ export const useUpdateSettings = <G extends SettingsGroup>(group: G) => {
                 description: firstFieldError(error) ?? 'Check the values and try again.',
             })
         },
+    })
+}
+
+export const useRainfallGrid = () =>
+    useQuery({ queryKey: adminKeys.rainfallGrid(), queryFn: getRainfallGrid })
+
+/** Re-map every barangay to its Open-Meteo cell so one fetch serves all barangays in a cell. */
+export const useRemapRainfallGrid = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: remapRainfallGrid,
+        onSuccess: (data) => {
+            queryClient.setQueryData(adminKeys.rainfallGrid(), data)
+            const failed = data.failed?.length ?? 0
+            toast.success(`${data.mapped} barangays mapped into ${data.cells} cells`, {
+                description: failed ? `${failed} could not be mapped; try again.` : undefined,
+            })
+        },
+        onError: () => toast.error("Couldn't re-map the grid", { description: 'Please try again.' }),
     })
 }

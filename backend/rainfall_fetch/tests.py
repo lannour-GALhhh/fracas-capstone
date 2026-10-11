@@ -117,8 +117,9 @@ class FetchRainfallDedupTests(TestCase):
     """Barangays sharing a discovered grid cell must be fetched with a single
     Open-Meteo query, not one query per barangay."""
 
+    @patch("rainfall_fetch.tasks.ensure_grid_mapping")
     @patch("rainfall_fetch.tasks.requests.get")
-    def test_shared_grid_cell_is_queried_once_but_stores_a_reading_per_barangay(self, mock_get):
+    def test_shared_grid_cell_is_queried_once_but_stores_a_reading_per_barangay(self, mock_get, _mapping):
         b1 = make_barangay("Alpha", "A1")
         b2 = make_barangay("Beta", "B1")
         b3 = make_barangay("Gamma", "G1")
@@ -356,3 +357,135 @@ class RainfallSettingsApiTests(APITestCase):
         with self.captureOnCommitCallbacks(execute=True):
             self.client.patch(self.url, {"weather_model": "default"}, format="json")
         mock_delay.assert_not_called()
+
+
+class GridMappingTests(TestCase):
+    """The fetch maps unmapped barangays itself, so dedup works without a shell."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    @patch("rainfall_fetch.tasks.time.sleep")
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_fetch_maps_unmapped_barangays_into_shared_cells(self, mock_get, _sleep):
+        make_barangay("Alpha", "A1")
+        make_barangay("Beta", "B1")
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.side_effect = [
+            [{"latitude": 7.0, "longitude": 122.0}, {"latitude": 7.0, "longitude": 122.0}],  # discovery
+            _mock_forecast_payload(1),  # one shared cell -> one location
+        ]
+
+        fetch_rainfall_information()
+
+        self.assertEqual(BarangayRainfallGrid.objects.count(), 2)
+        forecast_url = mock_get.call_args_list[1].args[0]
+        self.assertEqual(len(forecast_url.split("latitude=")[1].split("&")[0].split(",")), 1)
+        self.assertEqual(Rainfall.objects.count(), 2)  # still a reading per barangay
+
+    @patch("rainfall_fetch.tasks.time.sleep")
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_mapped_barangays_are_not_rediscovered(self, mock_get, _sleep):
+        b = make_barangay("Alpha", "A1")
+        BarangayRainfallGrid.objects.create(barangay=b, grid_lat=7.0, grid_lon=122.0)
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
+
+        fetch_rainfall_information()
+
+        self.assertEqual(mock_get.call_count, 1)  # forecast only
+
+    @patch("rainfall_fetch.tasks.time.sleep")
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_failed_discovery_falls_back_to_the_centroid(self, mock_get, _sleep):
+        make_barangay("Alpha", "A1")
+        mock_get.return_value.raise_for_status.side_effect = [Exception("down")] * 3 + [None]
+        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
+
+        fetch_rainfall_information()
+
+        self.assertEqual(BarangayRainfallGrid.objects.count(), 0)
+        self.assertEqual(Rainfall.objects.count(), 1)
+
+    def test_model_switch_drops_the_mapping(self):
+        from rainfall_fetch.services.grid import reset_grid_mapping
+
+        b = make_barangay("Alpha", "A1")
+        BarangayRainfallGrid.objects.create(barangay=b, grid_lat=7.0, grid_lon=122.0)
+        reset_grid_mapping()
+        self.assertEqual(BarangayRainfallGrid.objects.count(), 0)
+
+
+class CallBudgetTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    def test_counts_one_call_per_location_and_blocks_past_the_limit(self):
+        from django.test import override_settings
+        from rainfall_fetch.services import budget
+
+        self.assertEqual(budget.locations_in("https://x/v1/forecast?latitude=1,2,3&longitude=4,5,6"), 3)
+        with override_settings(RAINFALL_DAILY_CALL_LIMIT=10):
+            budget.record(8)
+            self.assertTrue(budget.can_spend(2))
+            self.assertFalse(budget.can_spend(3))
+
+    def test_headroom_flags_a_cell_count_that_leaves_no_room_to_retry(self):
+        from django.test import override_settings
+        from rainfall_fetch.services import budget
+
+        with override_settings(RAINFALL_DAILY_CALL_LIMIT=8000):
+            self.assertEqual(budget.runs_per_day(), 144)  # pipeline every 10 min
+            self.assertTrue(budget.has_retry_headroom(30))   # 4,320/day
+            self.assertFalse(budget.has_retry_headroom(55))  # 7,920/day: no room for retries
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_fetch_stops_when_the_daily_limit_is_reached(self, mock_get):
+        from django.test import override_settings
+        from rainfall_fetch.services import budget
+
+        b = make_barangay("Alpha", "A1")
+        BarangayRainfallGrid.objects.create(barangay=b, grid_lat=7.0, grid_lon=122.0)
+        with override_settings(RAINFALL_DAILY_CALL_LIMIT=5):
+            budget.record(5)
+            fetch_rainfall_information()
+
+        mock_get.assert_not_called()
+
+
+class RainfallGridViewTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        User = get_user_model()
+        self.admin = User.objects.create_user("gridadmin", password="pw", is_staff=True)
+        self.url = reverse("admin-settings-rainfall-grid")
+
+    def test_requires_admin(self):
+        self.assertIn(self.client.get(self.url).status_code, (401, 403))
+
+    def test_get_reports_dedup_and_usage(self):
+        a, b = make_barangay("Alpha", "A1"), make_barangay("Beta", "B1")
+        BarangayRainfallGrid.objects.create(barangay=a, grid_lat=7.0, grid_lon=122.0)
+        BarangayRainfallGrid.objects.create(barangay=b, grid_lat=7.0, grid_lon=122.0)
+        self.client.force_authenticate(self.admin)
+
+        data = self.client.get(self.url).json()
+
+        self.assertEqual((data["barangays"], data["mapped"], data["cells"]), (2, 2, 1))
+        self.assertEqual(data["expected_daily_calls"], 144)
+        self.assertTrue(data["has_retry_headroom"])
+
+    @patch("rainfall_fetch.settings_views.ensure_grid_mapping", return_value=(2, []))
+    def test_post_remaps_and_audits(self, remap):
+        from audit.models import ConfigChangeLog
+
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        remap.assert_called_once_with(remap=True)
+        self.assertEqual(response.json()["failed"], [])
+        self.assertTrue(ConfigChangeLog.objects.filter(action="remapped grid").exists())

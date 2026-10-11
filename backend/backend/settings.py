@@ -33,6 +33,10 @@ SECRET_KEY = config("SECRET_KEY")
 # that doesn't physically occur.
 RAINFALL_NOISE_FLOOR_MM_HR = config("RAINFALL_NOISE_FLOOR_MM_HR", default=2.0, cast=float)
 
+# Open-Meteo's free tier allows 10,000 calls/day (one per location per request, retries included).
+# We stop at this lower cap so retries and one-off discovery/backfill runs always have room.
+RAINFALL_DAILY_CALL_LIMIT = config("RAINFALL_DAILY_CALL_LIMIT", default=8000, cast=int)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 # cast=bool is required — without it a "False" env string is truthy.
 DEBUG = config("DEBUG", default=False, cast=bool)
