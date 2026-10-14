@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
@@ -5,7 +6,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { AuthHero } from '@/features/auth/components/AuthHero'
-import { authColors as C } from '@/features/auth/theme/colors'
+import { useAuthColors, type AuthPalette } from '@/features/auth/theme/colors'
 import { useBackHandler } from '@/common/hooks/useBackHandler'
 import { goBack } from '@/common/utils/navigation'
 
@@ -32,6 +33,8 @@ const STEP_TITLE: Record<RegistrationStep, string> = {
  * entry points read as one flow rather than two different apps.
  */
 export function RegistrationWizard() {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const { step, phone, pending, error, start, resend, verify, setPassword, back } =
         useRegistration()
 
@@ -98,38 +101,39 @@ export function RegistrationWizard() {
     )
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.sheet },
-    flex: { flex: 1 },
-    scroll: { flexGrow: 1, backgroundColor: C.hero },
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        root: { flex: 1, backgroundColor: C.sheet },
+        flex: { flex: 1 },
+        scroll: { flexGrow: 1, backgroundColor: C.hero },
 
-    sheet: {
-        flexGrow: 1,
-        backgroundColor: C.sheet,
-        marginTop: -28,
-        borderTopLeftRadius: 44,
-        borderTopRightRadius: 44,
-        paddingHorizontal: 24,
-        paddingTop: 32,
-        paddingBottom: 16,
-    },
+        sheet: {
+            flexGrow: 1,
+            backgroundColor: C.sheet,
+            marginTop: -28,
+            borderTopLeftRadius: 44,
+            borderTopRightRadius: 44,
+            paddingHorizontal: 24,
+            paddingTop: 32,
+            paddingBottom: 16,
+        },
 
-    header: { gap: 4, marginBottom: 24 },
-    back: { alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 4 },
-    pressed: { opacity: 0.5 },
-    stepIndex: { color: C.muted, fontSize: 13, fontWeight: '600' },
-    title: { color: C.text, fontSize: 24, fontWeight: '700' },
+        header: { gap: 4, marginBottom: 24 },
+        back: { alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 4 },
+        pressed: { opacity: 0.5 },
+        stepIndex: { color: C.muted, fontSize: 13, fontWeight: '600' },
+        title: { color: C.text, fontSize: 24, fontWeight: '700' },
 
-    // Pins the footer to the bottom of the (flex-grown) sheet, keeping it clear
-    // of the primary call-to-action above it.
-    footer: {
-        marginTop: 'auto',
-        paddingTop: 24,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
-    },
-    footerText: { color: C.muted, fontSize: 15 },
-    footerLink: { color: C.primary, fontSize: 15, fontWeight: '700' },
-})
+        // Pins the footer to the bottom of the (flex-grown) sheet, keeping it clear
+        // of the primary call-to-action above it.
+        footer: {
+            marginTop: 'auto',
+            paddingTop: 24,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+        },
+        footerText: { color: C.muted, fontSize: 15 },
+        footerLink: { color: C.primary, fontSize: 15, fontWeight: '700' },
+    })

@@ -1,31 +1,9 @@
-import { useNavigation } from 'expo-router'
 import { Tabs } from 'expo-router/tabs'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { useTheme } from '@/common/theme'
 import { Icon, type IconName } from '@/common/ui'
 import { NotificationBell } from '@/features/alerts/components/NotificationBell'
-
-/** The one navigator that exposes `openDrawer` — the outer root drawer. */
-type DrawerNavigation = { openDrawer: () => void }
-
-/** Hamburger button — opens the root drawer (dark mode, sign-out), one level up. */
-function MenuButton() {
-    const theme = useTheme()
-    const navigation = useNavigation()
-
-    return (
-        <Pressable
-            onPress={() => (navigation.getParent() as DrawerNavigation | undefined)?.openDrawer()}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Open menu"
-            style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.5 }]}
-        >
-            <Icon name="menu" size={24} color={theme.colors.text} />
-        </Pressable>
-    )
-}
 
 const TAB_ICONS: Record<'status' | 'reports' | 'toolkit' | 'account', [IconName, IconName]> = {
     status: ['map', 'map-outline'],
@@ -51,8 +29,8 @@ function TabIcon({
 
 /**
  * Primary bottom-tab destinations: GIS, Notifications, Toolkit, Me.
- * Nested one level under the root drawer (`../_layout.tsx`), which still holds
- * dark mode + sign-out and is reachable from the hamburger button here.
+ * Nested under the signed-in stack (`../_layout.tsx`). Dark mode and sign-out
+ * live on the Me tab.
  */
 export default function TabsLayout() {
     const theme = useTheme()
@@ -64,7 +42,6 @@ export default function TabsLayout() {
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: theme.colors.bg },
                 headerTintColor: theme.colors.text,
-                headerLeft: () => <MenuButton />,
                 sceneStyle: { backgroundColor: theme.colors.bg },
                 tabBarActiveTintColor: theme.colors.primary,
                 tabBarInactiveTintColor: theme.colors.textMuted,
@@ -92,6 +69,8 @@ export default function TabsLayout() {
                 name="reports"
                 options={{
                     title: 'Reports',
+                    // No header content left, so drop the empty bar; the screen insets itself.
+                    headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="reports" focused={focused} color={color as string} size={size} />
                     ),
@@ -103,6 +82,8 @@ export default function TabsLayout() {
                 name="toolkit"
                 options={{
                     title: 'Toolkit',
+                    // No header content left, so drop the empty bar; the screen insets itself.
+                    headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="toolkit" focused={focused} color={color as string} size={size} />
                     ),
@@ -112,6 +93,8 @@ export default function TabsLayout() {
                 name="account"
                 options={{
                     title: 'Me',
+                    // No header content left, so drop the empty bar; the screen insets itself.
+                    headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="account" focused={focused} color={color as string} size={size} />
                     ),
@@ -122,6 +105,5 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-    headerBtn: { paddingHorizontal: 16, paddingVertical: 4 },
     headerRight: { marginRight: 12 },
 })

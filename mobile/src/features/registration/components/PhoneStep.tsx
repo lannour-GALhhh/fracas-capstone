@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { AuthButton } from '@/features/auth/components/AuthButton'
 import { AuthField } from '@/features/auth/components/AuthField'
-import { authColors as C } from '@/features/auth/theme/colors'
+import { useAuthColors, type AuthPalette } from '@/features/auth/theme/colors'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { AddressPicker } from './AddressPicker'
@@ -18,6 +18,8 @@ interface Props {
 
 /** Phase 1 — phone number + permanent address (via location service). */
 export function PhoneStep({ pending, error, onSubmit }: Props) {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const [phone, setPhone] = useState('')
     const [address, setAddress] = useState<RegistrationAddress>({})
     const form = useZodForm(phoneSchema, { phone })
@@ -65,10 +67,11 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
     )
 }
 
-const styles = StyleSheet.create({
-    container: { gap: 18 },
-    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
-    error: { color: C.danger, fontSize: 14, textAlign: 'center' },
-    // Softens the shared `Card` to sit inside the borderless auth sheet.
-    addressCard: { backgroundColor: C.inputBg, borderColor: 'transparent', borderRadius: 20 },
-})
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        container: { gap: 18 },
+        intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+        error: { color: C.danger, fontSize: 14, textAlign: 'center' },
+        // Softens the shared `Card` to sit inside the borderless auth sheet.
+        addressCard: { backgroundColor: C.inputBg, borderColor: 'transparent', borderRadius: 20 },
+    })

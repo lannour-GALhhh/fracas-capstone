@@ -1,7 +1,8 @@
+import { useMemo } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
 
-import { authColors as C } from '../theme/colors'
+import { useAuthColors, type AuthPalette } from '../theme/colors'
 
 interface Props extends TextInputProps {
     label: string
@@ -12,6 +13,8 @@ interface Props extends TextInputProps {
 
 /** Pill-shaped input with a leading icon — the field style shared across the auth flow. */
 export function AuthField({ label, error, icon, accessory, style, ...inputProps }: Props) {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     return (
         <View style={styles.field}>
             <View style={[styles.wrap, !!error && styles.wrapError]}>
@@ -31,25 +34,26 @@ export function AuthField({ label, error, icon, accessory, style, ...inputProps 
     )
 }
 
-const styles = StyleSheet.create({
-    field: { gap: 8 },
-    wrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: C.inputBg,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: 'transparent',
-        paddingHorizontal: 18,
-    },
-    wrapError: { borderColor: C.danger },
-    icon: { marginRight: 10 },
-    input: {
-        flex: 1,
-        minHeight: 56,
-        fontSize: 18,
-        color: C.text,
-    },
-    accessory: { paddingLeft: 10 },
-    error: { color: C.danger, fontSize: 13 },
-})
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        field: { gap: 8 },
+        wrap: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: C.inputBg,
+            borderRadius: 20,
+            borderWidth: 1.5,
+            borderColor: 'transparent',
+            paddingHorizontal: 18,
+        },
+        wrapError: { borderColor: C.danger },
+        icon: { marginRight: 10 },
+        input: {
+            flex: 1,
+            minHeight: 56,
+            fontSize: 18,
+            color: C.text,
+        },
+        accessory: { paddingLeft: 10 },
+        error: { color: C.danger, fontSize: 13 },
+    })
