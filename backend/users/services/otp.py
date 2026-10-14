@@ -28,7 +28,13 @@ def generate_and_send(user) -> None:
     code = f"{secrets.randbelow(1_000_000):06d}"
     ttl = RegistrationPolicy.cached().otp_ttl
     PhoneOTP.objects.create(user=user, code=code, expires_at=timezone.now() + ttl)
-    get_sms_provider().send(user.phone_number, f"Your FRACAS verification code is {code}")
+    # Brand, code, purpose and expiry are all required — UniSMS rejects OTPs without them.
+    minutes = int(ttl.total_seconds() // 60)
+    get_sms_provider().send(
+        user.phone_number,
+        f"Your FRACAS OTP code is {code} for phone verification. "
+        f"Please do not share. Expires in {minutes} minutes.",
+    )
 
 
 def verify(user, code: str) -> None:
