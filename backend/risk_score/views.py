@@ -3,6 +3,7 @@
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.generics import RetrieveAPIView, get_object_or_404
+from rest_framework.parsers import FormParser, MultiPartParser
 from users.permissions import IsAdmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,8 +13,15 @@ from barangays.models import Barangay
 from rainfall_fetch.models import Rainfall
 
 from .models import RiskConfig, RiskScore, ValidationRun
-from .serializers import BarangayRiskSerializer, RiskConfigSerializer, ValidationRunSerializer
+from .serializers import (
+    BarangayRiskSerializer,
+    RiskConfigSerializer,
+    SeriesTestRequestSerializer,
+    ValidationRunSerializer,
+)
 from .services import snapshot
+from .services.rainfall_csv import CsvError, parse_local_hour, parse_rainfall_csv
+from .services.series_test import SeriesTestParams, run_series_test
 from .tasks import run_validation_task
 
 
@@ -124,3 +132,45 @@ class ValidationRunViewSet(
     def perform_create(self, serializer):
         run = serializer.save(created_by=self.request.user)
         run_validation_task.delay(run.id)
+
+
+class BarangaySeriesTestView(APIView):
+    """Admin-only: score an uploaded hourly rainfall CSV for one barangay against a flood mark.
+
+    Stateless: nothing is stored, and the active config is not changed."""
+
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        form = SeriesTestRequestSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        data = form.validated_data
+        barangay = data["barangay"]
+
+        try:
+            series = parse_rainfall_csv(data["file"].read(), barangay.name)
+            if data.get("flood_at"):
+                mark = parse_local_hour(data["flood_at"])
+            elif series.marks:
+                mark = series.marks[0]
+                gaps = [b - a for a, b in zip(series.marks, series.marks[1:])]
+                if any(g.total_seconds() > 3600 for g in gaps):
+                    series.warnings.append("Several separate hours are marked; the first one was used.")
+            else:
+                raise CsvError("No flood mark. Add a marker column (e.g. 'flood' = 1) or enter the flood time.")
+            result = run_series_test(
+                barangay,
+                series,
+                SeriesTestParams(
+                    mark=mark,
+                    hours_before=data["hours_before"],
+                    hours_after=data["hours_after"],
+                    min_category=data["min_category"],
+                    aggregation=data.get("aggregation") or None,
+                    forecast_lookahead=data["forecast_lookahead"],
+                ),
+            )
+        except (CsvError, ValueError) as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response(result)

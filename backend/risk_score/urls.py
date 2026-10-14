@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     BarangayRiskView,
+    BarangaySeriesTestView,
     LocalizedRiskView,
     RiskConfigViewSet,
     RiskSnapshotView,
@@ -17,6 +18,7 @@ router.register(r"admin/validation-runs", ValidationRunViewSet, basename="valida
 urlpatterns = [
     path("risk/snapshot/", RiskSnapshotView.as_view(), name="risk-snapshot"),
     path("risk/zones/snapshot/", RiskZonesSnapshotView.as_view(), name="risk-zones-snapshot"),
+    path("admin/barangay-test/", BarangaySeriesTestView.as_view(), name="barangay-series-test"),
     path("risk/at/", LocalizedRiskView.as_view(), name="risk-localized"),
     path("risk/barangays/<int:pk>/", BarangayRiskView.as_view(), name="barangay-risk"),
 ] + router.urls
