@@ -22,7 +22,12 @@ from .serializers import (
     StreetSerializer,
 )
 
-@method_decorator(cache_page(60 * 15, key_prefix='barangay_list'),
+# Geometry only changes on an admin GIS import, which clears these keys (barangays/tasks.py).
+# A long TTL keeps the slow first-hit rebuild (and client timeouts) rare.
+GEOMETRY_CACHE_TTL = 60 * 60 * 24
+
+
+@method_decorator(cache_page(GEOMETRY_CACHE_TTL, key_prefix='barangay_list'),
                   name='list',
                   )
 class BarangayListView(viewsets.ReadOnlyModelViewSet):
@@ -31,7 +36,7 @@ class BarangayListView(viewsets.ReadOnlyModelViewSet):
     pagination_class = None  # served as one unpaginated FeatureCollection
 
 
-@method_decorator(cache_page(60 * 15, key_prefix='barangay_public'),
+@method_decorator(cache_page(GEOMETRY_CACHE_TTL, key_prefix='barangay_public'),
                   name='list',
                   )
 class BarangayPublicView(viewsets.ReadOnlyModelViewSet):
@@ -63,7 +68,7 @@ def _parse_bbox(raw):
     return Polygon.from_bbox((west, south, east, north)), (east - west, north - south), (west, south, east, north)
 
 
-@method_decorator(cache_page(60 * 15, key_prefix='hazard_zone_list'),
+@method_decorator(cache_page(GEOMETRY_CACHE_TTL, key_prefix='hazard_zone_list'),
                   name='list',
                   )
 class HazardZoneListView(viewsets.ReadOnlyModelViewSet):

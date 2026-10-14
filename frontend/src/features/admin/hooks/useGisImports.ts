@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { detectHighRiskStreets, getActiveLayers, listGisImports, uploadGisImport } from '../api/gisImportApi'
 import type { GisImportKind } from '../types/gisImport'
+import { clearCache } from '@/common/utils/persistentCache'
+import { BARANGAYS_CACHE_KEY, HAZARD_ZONES_CACHE_KEY } from '@/features/gis/api/gisApi'
 import { adminKeys } from './queryKeys'
 
 const ACTIVE = ['pending', 'running']
@@ -25,7 +27,10 @@ export const useGisImports = () => {
             if (!before || !ACTIVE.includes(before)) continue
             if (job.status === 'succeeded') {
                 toast.success('GIS import finished', { description: job.filename })
-                queryClient.invalidateQueries({ queryKey: ['gis'] })
+                // Drop the persisted geometry first so the refetch can't be served the old copy.
+                void Promise.all([clearCache(BARANGAYS_CACHE_KEY), clearCache(HAZARD_ZONES_CACHE_KEY)]).then(() =>
+                    queryClient.invalidateQueries({ queryKey: ['gis'] }),
+                )
                 queryClient.invalidateQueries({ queryKey: adminKeys.gisActive() })
             } else if (job.status === 'failed') {
                 toast.error('GIS import failed', { description: job.message })
