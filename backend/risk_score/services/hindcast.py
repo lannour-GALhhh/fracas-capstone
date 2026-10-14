@@ -63,7 +63,7 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
     )
 
 
-def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None) -> ScoredResult:
+def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None, engine=None) -> ScoredResult:
     # Late-bind the default so tests can patch fetch_archive at the module level.
     fetch = fetcher or fetch_archive
     # Match the archive's Asia/Manila local hours (avoids UTC-vs-local drift).
@@ -86,5 +86,6 @@ def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None) 
         susceptibility_for=lambda b: susceptibility_by_barangay.get(b.id),
         zones_for=zones_for,
     )
-    engine = RiskEngine.from_active_config()
+    # A caller scoring many hours passes one engine instead of re-reading the config each time.
+    engine = engine or RiskEngine.from_active_config()
     return engine.score(FactorInput(barangay, rainfall, context))

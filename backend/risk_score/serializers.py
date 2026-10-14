@@ -1,7 +1,12 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from barangays.models import Barangay
+
+from .constants import ZONE_AGGREGATIONS, RiskCategory
 from .models import RiskConfig, ValidationRun
+
+MAX_UPLOAD_BYTES = 1_000_000
 
 
 class RiskConfigSerializer(serializers.ModelSerializer):
@@ -100,3 +105,27 @@ class BarangayRiskSerializer(serializers.Serializer):
             "rainfall_rate_change": float(r.rate_of_change) if r and r.rate_of_change is not None else None,
             "recorded_at": r.recorded_at.isoformat() if r else None,
         }
+
+
+class SeriesTestRequestSerializer(serializers.Serializer):
+    """Multipart input for the per-barangay CSV test (see views.BarangaySeriesTestView)."""
+
+    barangay = serializers.PrimaryKeyRelatedField(queryset=Barangay.objects.all())
+    file = serializers.FileField()
+    # Local time of the declared flood; if omitted the CSV's marker column is used.
+    flood_at = serializers.CharField(required=False, allow_blank=True)
+    hours_before = serializers.IntegerField(required=False, min_value=0, max_value=48, default=4)
+    hours_after = serializers.IntegerField(required=False, min_value=0, max_value=48, default=0)
+    min_category = serializers.ChoiceField(
+        choices=[RiskCategory.MEDIUM, RiskCategory.HIGH, RiskCategory.CRITICAL],
+        required=False,
+        default=RiskCategory.HIGH,
+    )
+    forecast_lookahead = serializers.BooleanField(required=False, default=False)
+    # Blank = use the active config's setting.
+    aggregation = serializers.ChoiceField(choices=ZONE_AGGREGATIONS, required=False, allow_blank=True)
+
+    def validate_file(self, f):
+        if f.size > MAX_UPLOAD_BYTES:
+            raise serializers.ValidationError("The file is larger than 1 MB.")
+        return f
