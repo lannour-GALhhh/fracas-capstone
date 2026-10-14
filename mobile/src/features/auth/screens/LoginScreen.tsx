@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -13,9 +13,11 @@ import { AuthField } from '../components/AuthField'
 import { AuthHero } from '../components/AuthHero'
 import { useAuth } from '../context/useAuth'
 import { loginSchema } from '../schemas/loginSchema'
-import { authColors as C } from '../theme/colors'
+import { useAuthColors, type AuthPalette } from '../theme/colors'
 
 export function LoginScreen() {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const router = useRouter()
     const { login } = useAuth()
 
@@ -130,54 +132,55 @@ export function LoginScreen() {
     )
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.sheet },
-    flex: { flex: 1 },
-    scroll: { flexGrow: 1, backgroundColor: C.hero },
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        root: { flex: 1, backgroundColor: C.sheet },
+        flex: { flex: 1 },
+        scroll: { flexGrow: 1, backgroundColor: C.hero },
 
-    sheet: {
-        flexGrow: 1,
-        backgroundColor: C.sheet,
-        marginTop: -36,
-        borderTopLeftRadius: 44,
-        borderTopRightRadius: 44,
-        paddingHorizontal: 24,
-        paddingTop: 40,
-        paddingBottom: 16,
-    },
+        sheet: {
+            flexGrow: 1,
+            backgroundColor: C.sheet,
+            marginTop: -36,
+            borderTopLeftRadius: 44,
+            borderTopRightRadius: 44,
+            paddingHorizontal: 24,
+            paddingTop: 40,
+            paddingBottom: 16,
+        },
 
-    title: { color: C.text, fontSize: 26, fontWeight: '700', textAlign: 'center' },
+        title: { color: C.text, fontSize: 26, fontWeight: '700', textAlign: 'center' },
 
-    form: { marginTop: 24, gap: 18 },
+        form: { marginTop: 24, gap: 18 },
 
-    forgotPassword: { alignSelf: 'flex-end', marginTop: -8 },
-    forgotPasswordText: { color: C.primary, fontSize: 14, fontWeight: '600' },
+        forgotPassword: { alignSelf: 'flex-end', marginTop: -8 },
+        forgotPasswordText: { color: C.primary, fontSize: 14, fontWeight: '600' },
 
-    formError: { color: C.danger, fontSize: 14, textAlign: 'center' },
+        formError: { color: C.danger, fontSize: 14, textAlign: 'center' },
 
-    submit: {
-        minHeight: 56,
-        borderRadius: 28,
-        backgroundColor: C.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-        shadowColor: C.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 3,
-    },
-    submitDim: { opacity: 0.65 },
-    submitText: { color: C.onPrimary, fontSize: 18, fontWeight: '700' },
+        submit: {
+            minHeight: 56,
+            borderRadius: 28,
+            backgroundColor: C.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 20,
+            shadowColor: C.primary,
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 3,
+        },
+        submitDim: { opacity: 0.65 },
+        submitText: { color: C.onPrimary, fontSize: 18, fontWeight: '700' },
 
-    footer: {
-        paddingTop: 24,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
-    },
-    footerText: { color: C.muted, fontSize: 15 },
-    footerLink: { color: C.primary, fontSize: 15, fontWeight: '700' },
-})
+        footer: {
+            paddingTop: 24,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+        },
+        footerText: { color: C.muted, fontSize: 15 },
+        footerLink: { color: C.primary, fontSize: 15, fontWeight: '700' },
+    })

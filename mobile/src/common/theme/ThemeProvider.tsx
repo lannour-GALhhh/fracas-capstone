@@ -29,7 +29,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 /**
  * Holds the active color scheme. Defaults to the device setting and switches to
- * the resident's explicit choice once they flip the drawer toggle; that choice is
+ * the resident's explicit choice once they flip the dark-mode switch; that choice is
  * persisted and survives restarts.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -83,7 +83,7 @@ export function useTheme(): Theme {
     return useThemeContext().theme
 }
 
-/** Scheme read/write, for the drawer's light–dark switch. */
+/** Scheme read/write, for the light–dark switch on the Me tab. */
 export function useThemeControls(): ThemeContextValue {
     return useThemeContext()
 }

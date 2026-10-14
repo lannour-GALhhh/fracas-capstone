@@ -1,9 +1,25 @@
+import { useTheme } from '@/common/theme'
+
 /**
- * Bespoke palette for the auth flow (login + registration). Deliberately
- * separate from the app's `common/theme` — these screens use a fixed light,
- * branded hero/sheet look rather than the app's light/dark semantic theme.
+ * Bespoke palettes for the auth flow (login + registration). Deliberately separate
+ * from the app's `common/theme` — these screens use a branded hero/sheet look — but
+ * they still follow the active light/dark scheme (device by default).
  */
-export const authColors = {
+export interface AuthPalette {
+    hero: string
+    heroDeep: string
+    sheet: string
+    text: string
+    muted: string
+    border: string
+    inputBg: string
+    primary: string
+    onPrimary: string
+    danger: string
+    onHero: string
+}
+
+const light: AuthPalette = {
     hero: '#208AEF',
     heroDeep: '#0F63C4',
     sheet: '#ffffff',
@@ -15,4 +31,23 @@ export const authColors = {
     onPrimary: '#ffffff',
     danger: '#D14343',
     onHero: '#EAF3FF',
-} as const
+}
+
+const dark: AuthPalette = {
+    hero: '#0F63C4',
+    heroDeep: '#0A4A94',
+    sheet: '#111827',
+    text: '#F1F5F9',
+    muted: '#9CA3AF',
+    border: '#263244',
+    inputBg: '#1C2636',
+    primary: '#3B9BFF',
+    onPrimary: '#ffffff',
+    danger: '#F27878',
+    onHero: '#EAF3FF',
+}
+
+/** The auth palette for the active color scheme. Stable identity per scheme. */
+export function useAuthColors(): AuthPalette {
+    return useTheme().scheme === 'dark' ? dark : light
+}

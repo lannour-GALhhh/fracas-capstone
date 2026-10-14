@@ -95,8 +95,13 @@ const PopupOpener = ({ active }: { active: boolean }) => {
     const { marker, map } = useMarkerContext()
     useEffect(() => {
         if (!active || !map) return
-        const popup = marker.getPopup()
-        if (popup && !popup.isOpen()) marker.togglePopup()
+        // Child effects run before MapMarker's own `marker.addTo(map)`, so on a fresh
+        // mount the marker has no map yet and togglePopup would throw. Wait a frame.
+        const frame = requestAnimationFrame(() => {
+            const popup = marker.getPopup()
+            if (popup && !popup.isOpen()) marker.togglePopup()
+        })
+        return () => cancelAnimationFrame(frame)
     }, [active, marker, map])
     return null
 }

@@ -8,12 +8,23 @@ import type {
     RiskSnapshot,
     ZoneRiskSnapshot,
 } from '../types/api'
+import { cachedFetch } from '@/common/utils/persistentCache'
 
-/** Barangay geometries (server-cached ~15 min). Static; join risk on top. */
-export const getBarangays = async (): Promise<BarangayFeatureCollection> => {
-    const { data } = await apiClient.get<BarangayFeatureCollection>('/api/barangays/')
-    return data
-}
+/** Geometry changes only on an admin GIS import, so keep it a day; bump the key version on shape changes. */
+const GEOMETRY_MAX_AGE_MS = 24 * 60 * 60 * 1000
+/** Big payloads can be slow on a cold server cache; the default 10s timeout would abort them. */
+const GEOMETRY_TIMEOUT_MS = 60_000
+export const BARANGAYS_CACHE_KEY = 'barangays:v1'
+export const HAZARD_ZONES_CACHE_KEY = 'hazard-zones:v1'
+
+/** Barangay geometries (server-cached, and persisted in IndexedDB for a day). Static; join risk on top. */
+export const getBarangays = (): Promise<BarangayFeatureCollection> =>
+    cachedFetch(BARANGAYS_CACHE_KEY, GEOMETRY_MAX_AGE_MS, async () => {
+        const { data } = await apiClient.get<BarangayFeatureCollection>('/api/barangays/', {
+            timeout: GEOMETRY_TIMEOUT_MS,
+        })
+        return data
+    })
 
 /** Latest risk category/score for every barangay in one read. */
 export const getRiskSnapshot = async (): Promise<RiskSnapshot> => {
@@ -27,16 +38,20 @@ export const getBarangayRisk = async (id: number): Promise<BarangayRisk> => {
     return data
 }
 
-/** Flood-susceptibility zone geometry for the hazard-zone map layer (server-cached ~15 min). */
-export const getHazardZones = async (): Promise<HazardZoneCollection> => {
-    const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/')
-    return data
-}
+/** Flood-susceptibility zone geometry for the hazard-zone map layer (server-cached; persisted in IndexedDB for a day). */
+export const getHazardZones = (): Promise<HazardZoneCollection> =>
+    cachedFetch(HAZARD_ZONES_CACHE_KEY, GEOMETRY_MAX_AGE_MS, async () => {
+        const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/', {
+            timeout: GEOMETRY_TIMEOUT_MS,
+        })
+        return data
+    })
 
 /** Full-precision zone geometry for one viewport (`west,south,east,north`); the server requires a bbox. */
 export const getHazardZonesDetailed = async (bbox: string): Promise<HazardZoneCollection> => {
     const { data } = await apiClient.get<HazardZoneCollection>('/api/hazard-zones/', {
         params: { detail: 'full', bbox },
+        timeout: GEOMETRY_TIMEOUT_MS,
     })
     return data
 }

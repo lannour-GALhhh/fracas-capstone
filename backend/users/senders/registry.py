@@ -4,13 +4,14 @@ from decouple import config
 
 from .base import PushProvider, SendError, SmsProvider
 from .push import ConsolePushProvider, FcmProvider
-from .sms import ConsoleSmsProvider, SemaphoreSmsProvider, SmsApiPhProvider, TwilioSmsProvider
+from .sms import ConsoleSmsProvider, SemaphoreSmsProvider, SmsApiPhProvider, TwilioSmsProvider, UniSmsProvider
 
 _SMS_PROVIDERS = {
     "console": ConsoleSmsProvider,
     "twilio": TwilioSmsProvider,
     "semaphore": SemaphoreSmsProvider,
     "smsapiph": SmsApiPhProvider,
+    "unisms": UniSmsProvider,
 }
 _PUSH_PROVIDERS = {
     "console": ConsolePushProvider,

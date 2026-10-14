@@ -1,8 +1,9 @@
+import { useMemo } from 'react'
 import { Image } from 'expo-image'
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { authColors as C } from '../theme/colors'
+import { useAuthColors, type AuthPalette } from '../theme/colors'
 
 /** Sparse decorative "rain" strokes scattered across the hero — minimal lines, not drop shapes. */
 const RAINDROPS: {
@@ -27,6 +28,8 @@ interface Props {
 
 /** Blue branded banner shared by the login and registration screens. */
 export function AuthHero({ heightRatio = 0.4, title = 'FRACAS' }: Props) {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const { height } = useWindowDimensions()
     const heroHeight = Math.round(height * heightRatio)
 
@@ -63,52 +66,53 @@ export function AuthHero({ heightRatio = 0.4, title = 'FRACAS' }: Props) {
     )
 }
 
-const styles = StyleSheet.create({
-    hero: {
-        backgroundColor: C.hero,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    image: {
-        position: 'absolute',
-        width: '78%',
-        height: '78%',
-        opacity: 0.9,
-    },
-    circleTopRight: {
-        position: 'absolute',
-        top: -55,
-        right: -55,
-        width: 160,
-        height: 160,
-        borderRadius: 80,
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    circleBottom: {
-        position: 'absolute',
-        bottom: -95,
-        left: -55,
-        width: 230,
-        height: 230,
-        borderRadius: 115,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    raindrop: {
-        position: 'absolute',
-        width: 2,
-        borderRadius: 1,
-        backgroundColor: '#ffffff',
-    },
-    content: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-    },
-    title: {
-        color: '#ffffff',
-        fontSize: 40,
-        fontWeight: '800',
-        letterSpacing: 1,
-    },
-})
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        hero: {
+            backgroundColor: C.hero,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+        },
+        image: {
+            position: 'absolute',
+            width: '78%',
+            height: '78%',
+            opacity: 0.9,
+        },
+        circleTopRight: {
+            position: 'absolute',
+            top: -55,
+            right: -55,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: 'rgba(255,255,255,0.12)',
+        },
+        circleBottom: {
+            position: 'absolute',
+            bottom: -95,
+            left: -55,
+            width: 230,
+            height: 230,
+            borderRadius: 115,
+            backgroundColor: 'rgba(255,255,255,0.1)',
+        },
+        raindrop: {
+            position: 'absolute',
+            width: 2,
+            borderRadius: 1,
+            backgroundColor: '#ffffff',
+        },
+        content: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+        },
+        title: {
+            color: '#ffffff',
+            fontSize: 40,
+            fontWeight: '800',
+            letterSpacing: 1,
+        },
+    })

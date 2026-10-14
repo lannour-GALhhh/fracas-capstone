@@ -12,7 +12,7 @@ import { AuthProvider } from '@/features/auth/context/AuthProvider'
 /**
  * Root layout — app-wide providers wrap every route.
  * Order mirrors the web `main.tsx`: theme → query cache → auth session → navigator.
- * `GestureHandlerRootView` is required for the drawer's swipe-to-open gesture.
+ * `GestureHandlerRootView` is required by the navigators' gesture handling.
  */
 export default function RootLayout() {
     return (

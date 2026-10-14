@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { AuthButton, AuthLinkButton } from '@/features/auth/components/AuthButton'
 import { AuthField } from '@/features/auth/components/AuthField'
-import { authColors as C } from '@/features/auth/theme/colors'
+import { useAuthColors, type AuthPalette } from '@/features/auth/theme/colors'
 import { Checkbox } from '@/common/ui'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
@@ -24,6 +24,8 @@ const CODE_PATTERN = /^\d{6}$/
 
 /** Phase 2 — accept both documents + enter the 6-digit OTP. */
 export function VerifyStep({ phone, pending, error, onVerify, onResend }: Props) {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const [code, setCode] = useState('')
     const [acceptedTerms, setAcceptedTerms] = useState(false)
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
@@ -114,12 +116,13 @@ const fieldName: Record<LegalDocumentId, string> = {
     privacy: 'acceptedPrivacy',
 }
 
-const styles = StyleSheet.create({
-    container: { gap: 18 },
-    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
-    consent: { gap: 12 },
-    consentItem: { gap: 4 },
-    consentText: { color: C.text, fontSize: 15, lineHeight: 21 },
-    consentLink: { color: C.primary, textDecorationLine: 'underline' },
-    error: { color: C.danger, fontSize: 13, textAlign: 'center' },
-})
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        container: { gap: 18 },
+        intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+        consent: { gap: 12 },
+        consentItem: { gap: 4 },
+        consentText: { color: C.text, fontSize: 15, lineHeight: 21 },
+        consentLink: { color: C.primary, textDecorationLine: 'underline' },
+        error: { color: C.danger, fontSize: 13, textAlign: 'center' },
+    })

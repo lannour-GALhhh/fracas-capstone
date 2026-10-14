@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { AuthButton } from '@/features/auth/components/AuthButton'
 import { AuthField } from '@/features/auth/components/AuthField'
-import { authColors as C } from '@/features/auth/theme/colors'
+import { useAuthColors, type AuthPalette } from '@/features/auth/theme/colors'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
 import { passwordSchema } from '../schemas'
@@ -17,6 +17,8 @@ interface Props {
 
 /** Phase 3 — set a password (min 6 chars) and finish. */
 export function PasswordStep({ pending, error, onSubmit }: Props) {
+    const C = useAuthColors()
+    const styles = useMemo(() => createStyles(C), [C])
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -75,8 +77,9 @@ export function PasswordStep({ pending, error, onSubmit }: Props) {
     )
 }
 
-const styles = StyleSheet.create({
-    container: { gap: 18 },
-    intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
-    error: { color: C.danger, fontSize: 14, textAlign: 'center' },
-})
+const createStyles = (C: AuthPalette) =>
+    StyleSheet.create({
+        container: { gap: 18 },
+        intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+        error: { color: C.danger, fontSize: 14, textAlign: 'center' },
+    })

@@ -61,6 +61,35 @@ class SemaphoreSmsProvider:
             raise SendError(f"Semaphore send failed: {exc}") from exc
 
 
+class UniSmsProvider:
+    """UniSMS (https://unismsapi.com/docs/sms) — HTTP Basic auth, secret key as username.
+
+    A 201 only means the message is queued (``pending``); it can still fail
+    later (inactive sender ID, no credits). The default test sender ID can't
+    reach Smart/TNT/Sun numbers — register your own before real use.
+    """
+
+    URL = "https://unismsapi.com/api/sms"
+
+    def __init__(self):
+        self.apikey = config("UNISMS_API_KEY")
+        self.sender = config("UNISMS_SENDER_ID")
+
+    def send(self, to: str, message: str) -> None:
+        try:
+            resp = requests.post(
+                self.URL,
+                json={"recipient": to, "content": message, "sender_id": self.sender},
+                auth=(self.apikey, ""),
+                timeout=TIMEOUT,
+            )
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            body = exc.response.text[:300] if exc.response is not None else ""
+            raise SendError(f"UniSMS send failed: {exc} {body}".strip()) from exc
+        logger.info("[SMS:unisms] to=%s HTTP %s %s", to, resp.status_code, resp.text[:300])
+
+
 class SmsApiPhProvider:
     """smsapiph.onrender.com — free, unverified dev/alpha-testing provider only.
 

@@ -1,5 +1,4 @@
-import { Redirect, type Href } from 'expo-router'
-import { Drawer } from 'expo-router/drawer'
+import { Redirect, Stack, type Href } from 'expo-router'
 import { Pressable, StyleSheet } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
@@ -8,7 +7,6 @@ import { goBack } from '@/common/utils/navigation'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
-import { AppDrawerContent } from '@/features/navigation/AppDrawerContent'
 
 /** Signed-in shell. Redirects to login when there is no session. */
 export default function AppLayout() {
@@ -17,7 +15,7 @@ export default function AppLayout() {
     if (isInitializing) return <Spinner />
     if (!isAuthenticated) return <Redirect href="/login" />
 
-    return <SignedInDrawer />
+    return <SignedInStack />
 }
 
 /**
@@ -49,45 +47,38 @@ function HeaderBackButton({ fallback }: { fallback: Href }) {
 }
 
 /** The authenticated chrome. Split out so its data hooks only run with a session. */
-function SignedInDrawer() {
+function SignedInStack() {
     const theme = useTheme()
     const prefs = usePreferences()
 
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
 
-    // Secondary screens (reached from a drawer destination) get a back button and
-    // no edge-swipe, so the gesture is reserved for opening the drawer up top.
-    // The `fallback` names the screen each one is opened from: the drawer keeps no
-    // stack when the app lands straight here (push-notification tap, deep link),
-    // so without it `goBack` would have nothing to pop and the button would do
-    // nothing.
+    // Secondary screens get a back button. The `fallback` names the screen each
+    // one is opened from: there is no history when the app lands straight here
+    // (push-notification tap, deep link), so without it `goBack` would have
+    // nothing to pop and the button would do nothing.
     const secondary = (fallback: Href) => ({
         headerLeft: () => <HeaderBackButton fallback={fallback} />,
-        swipeEnabled: false,
     })
 
     return (
-        <Drawer
-            drawerContent={(props) => <AppDrawerContent {...props} />}
+        <Stack
             screenOptions={{
                 headerTitle: '',
+                headerBackVisible: false,
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: theme.colors.bg },
                 headerTintColor: theme.colors.text,
-                sceneStyle: { backgroundColor: theme.colors.bg },
-                drawerType: 'front',
-                swipeEdgeWidth: 64,
+                contentStyle: { backgroundColor: theme.colors.bg },
             }}
         >
-            {/* The bottom-tab group (GIS, Notifications, Toolkit, Me) draws its own
-                header — including the hamburger that opens this drawer — so it opts
-                out of the one above. */}
-            <Drawer.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Drawer.Screen name="notification-settings" options={secondary('/account')} />
-            <Drawer.Screen name="edit-profile" options={secondary('/account')} />
-            <Drawer.Screen name="change-password" options={secondary('/account')} />
-        </Drawer>
+            {/* The bottom-tab group (GIS, Reports, Toolkit, Me) draws its own header. */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="notification-settings" options={secondary('/account')} />
+            <Stack.Screen name="edit-profile" options={secondary('/account')} />
+            <Stack.Screen name="change-password" options={secondary('/account')} />
+        </Stack>
     )
 }
 

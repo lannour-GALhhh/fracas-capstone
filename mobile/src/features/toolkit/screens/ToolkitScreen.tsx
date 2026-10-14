@@ -17,7 +17,7 @@ import { HOTLINES } from '../data/hotlines'
  */
 export function ToolkitScreen() {
     return (
-        <Screen edges={['bottom']}>
+        <Screen>
             <View style={styles.body}>
                 <View style={styles.intro}>
                     <Text variant="title">Disaster toolkit</Text>
