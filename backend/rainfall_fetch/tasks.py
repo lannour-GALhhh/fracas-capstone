@@ -179,7 +179,8 @@ def _query_groups(barangays):
 @shared_task
 def fetch_rainfall_information():
     ensure_grid_mapping()  # new/unmapped barangays join a shared cell instead of costing a call each
-    barangays = list(Barangay.objects.select_related("rainfall_grid").all())
+    # defer the heavy boundary: it is only read (lazily) for the few barangays not yet grid-mapped.
+    barangays = list(Barangay.objects.select_related("rainfall_grid").defer("boundary"))
     timestamp = timezone.now()
     hour = timestamp.replace(minute=0, second=0, microsecond=0)
     parsed_by_barangay = {}  # barangay -> (parsed forecast, mm in the hour ending `hour`, or None)
