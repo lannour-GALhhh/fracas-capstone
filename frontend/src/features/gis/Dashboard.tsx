@@ -61,6 +61,7 @@ const Dashboard = () => {
         hazard: true,
         evacuation: true,
         rainfall: true,
+        underEvacuation: true,
         very_low: true,
         low: true,
         moderate: true,

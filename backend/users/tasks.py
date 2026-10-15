@@ -7,8 +7,8 @@ from celery import shared_task
 from backend.email_backend import BrevoError
 
 from .constants import Channel, DeliveryStatus
-from .models import NotificationLog, User
-from .senders import SendError, get_push_provider, get_sms_provider
+from .models import Device, NotificationLog, User
+from .senders import InvalidTokenError, SendError, get_push_provider, get_sms_provider
 from .services import activation, password_reset
 
 logger = logging.getLogger(__name__)
@@ -61,10 +61,15 @@ def send_password_reset_email_task(self, user_id):
 
 
 @shared_task
-def send_push_task(user_id, dedup_key, token, title, body):
+def send_push_task(user_id, dedup_key, token, title, body, data=None):
     try:
-        get_push_provider().send(token, title, body)
+        get_push_provider().send(token, title, body, data)
         _finalize(user_id, Channel.PUSH, dedup_key, DeliveryStatus.SENT)
+    except InvalidTokenError as exc:
+        # Dead token: stop targeting this device on future broadcasts.
+        Device.objects.filter(token=token).update(is_active=False)
+        logger.warning("Push token deactivated: %s", exc)
+        _finalize(user_id, Channel.PUSH, dedup_key, DeliveryStatus.FAILED, str(exc))
     except SendError as exc:
         logger.error("Push send failed: %s", exc)
         _finalize(user_id, Channel.PUSH, dedup_key, DeliveryStatus.FAILED, str(exc))

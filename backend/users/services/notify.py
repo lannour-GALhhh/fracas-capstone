@@ -62,5 +62,8 @@ def broadcast(
             for device in user.devices.filter(is_active=True):
                 key = f"{dispatch_key}:{device.id}"
                 if _claim(user, barangay, Channel.PUSH, key):
-                    send_push_task.delay(user.id, key, device.token, title, body)
+                    send_push_task.delay(
+                        user.id, key, device.token, title, body,
+                        {"barangay_id": barangay.id, "category": category},
+                    )
     return recipients
