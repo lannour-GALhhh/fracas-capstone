@@ -44,6 +44,8 @@ const EvacuationPulseLayer = ({ data, visible }: Props) => {
             beforeId,
         )
         return () => {
+            // The map may already be torn down (navigating away) — nothing to clean up then.
+            if (!map.getStyle()) return
             if (map.getLayer(FILL)) map.removeLayer(FILL)
             if (map.getSource(SOURCE)) map.removeSource(SOURCE)
         }
@@ -63,7 +65,7 @@ const EvacuationPulseLayer = ({ data, visible }: Props) => {
         let frame = 0
         const tick = (now: number) => {
             const wave = (Math.sin((now / PERIOD_MS) * 2 * Math.PI) + 1) / 2
-            if (map.getLayer(FILL)) {
+            if (map.getStyle() && map.getLayer(FILL)) {
                 map.setPaintProperty(FILL, 'fill-opacity', MIN_OPACITY + wave * (MAX_OPACITY - MIN_OPACITY))
             }
             frame = requestAnimationFrame(tick)

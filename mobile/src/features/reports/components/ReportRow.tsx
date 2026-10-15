@@ -1,21 +1,30 @@
 import { Image } from 'expo-image'
-import { StyleSheet, View } from 'react-native'
+import { router, type Href } from 'expo-router'
+import { Pressable, StyleSheet, View } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Icon, Text } from '@/common/ui'
-import { timeAgo } from '@/common/utils/time'
 
 import { STATUS_META } from '../constants'
 import type { FloodReport } from '../types'
 
-/** One of the resident's submitted reports: thumbnail, status tag, barangay, sent time. */
+/** One of the resident's submitted reports: square photo, barangay, one-line description, status icon. */
 export function ReportRow({ report }: { report: FloodReport }) {
     const theme = useTheme()
-    const { label, icon, color } = STATUS_META[report.status]
+    const { icon, color } = STATUS_META[report.status]
     const cover = report.images[0]?.image
 
     return (
-        <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Pressable
+            onPress={() => router.push(`/report/${report.id}` as Href)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open report from ${report.barangay_name ?? 'unknown barangay'}`}
+            style={({ pressed }) => [
+                styles.row,
+                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                pressed && styles.pressed,
+            ]}
+        >
             <View style={[styles.thumb, { backgroundColor: theme.colors.surfaceAlt }]}>
                 {cover ? <Image source={{ uri: cover }} style={styles.fill} contentFit="cover" /> : null}
                 {report.images.length > 1 ? (
@@ -28,27 +37,18 @@ export function ReportRow({ report }: { report: FloodReport }) {
             </View>
             <View style={styles.content}>
                 <View style={styles.status}>
-                    <Icon name={icon} size={16} color={color} />
-                    <Text variant="label" style={{ color }}>
-                        {label}
-                    </Text>
+                    <Icon name={icon} size={22} color={color} />
                 </View>
-                <Text variant="label">{report.barangay_name ?? 'Unknown barangay'}</Text>
+                <Text variant="label" numberOfLines={1}>
+                    {report.barangay_name ?? 'Unknown barangay'}
+                </Text>
                 {report.description ? (
-                    <Text variant="caption" color="textMuted" numberOfLines={2}>
+                    <Text variant="caption" color="textMuted" numberOfLines={1}>
                         {report.description}
                     </Text>
                 ) : null}
-                {report.status === 'rejected' && report.review_note ? (
-                    <Text variant="caption" color="danger" numberOfLines={2}>
-                        {report.review_note}
-                    </Text>
-                ) : null}
-                <Text variant="caption" color="textMuted">
-                    Sent {timeAgo(report.created_at)}
-                </Text>
             </View>
-        </View>
+        </Pressable>
     )
 }
 
@@ -60,7 +60,8 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderRadius: radius.lg,
     },
-    thumb: { width: 84, height: 84, borderRadius: radius.md, overflow: 'hidden' },
+    thumb: { width: '50%', aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden' },
+    pressed: { opacity: 0.85 },
     fill: { width: '100%', height: '100%' },
     count: {
         position: 'absolute',
@@ -72,5 +73,5 @@ const styles = StyleSheet.create({
     },
     countText: { color: '#fff', fontWeight: '700' },
     content: { flex: 1, gap: 2 },
-    status: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    status: { alignItems: 'flex-end' },
 })

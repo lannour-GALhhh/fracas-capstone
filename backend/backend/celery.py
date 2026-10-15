@@ -16,6 +16,20 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
+# Beat reuses the single cadence source (schedules.CRON_SCHEDULE); each entry runs
+# the lock-guarded cron job, so beat and the external cron endpoint never overlap.
+from celery.schedules import crontab  # noqa: E402
+from backend.schedules import CRON_SCHEDULE  # noqa: E402
+
+app.conf.beat_schedule = {
+    f"cron-{name}": {
+        "task": "monitoring.tasks.run_cron_job",
+        "schedule": crontab(*spec["cron"].split()),
+        "args": (name,),
+    }
+    for name, spec in CRON_SCHEDULE.items()
+}
+
 # Connect task-outcome metrics signals (logs success/failure/retry).
 from backend import task_metrics  # noqa: E402,F401
 

@@ -188,11 +188,24 @@ class MyEvacuationsView(APIView):
     def get(self, request):
         from users.models import Subscription
 
-        barangay_ids = list(
+        from barangays.models import Barangay
+
+        # Relevant barangays = subscriptions ∪ home address ∪ where the device is
+        # standing (?barangay=1,2). Gating on subscriptions alone hid evacuations
+        # from residents whose auto-subscribe never landed or who opted out.
+        barangay_ids = set(
             Subscription.objects.filter(user=request.user).values_list(
                 "barangay_id", flat=True
             )
         )
+        home = ((getattr(request.user, "address", None) or {}).get("barangay") or "").strip()
+        if home:
+            barangay_ids.update(
+                Barangay.objects.filter(name__iexact=home).values_list("id", flat=True)
+            )
+        for raw in request.query_params.get("barangay", "").split(",")[:5]:
+            if raw.strip().isdigit():
+                barangay_ids.add(int(raw))
         evacs = list(
             Evacuation.objects.filter(
                 status=Evacuation.Status.ACTIVE, barangay_id__in=barangay_ids

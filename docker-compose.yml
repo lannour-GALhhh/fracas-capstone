@@ -44,6 +44,26 @@ services:
       redis:
         condition: service_started
 
+  celery_worker:
+    image: fracas-backend:latest
+    command: celery -A backend worker -l info --concurrency 2
+    volumes:
+      - ./backend:/backend
+      - gis_import_volume:/backend/gis_imports
+    env_file: .env
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  celery_beat:
+    image: fracas-backend:latest
+    command: celery -A backend beat -l info --schedule /tmp/celerybeat-schedule
+    volumes:
+      - ./backend:/backend
+    env_file: .env
+    depends_on:
+      - celery_worker
+
   nginx:
     image: nginx:1.25-alpine
     ports:

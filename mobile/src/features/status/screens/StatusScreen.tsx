@@ -55,7 +55,7 @@ export function StatusScreen() {
 
     // Is any of the resident's subscribed barangays under evacuation right now?
     // Prefer the one they're standing in, then their home, then whatever's active.
-    const evacuations = useMyEvacuations()
+    const evacuations = useMyEvacuations(current?.properties.id ?? null)
     const homeEvac = useMemo(() => {
         const list = evacuations.data ?? []
         if (list.length === 0) return null
