@@ -5,7 +5,7 @@ from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.test import TestCase
 
 from barangays.models import Barangay
-from users.constants import Channel
+from users.constants import Channel, DeliveryStatus
 from users.models import Device, Notification, NotificationLog, Subscription
 from users.services.notify import broadcast
 
@@ -57,3 +57,31 @@ class BroadcastTests(TestCase):
         self._broadcast()
         self.push.assert_called_once()
         self.assertTrue(NotificationLog.objects.filter(channel=Channel.PUSH).exists())
+
+    def test_push_carries_data_payload(self):
+        Device.objects.create(user=self.user, token="tok-data", platform="android")
+        self._broadcast()
+        data = self.push.call_args.args[-1]
+        self.assertEqual(data["barangay_id"], self.barangay.id)
+        self.assertEqual(data["category"], "critical")
+
+
+class PushTaskTests(TestCase):
+    def test_invalid_token_deactivates_device(self):
+        from users.senders import InvalidTokenError
+        from users.tasks import send_push_task
+
+        user = get_user_model().objects.create_user("pusher", password="pw")
+        device = Device.objects.create(user=user, token="dead-tok", platform="android")
+        NotificationLog.objects.create(user=user, channel=Channel.PUSH, dedup_key="k:1")
+        provider = patch("users.tasks.get_push_provider").start()
+        self.addCleanup(patch.stopall)
+        provider.return_value.send.side_effect = InvalidTokenError("gone")
+
+        send_push_task("%d" % user.id, "k:1", "dead-tok", "t", "b", {})
+
+        device.refresh_from_db()
+        self.assertFalse(device.is_active)
+        self.assertEqual(
+            NotificationLog.objects.get(dedup_key="k:1").status, DeliveryStatus.FAILED
+        )

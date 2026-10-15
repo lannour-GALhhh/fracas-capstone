@@ -12,6 +12,7 @@ import HazardZoneLayer from './HazardZoneLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
 import FocusCenter from '../poi/FocusCenter'
 import EvacuationPingLayer from '@/features/evacuation/map/EvacuationPingLayer'
+import EvacuationPulseLayer from '@/features/evacuation/map/EvacuationPulseLayer'
 import RainfallLayer from './RainfallLayer'
 import BarangaySearch from './BarangaySearch'
 import { type LayerVisibility } from '../constants/layers'
@@ -164,8 +165,9 @@ const GISMap = ({
                 {/* Purple rainfall-intensity badges for barangays currently getting
                     rain — glyph escalates with the PAGASA band. */}
                 <RainfallLayer data={data} visible={layers.rainfall} />
-                {/* Pulsing evacuated/total badges for barangays under an active
-                    evacuation — an alert overlay, always shown when present. */}
+                {/* Pulsing red wash over barangays under an active evacuation. */}
+                <EvacuationPulseLayer data={data} visible={layers.underEvacuation} />
+                {/* Ping badge stays visible when zoomed out, where the wash is too small to see. */}
                 <EvacuationPingLayer data={data} focusedBarangayId={selectedId} />
             </Map>
         </div>

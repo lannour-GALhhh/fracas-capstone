@@ -1,4 +1,4 @@
-import { Circle, CloudRain, Tent, TriangleAlert } from 'lucide-react'
+import { Circle, CloudRain, Siren, Tent, TriangleAlert } from 'lucide-react'
 import { SUSCEPTIBILITY_COLORS } from '@/features/gis/constants/susceptibility'
 import type { SusceptibilityLevel } from '../types/api'
 
@@ -6,6 +6,7 @@ export interface LayerVisibility {
     hazard: boolean
     evacuation: boolean
     rainfall: boolean
+    underEvacuation: boolean
     very_low: boolean
     low: boolean
     moderate: boolean
@@ -29,6 +30,7 @@ export const LAYERS: { key: LayerKey; label: string; icon: typeof TriangleAlert;
     { key: 'hazard', label: 'Flood hazard zones', icon: TriangleAlert, color: '#d73027' },
     { key: 'evacuation', label: 'Evacuation centers', icon: Tent, color: '#059669' },
     { key: 'rainfall', label: 'Rainfall intensity', icon: CloudRain, color: '#7c3aed' },
+    { key: 'underEvacuation', label: 'Barangays under evacuation', icon: Siren, color: '#dc2626' },
     { key: 'very_low', label: 'Very low susceptibility', icon: Circle, color: SUSCEPTIBILITY_COLORS.very_low },
     { key: 'low', label: 'Low susceptibility', icon: Circle, color: SUSCEPTIBILITY_COLORS.low },
     { key: 'moderate', label: 'Moderate susceptibility', icon: Circle, color: SUSCEPTIBILITY_COLORS.moderate },
