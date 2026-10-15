@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "936327001081",
+    "project_id": "fracas-capstone",
+    "storage_bucket": "fracas-capstone.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:936327001081:android:c6f84167914b7dd3dc4328",
+        "android_client_info": {
+          "package_name": "com.expojonathan.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoVcF4R2V-eYC4nqVUESweKpITWAo5_-A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

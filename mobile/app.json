@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "FRACAS",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,9 +20,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.expojonathan.mobile"
+      "package": "com.expojonathan.mobile",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -79,6 +81,12 @@
       "eas": {
         "projectId": "bf04bf7a-eb22-4cec-af75-c16250cf2613"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bf04bf7a-eb22-4cec-af75-c16250cf2613"
     }
   }
 }

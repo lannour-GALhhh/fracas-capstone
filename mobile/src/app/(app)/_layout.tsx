@@ -78,6 +78,7 @@ function SignedInStack() {
             <Stack.Screen name="notification-settings" options={secondary('/account')} />
             <Stack.Screen name="edit-profile" options={secondary('/account')} />
             <Stack.Screen name="change-password" options={secondary('/account')} />
+            <Stack.Screen name="report/[id]" options={secondary('/reports')} />
         </Stack>
     )
 }
