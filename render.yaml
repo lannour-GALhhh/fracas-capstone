@@ -50,10 +50,6 @@ services:
           name: fracas-redis
           property: connectionString
 
-      # --- No Celery worker: tasks run inline ---
-      - key: CELERY_TASK_ALWAYS_EAGER
-        value: "True"
-
       # --- External cron (cron-job.org) ---
       - key: CRON_SECRET
         generateValue: true # copy this value into the X-Cron-Key header on cron-job.org

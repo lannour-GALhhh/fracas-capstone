@@ -1,10 +1,8 @@
-"""Notification-delivery Celery tasks — async so slow gateways never block callers."""
+"""Notification-delivery tasks — async so slow gateways never block callers."""
 
 import logging
 
-from celery import shared_task
-
-from backend.email_backend import BrevoError
+from backend.inline import task
 
 from .constants import Channel, DeliveryStatus
 from .models import Device, NotificationLog, User
@@ -20,7 +18,7 @@ def _finalize(user_id, channel, dedup_key, status, detail=""):
     ).update(status=status, detail=detail)
 
 
-@shared_task
+@task
 def send_sms_task(user_id, dedup_key, to, message):
     try:
         get_sms_provider().send(to, message)
@@ -30,37 +28,23 @@ def send_sms_task(user_id, dedup_key, to, message):
         _finalize(user_id, Channel.SMS, dedup_key, DeliveryStatus.FAILED, str(exc))
 
 
-@shared_task(bind=True, max_retries=3)
-def send_activation_email_task(self, user_id, token):
+@task
+def send_activation_email_task(user_id, token):
     user = User.objects.filter(pk=user_id, is_active=True, is_activated=False).first()
     if not (user and user.email):
         return
-    try:
-        activation.send_activation_email(user, token)
-    except BrevoError as exc:
-        if exc.permanent:  # bad key / blocked IP / unverified sender: retrying can't help
-            raise
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
-    except Exception as exc:  # network blips and the like
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
+    activation.send_activation_email(user, token)
 
 
-@shared_task(bind=True, max_retries=3)
-def send_password_reset_email_task(self, user_id):
+@task
+def send_password_reset_email_task(user_id):
     user = User.objects.filter(pk=user_id, is_active=True, is_activated=True).first()
     if not (user and user.email):
         return
-    try:
-        password_reset.send_reset_email(user)
-    except BrevoError as exc:
-        if exc.permanent:
-            raise
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
-    except Exception as exc:
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 30)
+    password_reset.send_reset_email(user)
 
 
-@shared_task
+@task
 def send_push_task(user_id, dedup_key, token, title, body, data=None):
     try:
         get_push_provider().send(token, title, body, data)
