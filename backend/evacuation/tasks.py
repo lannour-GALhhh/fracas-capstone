@@ -2,14 +2,14 @@
 
 from datetime import timedelta
 
-from celery import shared_task
+from backend.inline import task
 from django.utils import timezone
 
 # Archived centers stay restorable for this long, then are hard-deleted.
 ARCHIVE_RETENTION_DAYS = 30
 
 
-@shared_task
+@task
 def purge_archived_centers() -> dict:
     """Hard-delete evacuation centers archived longer than the retention window."""
     from .models import EvacuationCenter

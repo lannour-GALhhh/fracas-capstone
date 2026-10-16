@@ -3,7 +3,7 @@ import logging
 import time
 from datetime import timedelta
 
-from celery import shared_task
+from backend.inline import task
 
 from django.conf import settings
 from django.utils import timezone
@@ -176,7 +176,7 @@ def _query_groups(barangays):
     return list(groups.values())
 
 
-@shared_task
+@task
 def fetch_rainfall_information():
     ensure_grid_mapping()  # new/unmapped barangays join a shared cell instead of costing a call each
     # defer the heavy boundary: it is only read (lazily) for the few barangays not yet grid-mapped.
