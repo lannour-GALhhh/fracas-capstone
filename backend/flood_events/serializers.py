@@ -9,7 +9,7 @@ from .models import (
     FloodEventTimelineEntry,
     SourceType,
 )
-from .services import changes
+from .services import blocking, changes
 from .services.telemetry import build_event_telemetry
 
 
@@ -240,6 +240,7 @@ class FloodEventReportSerializer(serializers.ModelSerializer):
     images = FloodEventReportImageSerializer(many=True, read_only=True)
     reporter_name = serializers.SerializerMethodField()
     reviewed_by_name = serializers.SerializerMethodField()
+    reporter_block = serializers.SerializerMethodField()
     barangay_name = serializers.CharField(source="barangay.name", read_only=True, default=None)
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=False
@@ -257,6 +258,7 @@ class FloodEventReportSerializer(serializers.ModelSerializer):
             "longitude",
             "reporter",
             "reporter_name",
+            "reporter_block",
             "description",
             "occurred_at",
             "created_at",
@@ -279,6 +281,20 @@ class FloodEventReportSerializer(serializers.ModelSerializer):
 
     def get_reviewed_by_name(self, obj):
         return display_name(obj.reviewed_by)
+
+    def get_reporter_block(self, obj):
+        """Active ban on the sender (operators only); ``None`` when not blocked."""
+        request = self.context.get("request")
+        if not (request and (u := request.user) and u.is_authenticated and (u.is_operator or u.is_staff)):
+            return None
+        block = blocking.active_block(obj.reporter)
+        if block is None:
+            return None
+        return {
+            "until": block.blocked_until,
+            "permanent": block.blocked_until is None,
+            "reason": block.reason,
+        }
 
     def validate_uploaded_images(self, images):
         if len(images) > self.MAX_IMAGES:
@@ -318,3 +334,10 @@ class FloodReportReviewSerializer(serializers.Serializer):
         queryset=FloodEvent.objects.filter(deleted_at__isnull=True), allow_null=True, required=False
     )
     review_note = serializers.CharField(max_length=255, allow_blank=True, required=False)
+
+
+class ReporterBlockSerializer(serializers.Serializer):
+    """Operator request to ban a report's sender; omit ``days`` for permanent."""
+
+    days = serializers.IntegerField(min_value=1, max_value=3650, required=False, allow_null=True)
+    reason = serializers.CharField(max_length=255, allow_blank=True, required=False, default="")

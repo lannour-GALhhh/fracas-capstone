@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getFloodReports, reviewFloodReport } from './api'
-import type { ReportFilters, ReviewInput } from './types'
+import { blockReporter, getFloodReports, reviewFloodReport, unblockReporter } from './api'
+import type { BlockInput, ReportFilters, ReviewInput } from './types'
 
 export const reportKeys = {
     all: ['floodReports'] as const,
@@ -25,5 +25,29 @@ export const useReviewReport = () => {
             toast.success(vars.status === 'verified' ? 'Report verified' : 'Report rejected')
         },
         onError: () => toast.error('Couldn’t save the review', { description: 'Please try again.' }),
+    })
+}
+
+export const useBlockReporter = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, ...payload }: BlockInput & { id: number }) => blockReporter(id, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: reportKeys.all })
+            toast.success('Sender blocked from reporting')
+        },
+        onError: () => toast.error('Couldn’t block the sender', { description: 'Please try again.' }),
+    })
+}
+
+export const useUnblockReporter = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: unblockReporter,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: reportKeys.all })
+            toast.success('Sender unblocked')
+        },
+        onError: () => toast.error('Couldn’t unblock the sender', { description: 'Please try again.' }),
     })
 }

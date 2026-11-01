@@ -13,6 +13,7 @@ import axios, {
 } from 'axios'
 
 import { API_BASE_URL } from './config'
+import { installFailover } from './failover'
 import { sessionEvents } from './sessionEvents'
 import { tokenService } from './tokenService'
 
@@ -24,6 +25,9 @@ const apiClient = axios.create({
         'X-Client': 'mobile',
     },
 })
+
+installFailover(apiClient)
+installFailover(axios) // raw-axios callers (auth, registration)
 
 apiClient.interceptors.request.use((config) => {
     const token = tokenService.getAccess()

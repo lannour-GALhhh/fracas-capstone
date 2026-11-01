@@ -1,6 +1,12 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .radius_views import (
+    RadiusEvacuationsView,
+    RadiusHistoryView,
+    RadiusReportView,
+    RadiusStandDownView,
+)
 from .views import (
     ActiveEvacuationsView,
     EvacuationCenterViewSet,
@@ -16,6 +22,15 @@ router = DefaultRouter()
 router.register(r"evacuation/centers", EvacuationCenterViewSet, basename="evacuation-center")
 
 urlpatterns = router.urls + [
+    # Point + radius evacuations (geography-based, independent of barangays).
+    path("evacuation/radius/", RadiusEvacuationsView.as_view(), name="radius-evacuations"),
+    path("evacuation/radius/history/", RadiusHistoryView.as_view(), name="radius-history"),
+    path("evacuation/radius/report/", RadiusReportView.as_view(), name="radius-report"),
+    path(
+        "evacuation/radius/<int:pk>/stand-down/",
+        RadiusStandDownView.as_view(),
+        name="radius-stand-down",
+    ),
     # Resident device reports its own status transition.
     path("evacuation/report/", EvacuationReportView.as_view(), name="evacuation-report"),
     # Operator: open an evacuation by ping (POST) / read the dashboard aggregate.

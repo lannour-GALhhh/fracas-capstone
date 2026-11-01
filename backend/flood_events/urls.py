@@ -10,14 +10,18 @@ from .views import (
     FloodEventReportsView,
     FloodEventResolveView,
     FloodEventRestoreView,
+    FloodReportBlockView,
     FloodReportListCreateView,
     FloodReportReviewView,
+    FloodReportUnblockView,
     MyFloodActivityView,
 )
 
 urlpatterns = [
     path("flood-reports/", FloodReportListCreateView.as_view(), name="flood-report-list"),
     path("flood-reports/<int:pk>/review/", FloodReportReviewView.as_view(), name="flood-report-review"),
+    path("flood-reports/<int:pk>/block/", FloodReportBlockView.as_view(), name="flood-report-block"),
+    path("flood-reports/<int:pk>/unblock/", FloodReportUnblockView.as_view(), name="flood-report-unblock"),
     path("flood-events/auto-detect-config/", AutoDetectConfigView.as_view(), name="auto-detect-config"),
     path("flood-events/my-activity/", MyFloodActivityView.as_view(), name="flood-event-my-activity"),
     path("flood-events/", FloodEventListView.as_view(), name="flood-event-list"),

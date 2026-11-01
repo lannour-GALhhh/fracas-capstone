@@ -13,6 +13,7 @@ export interface FloodReport extends Omit<FloodEventReport, 'flood_event'> {
     reviewed_by_name: string | null
     reviewed_at: string | null
     review_note: string
+    reporter_block: ReporterBlock | null
 }
 
 export interface ReportFilters {
@@ -28,4 +29,16 @@ export interface ReviewInput {
     status: 'verified' | 'rejected'
     flood_event?: number | null
     review_note?: string
+}
+
+export interface ReporterBlock {
+    until: string | null
+    permanent: boolean
+    reason: string
+}
+
+export interface BlockInput {
+    /** Omit for a permanent block. */
+    days?: number
+    reason?: string
 }

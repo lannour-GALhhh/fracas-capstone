@@ -5,24 +5,22 @@ import LoadingCard from '@/common/components/LoadingCard'
 import ErrorState from '@/common/components/ErrorState'
 import { useActiveEvacuations } from '../hooks/useActiveEvacuations'
 import EvacuationCard from './EvacuationCard'
+import RadiusEvacuationCard from './RadiusEvacuationCard'
+import { useRadiusEvacuations } from '../hooks/useRadiusEvacuations'
 
 /** Live cards for every open evacuation's roster progress. */
 const ActiveEvacuationsList = () => {
     const { data, isLoading, isError, refetch } = useActiveEvacuations()
     const evacuations = data ?? []
+    const radius = useRadiusEvacuations().data ?? []
 
     return (
         <section className='mt-6'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
-                <div>
-                    <h2 className='text-sm font-semibold'>Active evacuations</h2>
-                    <p className='text-xs text-black/50'>
-                        Track who has reached safety during an ongoing evacuation
-                    </p>
-                </div>
+                <h2 className='text-sm font-semibold'>Active evacuations</h2>
                 {!isLoading && !isError && (
                     <Badge variant='secondary' className='h-6'>
-                        {evacuations.length} active
+                        {evacuations.length + radius.length} active
                     </Badge>
                 )}
             </div>
@@ -37,7 +35,7 @@ const ActiveEvacuationsList = () => {
                         onRetry={() => refetch()}
                     />
                 )}
-                {!isLoading && !isError && evacuations.length === 0 && (
+                {!isLoading && !isError && evacuations.length + radius.length === 0 && (
                     <Card className='items-center gap-2 py-12 text-center'>
                         <Siren className='text-muted-foreground size-8' />
                         <p className='font-medium'>No active evacuations</p>
@@ -49,6 +47,9 @@ const ActiveEvacuationsList = () => {
                 )}
                 {evacuations.map((evac) => (
                     <EvacuationCard key={evac.evacuation_id} evac={evac} />
+                ))}
+                {radius.map((evac) => (
+                    <RadiusEvacuationCard key={`radius-${evac.id}`} evac={evac} />
                 ))}
             </div>
         </section>

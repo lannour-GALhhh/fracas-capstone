@@ -172,11 +172,16 @@ class EvacuationHistorySerializer(serializers.ModelSerializer):
     barangay = serializers.SerializerMethodField()
     triggered_by_name = serializers.SerializerMethodField()
     duration_seconds = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return "barangay"
 
     class Meta:
         model = Evacuation
         fields = [
             "id",
+            "type",
             "barangay",
             "trigger",
             "zones",

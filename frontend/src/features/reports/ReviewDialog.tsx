@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ImageLightbox from '@/common/components/ImageLightbox'
 import { cn } from '@/common/utils/utils'
 import { useFloodEvents } from '@/features/history/hooks/useFloodEvents'
+import { BlockedNotice, BlockOption } from './BlockSender'
 import { STATUS_META } from './constants'
-import { useReviewReport } from './hooks'
+import { useBlockReporter, useReviewReport } from './hooks'
 import type { FloodReport } from './types'
 
 const NONE = 'none'
@@ -34,6 +35,11 @@ const ReviewDialog = ({ report, onClose }: { report: FloodReport; onClose: () =>
     const [active, setActive] = useState(0)
     const [zoomed, setZoomed] = useState<number | null>(null)
     const review = useReviewReport()
+    const blockSender = useBlockReporter()
+    const [rejecting, setRejecting] = useState(false)
+    const [alsoBlock, setAlsoBlock] = useState(false)
+    const [duration, setDuration] = useState('7')
+    const canBlock = Boolean(report.reporter_name) && !report.reporter_block
     const { data: events } = useFloodEvents({ barangay: report.barangay ?? undefined }, report.barangay != null)
 
     const options = (events?.results ?? []).map((e) => ({
@@ -53,6 +59,26 @@ const ReviewDialog = ({ report, onClose }: { report: FloodReport; onClose: () =>
             },
             { onSuccess: onClose },
         )
+
+    const rejectAndMaybeBlock = () =>
+        review.mutate(
+            {
+                id: report.id,
+                status: 'rejected',
+                review_note: note,
+                flood_event: eventId === NONE ? null : Number(eventId),
+            },
+            {
+                onSuccess: () => {
+                    if (alsoBlock) {
+                        blockSender.mutate({ id: report.id, ...(duration !== 'permanent' && { days: Number(duration) }) })
+                    }
+                    onClose()
+                },
+            },
+        )
+
+    const busy = review.isPending || blockSender.isPending
 
     const sent = new Date(report.created_at)
     const images = report.images
@@ -161,6 +187,16 @@ const ReviewDialog = ({ report, onClose }: { report: FloodReport; onClose: () =>
                         <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={255} />
                     </div>
 
+                    <BlockedNotice report={report} onDone={onClose} />
+                    {rejecting && canBlock && (
+                        <BlockOption
+                            checked={alsoBlock}
+                            onCheckedChange={setAlsoBlock}
+                            duration={duration}
+                            onDurationChange={setDuration}
+                        />
+                    )}
+
                     <div className='flex justify-end gap-2 pt-1'>
                         {report.status === 'verified' ? (
                             <>
@@ -173,9 +209,24 @@ const ReviewDialog = ({ report, onClose }: { report: FloodReport; onClose: () =>
                                     Save
                                 </Button>
                             </>
+                        ) : rejecting ? (
+                            <>
+                                <Button variant='outline' disabled={busy} onClick={() => setRejecting(false)} className='cursor-pointer'>
+                                    Back
+                                </Button>
+                                <Button variant='destructive' disabled={busy} onClick={rejectAndMaybeBlock} className='cursor-pointer'>
+                                    <X className='size-4' />
+                                    {alsoBlock && canBlock ? 'Block & Reject' : 'Reject'}
+                                </Button>
+                            </>
                         ) : (
                             <>
-                                <Button variant='outline' disabled={review.isPending} onClick={() => submit('rejected')} className='cursor-pointer'>
+                                <Button
+                                    variant='outline'
+                                    disabled={busy}
+                                    onClick={() => (report.reporter_name ? setRejecting(true) : submit('rejected'))}
+                                    className='cursor-pointer'
+                                >
                                     <X className='size-4' />
                                     Reject
                                 </Button>

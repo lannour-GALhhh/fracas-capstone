@@ -254,3 +254,34 @@ class FloodEventTimelineEntry(models.Model):
 
     def __str__(self):
         return f"{self.title} @ {self.occurred_at:%Y-%m-%d %H:%M}"
+
+
+class ReporterBlock(models.Model):
+    """An operator-imposed ban on a resident submitting flood reports.
+
+    ``blocked_until`` of ``None`` means permanent. A block is *active* until it
+    expires or an operator lifts it (``lifted_at``); rows are kept as history.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="report_blocks"
+    )
+    blocked_until = models.DateTimeField(null=True, blank=True, help_text="Empty = permanent.")
+    reason = models.CharField(max_length=255, blank=True)
+    blocked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    lifted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self):
+        until = self.blocked_until.isoformat() if self.blocked_until else "permanent"
+        return f"Report block on user #{self.user_id} ({until})"

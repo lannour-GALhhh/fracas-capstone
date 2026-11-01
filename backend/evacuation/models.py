@@ -172,3 +172,85 @@ class EvacuationStatus(models.Model):
 
     def __str__(self):
         return f"EvacuationStatus<{self.evacuation_id} u{self.user_id} {self.status}>"
+
+
+class RadiusEvacuation(models.Model):
+    """A point + radius evacuation, independent of barangay/zone boundaries.
+
+    The geography it was established on is recorded on the row: the centre, the
+    radius, the exact circle polygon (`area`) and the barangays that circle
+    touched at declaration time (`barangays`, a frozen snapshot).
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        STOOD_DOWN = "stood_down", "Stood down"
+
+    name = models.CharField(max_length=120, blank=True)
+    center = models.PointField(srid=4326)
+    radius_m = models.PositiveIntegerField()
+    area = models.PolygonField(srid=4326, help_text="The circle, for map display/audit.")
+    barangays = models.JSONField(
+        default=list, blank=True, help_text="[{id, name}] barangays the circle touched."
+    )
+    # The barangay containing the centre — how the evacuation is filed in records.
+    origin_barangay = models.ForeignKey(
+        "barangays.Barangay",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.ACTIVE, db_index=True
+    )
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    # Frozen at stand-down.
+    final_inside = models.PositiveIntegerField(null=True, blank=True)
+    final_safe = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["status", "-opened_at"])]
+        ordering = ["-opened_at"]
+
+    def __str__(self):
+        return f"RadiusEvacuation<{self.pk} {self.radius_m}m {self.status}>"
+
+
+class RadiusEvacuationStatus(models.Model):
+    """One resident's status within a radius evacuation (reported by their device)."""
+
+    class Status(models.TextChoices):
+        INSIDE = "inside", "Inside the radius"
+        SAFE = "safe", "Evacuated (outside the radius)"
+
+    evacuation = models.ForeignKey(
+        RadiusEvacuation, on_delete=models.CASCADE, related_name="statuses"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
+    )
+    status = models.CharField(max_length=12, choices=Status.choices)
+    last_lat = models.FloatField(null=True, blank=True)
+    last_lng = models.FloatField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["evacuation", "user"], name="uniq_radius_evacuation_user"
+            )
+        ]
+        indexes = [models.Index(fields=["evacuation", "status"])]
+
+    def __str__(self):
+        return f"RadiusEvacuationStatus<{self.evacuation_id} u{self.user_id} {self.status}>"

@@ -1,4 +1,5 @@
 import io
+from datetime import timedelta
 import tempfile
 
 from django.contrib.auth import get_user_model
@@ -10,7 +11,7 @@ from PIL import Image
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from flood_events.models import FloodEvent, FloodEventChange, FloodEventReport
+from flood_events.models import FloodEvent, FloodEventChange, FloodEventReport, ReporterBlock
 
 
 def make_image(name="evidence.png"):
@@ -181,3 +182,71 @@ class ResidentReportTests(APITestCase):
         today = timezone.localdate().isoformat()
         self.assertEqual(self.client.get(self.url, {"sent_after": today}).data["count"], 1)
         self.assertEqual(self.client.get(self.url, {"sent_before": "2000-01-01"}).data["count"], 0)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ReporterBlockTests(APITestCase):
+    def setUp(self):
+        poly = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
+        self.barangay = Barangay.objects.create(
+            name="Tumaga", code="T1", province_code="PH0907332", boundary=MultiPolygon(poly)
+        )
+        User = get_user_model()
+        self.resident = User.objects.create_user("res", password="pw")
+        self.operator = User.objects.create_user("op", password="pw", is_operator=True)
+        self.report = FloodEventReport.objects.create(
+            barangay=self.barangay, reporter=self.resident, status="pending", occurred_at=timezone.now()
+        )
+        self.block_url = reverse("flood-report-block", args=[self.report.id])
+        self.unblock_url = reverse("flood-report-unblock", args=[self.report.id])
+
+    def submit(self):
+        return self.client.post(
+            reverse("flood-report-list"),
+            {
+                "occurred_at": timezone.now().isoformat(),
+                "barangay": self.barangay.id,
+                "uploaded_images": [make_image()],
+            },
+            format="multipart",
+        )
+
+    def test_resident_cannot_block(self):
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self.client.post(self.block_url, {"days": 3}).status_code, 403)
+
+    def test_timed_block_stops_submissions_then_expires(self):
+        self.client.force_authenticate(self.operator)
+        self.assertEqual(self.client.post(self.block_url, {"days": 3, "reason": "spam"}).status_code, 201)
+        self.client.force_authenticate(self.resident)
+        resp = self.submit()
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data["code"], "reporter_blocked")
+        ReporterBlock.objects.update(blocked_until=timezone.now() - timedelta(minutes=1))
+        self.assertEqual(self.submit().status_code, 201)
+
+    def test_omitting_days_is_permanent(self):
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(self.block_url, {})
+        self.assertTrue(resp.data["permanent"])
+        self.client.force_authenticate(self.resident)
+        self.assertTrue(self.submit().data["permanent"])
+
+    def test_unblock_restores_access(self):
+        self.client.force_authenticate(self.operator)
+        self.client.post(self.block_url, {})
+        self.assertEqual(self.client.post(self.unblock_url).status_code, 204)
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self.submit().status_code, 201)
+
+    def test_list_exposes_block_to_operators(self):
+        self.client.force_authenticate(self.operator)
+        self.client.post(self.block_url, {"days": 2})
+        row = self.client.get(reverse("flood-report-list")).data["results"][0]
+        self.assertFalse(row["reporter_block"]["permanent"])
+
+    def test_cannot_block_operator(self):
+        self.report.reporter = self.operator
+        self.report.save()
+        self.client.force_authenticate(self.operator)
+        self.assertEqual(self.client.post(self.block_url, {}).status_code, 400)
