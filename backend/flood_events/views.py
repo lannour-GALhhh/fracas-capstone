@@ -29,10 +29,11 @@ from .serializers import (
     FloodEventSerializer,
     FloodEventWriteSerializer,
     FloodReportReviewSerializer,
+    ReporterBlockSerializer,
     FloodReportSubmitSerializer,
     MyFloodActivitySerializer,
 )
-from .services import changes, report_linking
+from .services import blocking, changes, report_linking
 
 
 class _OperatorWriteMixin:
@@ -277,7 +278,19 @@ class FloodReportListCreateView(ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        since = timezone.now() - timedelta(days=1)
+        if block := blocking.active_block(request.user):
+            return Response(
+                {
+                    "detail": "You are blocked from sending reports."
+                    if block.blocked_until is None
+                    else f"You are blocked from sending reports until {block.blocked_until:%b %d, %Y}.",
+                    "code": "reporter_blocked",
+                    "permanent": block.blocked_until is None,
+                    "until": block.blocked_until,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        since =timezone.now() - timedelta(days=1)
         if FloodEventReport.objects.filter(reporter=request.user, created_at__gte=since).count() >= MAX_SUBMISSIONS_PER_DAY:
             return Response(
                 {"detail": "Daily report limit reached. Please try again tomorrow."},
@@ -330,3 +343,43 @@ class FloodReportReviewView(APIView):
                 new_value=f"Verified resident report #{report.pk} ({report.images.count()} photo(s))",
             )
         return Response(FloodEventReportSerializer(report, context={"request": request}).data)
+
+
+class _ReporterBlockView(APIView):
+    """Shared lookup: the resident who sent a report (never an operator/admin)."""
+
+    permission_classes = [IsOperator]
+
+    def reporter(self, pk):
+        report = get_object_or_404(FloodEventReport.objects.select_related("reporter"), pk=pk)
+        user = report.reporter
+        if user is None:
+            raise ValidationError({"detail": "This report has no sender to block."})
+        if user.is_operator or user.is_staff or user.is_superuser:
+            raise ValidationError({"detail": "Operators and admins can't be blocked."})
+        return user
+
+
+class FloodReportBlockView(_ReporterBlockView):
+    """Block a report's sender from reporting for N days (omit ``days`` = permanent)."""
+
+    def post(self, request, pk):
+        user = self.reporter(pk)
+        form = ReporterBlockSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        block = blocking.block(
+            user,
+            days=form.validated_data.get("days"),
+            reason=form.validated_data["reason"],
+            by=request.user,
+        )
+        return Response(
+            {"until": block.blocked_until, "permanent": block.blocked_until is None, "reason": block.reason},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class FloodReportUnblockView(_ReporterBlockView):
+    def post(self, request, pk):
+        blocking.lift(self.reporter(pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
