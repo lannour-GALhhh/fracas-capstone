@@ -53,7 +53,8 @@ const EvacuationCard = ({ evac }: EvacuationCardProps) => {
                     <div className='flex items-center gap-2'>
                         <MapPin className='text-destructive size-4' />
                         <h2 className='text-lg font-semibold'>{evac.barangay.name}</h2>
-                        <Badge variant='secondary'>{TRIGGER_LABELS[evac.trigger]}</Badge>
+                        <Badge variant='secondary'>Barangay-based</Badge>
+                        <Badge variant='outline'>{TRIGGER_LABELS[evac.trigger]}</Badge>
                     </div>
                     {evac.zones.length > 0 && (
                         <div className='flex flex-wrap gap-1'>

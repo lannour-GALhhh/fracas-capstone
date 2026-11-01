@@ -20,6 +20,8 @@ import { fillColorExpression } from '../constants/risk'
 import { collectionBounds } from '../utils/bounds'
 import type { Coords } from '@/common/hooks/useCurrentLocation'
 import type { EvacuationCenterCollection, RiskFeatureCollection } from '../types'
+import { radiusCollection } from '@/features/evacuation/radius/geometry'
+import type { RadiusEvacuation } from '@/features/evacuation/radius/types'
 
 interface Props {
     /** Risk-joined barangay boundaries; null until the first load resolves. */
@@ -45,6 +47,8 @@ interface Props {
      * city framing. Overrides the initial fit-to-city when set on mount.
      */
     focus?: MapFocus | null
+    /** Active point + radius evacuations, drawn as red circles. */
+    radiusEvacuations?: RadiusEvacuation[]
 }
 
 /** A camera target: where to center and how far to zoom in. */
@@ -78,6 +82,7 @@ export function RiskMap({
     interactive = true,
     fill = false,
     focus = null,
+    radiusEvacuations = [],
 }: Props) {
     const theme = useTheme()
     const { scheme } = theme
@@ -153,6 +158,13 @@ export function RiskMap({
                                 'line-width': 3,
                             }}
                         />
+                    </GeoJSONSource>
+                ) : null}
+
+                {radiusEvacuations.length > 0 ? (
+                    <GeoJSONSource id="radius-evacuations" data={radiusCollection(radiusEvacuations)}>
+                        <Layer id="radius-fill" type="fill" paint={{ 'fill-color': '#dc2626', 'fill-opacity': 0.25 }} />
+                        <Layer id="radius-line" type="line" paint={{ 'line-color': '#dc2626', 'line-width': 2.5 }} />
                     </GeoJSONSource>
                 ) : null}
 

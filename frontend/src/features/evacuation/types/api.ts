@@ -10,6 +10,9 @@ export interface EvacuationZone {
 /** What opened an evacuation: the automated pipeline or an operator ping. */
 export type EvacuationTrigger = 'automated' | 'operator'
 
+/** Barangay-based (zones of one barangay) or point-based (centre + radius). */
+export type EvacuationType = 'barangay' | 'point'
+
 /** One active evacuation's live aggregate. */
 export interface EvacuationAggregate {
     evacuation_id: number
@@ -28,7 +31,13 @@ export interface EvacuationAggregate {
 /** One closed evacuation; `final_*` counts are null when never recorded. */
 export interface EvacuationHistoryEntry {
     id: number
-    barangay: { id: number; name: string }
+    type: EvacuationType
+    /** Point-based rows only. */
+    center?: { lat: number; lng: number }
+    radius_m?: number
+    affected_barangays?: { id: number; name: string }[]
+    /** For point-based rows: the barangay containing the origin point. */
+    barangay: { id: number | null; name: string }
     trigger: EvacuationTrigger
     /** Operator who pinged it; `null` for an automated run. */
     triggered_by_name: string | null
@@ -49,6 +58,7 @@ export interface EvacuationHistoryFilters {
     trigger?: EvacuationTrigger
     closed_after?: string
     closed_before?: string
+    type?: EvacuationType
 }
 
 /** DRF page envelope. */

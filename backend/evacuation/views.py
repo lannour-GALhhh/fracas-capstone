@@ -11,6 +11,7 @@ from poi.views import PoiViewSet, is_operator_user
 from users.permissions import IsOperator
 
 from .models import EvacuationCenter, EvacuationCenterImage
+from .radius_serializers import PointHistorySerializer, point_history
 from .serializers import (
     CenterImageSerializer,
     EvacuationCenterSerializer,
@@ -121,7 +122,7 @@ from audit.services import log_change
 from barangays.models import Barangay
 from users.permissions import IsOperator
 
-from .models import Evacuation, EvacuationCenter, EvacuationStatus
+from .models import Evacuation, EvacuationCenter, EvacuationStatus, RadiusEvacuation
 from .serializers import (
     EvacuationHistorySerializer,
     EvacuationReportSerializer,
@@ -260,10 +261,28 @@ def _parse_day(raw):
 
 
 class EvacuationHistoryView(ListAPIView):
-    """Operator archive: every evacuation that has been stood down."""
+    """Operator archive: every evacuation (barangay- and point-based) stood down."""
 
     permission_classes = [IsOperator]
     serializer_class = EvacuationHistorySerializer
+
+    def list(self, request, *args, **kwargs):
+        kind = request.query_params.get("type")
+        rows = []
+        if kind != "point":
+            rows += list(self.filter_queryset(self.get_queryset()))
+        if kind != "barangay":
+            rows += point_history(request.query_params)
+        rows.sort(key=lambda e: (e.closed_at, e.opened_at), reverse=True)
+        page = self.paginate_queryset(rows)
+        return self.get_paginated_response(
+            [
+                PointHistorySerializer(e).data
+                if isinstance(e, RadiusEvacuation)
+                else EvacuationHistorySerializer(e).data
+                for e in page
+            ]
+        )
 
     def get_queryset(self):
         queryset = Evacuation.objects.filter(

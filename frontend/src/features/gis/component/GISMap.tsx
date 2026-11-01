@@ -1,9 +1,13 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { affectedBarangays } from '@/features/evacuation/utils/affected'
 import { MapPin } from 'lucide-react'
-import { Map, MapControls, MapMarker, MarkerContent, type MapRef } from '@/common/ui/map'
+import { Map, MapControls, MapMarker, MarkerContent, useMap, type MapRef } from '@/common/ui/map'
 import { useAuth } from '@/features/auth/context/useAuth'
 import MassEvacuationDialog from '@/features/evacuation/component/MassEvacuationDialog'
 import MassEvacuationControls from './MassEvacuationControls'
+import RadiusEvacuationButton from './RadiusEvacuationButton'
+import RadiusEvacuationPanel from '@/features/evacuation/component/RadiusEvacuationPanel'
+import RadiusEvacuationLayer from '@/features/evacuation/map/RadiusEvacuationLayer'
 import type { RiskFeatureCollection, SusceptibilityLevel } from '../types/api'
 import { collectionBounds, featureBoundsById, fitBox } from '../utils/bounds'
 import BarangayChoropleth from './BarangayChoropleth'
@@ -40,6 +44,35 @@ const centroidOf = (
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
+/** While mounted, a map click reports its coordinates (crosshair cursor). */
+const MapPlacementClick = ({ onPlace }: { onPlace: (p: { lng: number; lat: number }) => void }) => {
+    const { map } = useMap()
+    useEffect(() => {
+        if (!map) return
+        const canvas = map.getCanvas()
+        // Pointer by default; the grab hand only while dragging the map.
+        const point = () => (canvas.style.cursor = 'pointer')
+        const grab = () => (canvas.style.cursor = 'grabbing')
+        point()
+        map.on('mousemove', point)
+        map.on('mousedown', grab)
+        map.on('mouseup', point)
+        map.on('dragend', point)
+        const handle = (e: { lngLat: { lng: number; lat: number } }) =>
+            onPlace({ lng: e.lngLat.lng, lat: e.lngLat.lat })
+        map.on('click', handle)
+        return () => {
+            map.off('click', handle)
+            map.off('mousemove', point)
+            map.off('mousedown', grab)
+            map.off('mouseup', point)
+            map.off('dragend', point)
+            canvas.style.cursor = ''
+        }
+    }, [map, onPlace])
+    return null
+}
+
 const GISMap = ({
     data,
     selectedId,
@@ -56,6 +89,14 @@ const GISMap = ({
     const [massActive, setMassActive] = useState(false)
     const [massIds, setMassIds] = useState<number[]>([])
     const [confirmOpen, setConfirmOpen] = useState(false)
+    const [radiusActive, setRadiusActive] = useState(false)
+    const [radiusPoint, setRadiusPoint] = useState<{ lng: number; lat: number } | null>(null)
+    const [radiusM, setRadiusM] = useState(500)
+
+    const endRadius = () => {
+        setRadiusActive(false)
+        setRadiusPoint(null)
+    }
 
     const toggleMass = useCallback(
         (id: number | null) => {
@@ -70,6 +111,12 @@ const GISMap = ({
         setMassIds([])
         setConfirmOpen(false)
     }
+
+    const radiusBarangays = useMemo(
+        () =>
+            radiusPoint ? affectedBarangays(data, radiusPoint.lng, radiusPoint.lat, radiusM) : [],
+        [data, radiusPoint, radiusM],
+    )
 
     const massTargets = (data?.features ?? [])
         .filter((f) => massIds.includes(f.properties.id))
@@ -94,7 +141,7 @@ const GISMap = ({
             {/* Barangay search, centered above the map. */}
             <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2'>
                 <BarangaySearch data={data} onSelect={onSelect} />
-                {isOperator && selectedId == null && (
+                {isOperator && selectedId == null && !radiusActive && (
                     <MassEvacuationControls
                         active={massActive}
                         selectedCount={massIds.length}
@@ -106,7 +153,27 @@ const GISMap = ({
                         onCancel={endMass}
                     />
                 )}
+                {isOperator && selectedId == null && !massActive && !radiusActive && (
+                    <RadiusEvacuationButton
+                        onClick={() => {
+                            onSelect(null)
+                            setRadiusActive(true)
+                        }}
+                    />
+                )}
             </div>
+            {radiusActive && (
+                <div className='absolute top-32 left-1/2 z-10 -translate-x-1/2'>
+                    <RadiusEvacuationPanel
+                        point={radiusPoint}
+                        radiusM={radiusM}
+                        barangays={radiusBarangays}
+                        onRadiusChange={setRadiusM}
+                        onCancel={endRadius}
+                        onDone={endRadius}
+                    />
+                </div>
+            )}
             <MassEvacuationDialog
                 open={confirmOpen}
                 targets={massTargets}
@@ -131,6 +198,7 @@ const GISMap = ({
                             onHover={setHoveredId}
                             panelWidth={panelWidth}
                             skipInitialFit={focusCenterId != null}
+                            disabled={radiusActive}
                         />
                         {massActive &&
                             massIds.map((id) => {
@@ -169,6 +237,19 @@ const GISMap = ({
                 <EvacuationPulseLayer data={data} visible={layers.underEvacuation} />
                 {/* Ping badge stays visible when zoomed out, where the wash is too small to see. */}
                 <EvacuationPingLayer data={data} focusedBarangayId={selectedId} />
+                {/* Point + radius evacuations, plus the circle being placed. */}
+                <RadiusEvacuationLayer
+                    visible={layers.underEvacuation}
+                    draft={radiusActive && radiusPoint ? { ...radiusPoint, radiusM } : null}
+                />
+                {radiusActive && <MapPlacementClick onPlace={setRadiusPoint} />}
+                {radiusActive && radiusPoint && (
+                    <MapMarker longitude={radiusPoint.lng} latitude={radiusPoint.lat}>
+                        <MarkerContent>
+                            <MapPin className='size-8 fill-red-600 text-white drop-shadow' />
+                        </MarkerContent>
+                    </MapMarker>
+                )}
             </Map>
         </div>
     )

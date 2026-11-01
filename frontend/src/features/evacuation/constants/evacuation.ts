@@ -1,4 +1,9 @@
-import type { EvacuationTrigger } from '../types/api'
+import type { EvacuationTrigger, EvacuationType } from '../types/api'
+
+export const TYPE_LABELS: Record<EvacuationType, string> = {
+    barangay: 'Barangay-based',
+    point: 'Point-based',
+}
 
 export const TRIGGER_LABELS: Record<EvacuationTrigger, string> = {
     automated: 'Auto-triggered',

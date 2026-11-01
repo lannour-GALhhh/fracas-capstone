@@ -6,6 +6,10 @@ import { ErrorState } from '@/common/components/ErrorState'
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Button, Spinner } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
+import { useWatchedLocation } from '@/common/hooks/useWatchedLocation'
+import { RadiusEvacuationBanner } from '@/features/evacuation/radius/RadiusEvacuationBanner'
+import { useRadiusEvacuations } from '@/features/evacuation/radius/useRadiusEvacuations'
+import { useRadiusTracker } from '@/features/evacuation/radius/useRadiusTracker'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
@@ -36,6 +40,14 @@ export function StatusScreen() {
     const { status: locStatus, coords, request } = useCurrentLocation()
     // Pinpoint risk at the resident's exact spot (server-side point-in-polygon).
     const localized = useLocalizedRisk(coords)
+
+    // Point + radius evacuations: track the resident live while any is active
+    // so entering/leaving the radius is detected as it happens.
+    const radiusEvacs = useRadiusEvacuations()
+    const activeRadius = radiusEvacs.data ?? []
+    const watched = useWatchedLocation(locStatus === 'granted' && activeRadius.length > 0)
+    const radiusCoords = watched ?? coords
+    useRadiusTracker(activeRadius, radiusCoords)
 
     // Turn alerts on for the resident: subscribe them to their home barangay once.
     useAutoSubscribeHome()
@@ -175,10 +187,15 @@ export function StatusScreen() {
                 interactive
                 fill
                 focus={focus ?? userFocus}
+                radiusEvacuations={activeRadius}
             />
 
-            {homeEvac ? (
+            {homeEvac || activeRadius.length > 0 ? (
                 <View style={styles.bannerOverlay} pointerEvents="box-none">
+                    {activeRadius.map((e) => (
+                        <RadiusEvacuationBanner key={e.id} evacuation={e} coords={radiusCoords} />
+                    ))}
+                    {homeEvac ? (
                     <EvacuationBanner
                         evacuation={homeEvac}
                         nearest={nearest}
@@ -187,6 +204,7 @@ export function StatusScreen() {
                         locationEnabled={locStatus === 'granted'}
                         outsideZones={outsideZones}
                     />
+                    ) : null}
                 </View>
             ) : null}
 
@@ -258,6 +276,7 @@ const styles = StyleSheet.create({
         top: spacing.lg,
         left: spacing.lg,
         right: spacing.lg,
+        gap: spacing.sm,
     },
     sheetShadow: {
         shadowColor: '#000',

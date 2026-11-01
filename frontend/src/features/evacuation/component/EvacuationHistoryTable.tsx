@@ -38,12 +38,12 @@ import ErrorState from '@/common/components/ErrorState'
 import { getPageItems } from '@/common/utils/pageItems'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useEvacuationHistory } from '../hooks/useEvacuationHistory'
-import { TRIGGER_LABELS } from '../constants/evacuation'
+import { TRIGGER_LABELS, TYPE_LABELS } from '../constants/evacuation'
 import EvacProgress from './EvacProgress'
-import type { EvacuationHistoryEntry, EvacuationTrigger } from '../types/api'
+import type { EvacuationHistoryEntry, EvacuationTrigger, EvacuationType } from '../types/api'
 
 const PAGE_SIZE = 25
-const COLS = 6
+const COLS = 7
 
 const TRIGGER_FILTERS: EvacuationTrigger[] = ['automated', 'operator']
 
@@ -82,6 +82,7 @@ const EvacuationHistoryTable = () => {
     const [barangayIds, setBarangayIds] = useState<number[]>([])
     const [trigger, setTrigger] = useState<EvacuationTrigger | 'all'>('all')
     const [range, setRange] = useState<DateRange | undefined>()
+    const [type, setType] = useState<EvacuationType | 'all'>('all')
 
     const { data: barangays } = useBarangays()
     const barangayOptions = useMemo(
@@ -93,18 +94,19 @@ const EvacuationHistoryTable = () => {
     )
 
     // Any filter change resets to the first page (adjust-during-render).
-    const filterKey = `${barangayIds.join(',')}|${trigger}|${range?.from}|${range?.to}`
+    const filterKey = `${barangayIds.join(',')}|${trigger}|${range?.from}|${range?.to}|${type}`
     const [lastKey, setLastKey] = useState(filterKey)
     if (filterKey !== lastKey) {
         setLastKey(filterKey)
         setPage(1)
     }
 
-    const hasFilters = barangayIds.length > 0 || trigger !== 'all' || range != null
+    const hasFilters = barangayIds.length > 0 || trigger !== 'all' || range != null || type !== 'all'
     const clearFilters = () => {
         setBarangayIds([])
         setTrigger('all')
         setRange(undefined)
+        setType('all')
     }
 
     const rangeLabel =
@@ -118,6 +120,7 @@ const EvacuationHistoryTable = () => {
         page,
         ...(barangayIds.length > 0 && { barangay: barangayIds.join(',') }),
         ...(trigger !== 'all' && { trigger }),
+        ...(type !== 'all' && { type }),
         ...(range?.from && { closed_after: toDay(range.from) }),
         ...(range?.to && { closed_before: toDay(range.to) }),
     })
@@ -137,6 +140,22 @@ const EvacuationHistoryTable = () => {
                     value={barangayIds}
                     onConfirm={setBarangayIds}
                 />
+
+                <Select value={type} onValueChange={(v) => setType(v as EvacuationType | 'all')}>
+                    <SelectTrigger className='w-44'>
+                        <SelectValue>
+                            {(v) => (v === 'all' ? 'All types' : TYPE_LABELS[v as EvacuationType])}
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value='all'>All types</SelectItem>
+                        {(Object.keys(TYPE_LABELS) as EvacuationType[]).map((t) => (
+                            <SelectItem key={t} value={t}>
+                                {TYPE_LABELS[t]}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
                 <Select
                     value={trigger}
@@ -198,6 +217,7 @@ const EvacuationHistoryTable = () => {
                     <TableRow>
                         <TableHead>Closed</TableHead>
                         <TableHead>Barangay</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Trigger</TableHead>
                         <TableHead>Declared by</TableHead>
                         <TableHead>Duration</TableHead>
@@ -234,7 +254,7 @@ const EvacuationHistoryTable = () => {
                         </TableRow>
                     )}
                     {rows.map((e) => (
-                        <TableRow key={e.id}>
+                        <TableRow key={`${e.type}-${e.id}`}>
                             <TableCell
                                 className='whitespace-nowrap'
                                 title={new Date(e.closed_at).toLocaleString()}
@@ -244,7 +264,23 @@ const EvacuationHistoryTable = () => {
                                     {format(new Date(e.closed_at), 'p')}
                                 </span>
                             </TableCell>
-                            <TableCell className='font-medium'>{e.barangay.name}</TableCell>
+                            <TableCell className='font-medium'>
+                                {e.barangay.name}
+                                {e.type === 'point' && e.center && (
+                                    <span className='block text-xs font-normal text-black/50'>
+                                        Origin {e.center.lat.toFixed(5)}°, {e.center.lng.toFixed(5)}° ·{' '}
+                                        {e.radius_m?.toLocaleString()} m
+                                    </span>
+                                )}
+                                {e.type === 'point' && (e.affected_barangays?.length ?? 0) > 1 && (
+                                    <span className='block text-xs font-normal text-black/50'>
+                                        Affected: {e.affected_barangays?.map((b) => b.name).join(', ')}
+                                    </span>
+                                )}
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant='outline'>{TYPE_LABELS[e.type]}</Badge>
+                            </TableCell>
                             <TableCell>
                                 <Badge variant='secondary'>{TRIGGER_LABELS[e.trigger]}</Badge>
                             </TableCell>
