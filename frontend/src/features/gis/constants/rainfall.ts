@@ -75,3 +75,25 @@ export const rainfallStrengthIndicator = (maxMmPerHour: number): RainfallStrengt
     if (tier === 'torrential') return { tier, at: TIER_UPPER_BOUNDS[TIER_UPPER_BOUNDS.length - 1][1] }
     return { tier: 'light', at: TIER_UPPER_BOUNDS[0][1] }
 }
+
+/** How a tier looks as animated rain: streak count scales with tier, not with the raw reading. */
+export interface RainStyle {
+    /** Streaks per 10,000 px² of barangay on screen. */
+    density: number
+    /** Fall speed, px per second. */
+    speed: number
+    /** Streak length, px. */
+    length: number
+    /** Streak opacity, 0–1. */
+    alpha: number
+    /** Whole-polygon tint opacity, 0–1. */
+    wash: number
+}
+
+export const RAIN_STYLES: Record<Exclude<RainfallTier, 'none'>, RainStyle> = {
+    light: { density: 1.5, speed: 220, length: 8, alpha: 0.35, wash: 0.04 },
+    moderate: { density: 4, speed: 320, length: 11, alpha: 0.5, wash: 0.08 },
+    heavy: { density: 8, speed: 420, length: 14, alpha: 0.6, wash: 0.12 },
+    intense: { density: 14, speed: 540, length: 17, alpha: 0.7, wash: 0.17 },
+    torrential: { density: 22, speed: 680, length: 21, alpha: 0.8, wash: 0.22 },
+}

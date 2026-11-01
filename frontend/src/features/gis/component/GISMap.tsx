@@ -162,8 +162,8 @@ const GISMap = ({
                     visibleLevels={visibleLevels}
                 />
                 <EvacuationLayer visible={layers.evacuation} focusedBarangayId={selectedId} />
-                {/* Purple rainfall-intensity badges for barangays currently getting
-                    rain — glyph escalates with the PAGASA band. */}
+                {/* Animated rain over barangays currently getting rain — streak
+                    density/speed escalate with the PAGASA band. */}
                 <RainfallLayer data={data} visible={layers.rainfall} />
                 {/* Pulsing red wash over barangays under an active evacuation. */}
                 <EvacuationPulseLayer data={data} visible={layers.underEvacuation} />
