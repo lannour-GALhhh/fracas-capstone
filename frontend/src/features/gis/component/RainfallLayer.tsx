@@ -9,7 +9,15 @@ interface Props {
 }
 
 /** Cap per barangay so a zoomed-in giant polygon can't stall the frame. */
-const MAX_DROPS = 600
+const MAX_DROPS = 250
+/** Cap across all barangays; shared out proportionally when exceeded. */
+const MAX_TOTAL_DROPS = 1500
+/** Minimum ms between repaints (~35 fps): rain reads fine and costs half of 60 fps. */
+const FRAME_INTERVAL_MS = 28
+/** Device-pixel-ratio ceiling; rain streaks don't need retina fill-rate. */
+const MAX_DPR = 1.5
+/** Outline vertices closer than this (screen px) to the previous kept one are dropped. */
+const SIMPLIFY_PX = 1.5
 const RAIN_COLOR = '186, 212, 255'
 const WASH_COLOR = '70, 110, 190'
 /** Slight wind lean, px of horizontal travel per px of fall. */
@@ -18,8 +26,6 @@ const SLANT = 0.18
 const STROKE_WIDTH = 2.5
 /** Screen px above each barangay where drops start, so rain falls in from the sky. */
 const SKY_LEAD = 90
-/** Spacing of the upward outline copies that form the sky column. */
-const SKY_SWEEP_STEP = 10
 
 interface Drop {
     /** 0–1 within the barangay's bbox plus the sky band above it; survives pan/zoom without reseeding. */
@@ -29,9 +35,22 @@ interface Drop {
     k: number
 }
 
+/** Screen-space geometry; rebuilt only when the camera moves, not every frame. */
+interface Projected {
+    path: Path2D
+    sky: Path2D
+    fade: CanvasGradient
+    minX: number
+    minY: number
+    bw: number
+    bh: number
+}
+
 interface Cell {
     style: RainStyle
     drops: Drop[]
+    geo: Projected | null
+    want: number
     /** Rings in lng/lat, one array per polygon ring. */
     rings: [number, number][][]
 }
@@ -46,6 +65,8 @@ const toCells = (data: RiskFeatureCollection): Cell[] => {
         cells.push({
             style: RAIN_STYLES[tier],
             drops: [],
+            geo: null,
+            want: 0,
             rings: polys.flat() as [number, number][][],
         })
     }
@@ -83,73 +104,108 @@ const RainfallLayer = ({ data, visible }: Props) => {
         let last = performance.now()
 
         const resize = () => {
-            const dpr = window.devicePixelRatio || 1
+            const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
             const { clientWidth: w, clientHeight: h } = mapCanvas
             canvas.width = w * dpr
             canvas.height = h * dpr
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+            dirty = true
+        }
+
+        let dirty = true
+        let projectedFor: Cell[] | null = null
+
+        /** Project + simplify one cell; null when off-screen or too small to see. */
+        const project = (cell: Cell, w: number, h: number): Projected | null => {
+            const path = new Path2D()
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+            for (const ring of cell.rings) {
+                let lx = 0, ly = 0, first = true
+                for (const [lng, lat] of ring) {
+                    const p = map.project([lng, lat])
+                    if (p.x < minX) minX = p.x
+                    if (p.y < minY) minY = p.y
+                    if (p.x > maxX) maxX = p.x
+                    if (p.y > maxY) maxY = p.y
+                    if (first) {
+                        path.moveTo(p.x, p.y)
+                        first = false
+                    } else if (Math.abs(p.x - lx) + Math.abs(p.y - ly) >= SIMPLIFY_PX) {
+                        path.lineTo(p.x, p.y)
+                    } else continue
+                    lx = p.x
+                    ly = p.y
+                }
+                path.closePath()
+            }
+            const bw = maxX - minX
+            const bh = maxY - minY
+            if (bw < 4 || bh < 4 || maxX < 0 || maxY < 0 || minX > w || minY > h + SKY_LEAD) return null
+
+            // Sky column = outline swept upward, built once per camera change.
+            const sky = new Path2D()
+            const step = Math.max(6, Math.min(24, bh * 0.7))
+            for (let k = 0; k <= SKY_LEAD; k += step) sky.addPath(path, new DOMMatrix().translate(0, -k))
+
+            // Fade in from the top of the sky band so rain emerges from nothing.
+            const fade = ctx.createLinearGradient(0, minY - SKY_LEAD, 0, minY)
+            fade.addColorStop(0, `rgba(${RAIN_COLOR}, 0)`)
+            fade.addColorStop(1, `rgba(${RAIN_COLOR}, ${cell.style.alpha})`)
+            return { path, sky, fade, minX, minY, bw, bh }
         }
 
         const draw = (now: number) => {
-            const dt = reduceMotion ? 0 : Math.min((now - last) / 1000, 0.05)
+            raf = requestAnimationFrame(draw)
+            const elapsed = now - last
+            if (elapsed < FRAME_INTERVAL_MS) return
+            const dt = reduceMotion ? 0 : Math.min(elapsed / 1000, 0.05)
             last = now
             const w = mapCanvas.clientWidth
             const h = mapCanvas.clientHeight
+
+            const cells = cellsRef.current
+            if (dirty || cells !== projectedFor) {
+                projectedFor = cells
+                dirty = false
+                for (const cell of cells) cell.geo = project(cell, w, h)
+            }
+
             ctx.clearRect(0, 0, w, h)
+            ctx.lineWidth = STROKE_WIDTH
+            ctx.lineCap = 'round'
 
-            for (const cell of cellsRef.current) {
-                const path = new Path2D()
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-                for (const ring of cell.rings) {
-                    ring.forEach(([lng, lat], i) => {
-                        const p = map.project([lng, lat])
-                        if (p.x < minX) minX = p.x
-                        if (p.y < minY) minY = p.y
-                        if (p.x > maxX) maxX = p.x
-                        if (p.y > maxY) maxY = p.y
-                        if (i === 0) path.moveTo(p.x, p.y)
-                        else path.lineTo(p.x, p.y)
-                    })
-                    path.closePath()
-                }
-                const bw = maxX - minX
-                const bh = maxY - minY
-                // Off-screen or sub-visible: skip the work.
-                if (bw < 4 || bh < 4 || maxX < 0 || maxY < 0 || minX > w || minY > h) continue
+            // Budget drops across everything on screen.
+            let demand = 0
+            for (const cell of cells) {
+                const g = cell.geo
+                if (!g) continue
+                cell.want = Math.min(MAX_DROPS, Math.max(3, Math.round(((g.bw * (g.bh + SKY_LEAD)) * cell.style.density) / 10000)))
+                demand += cell.want
+            }
+            const scale = demand > MAX_TOTAL_DROPS ? MAX_TOTAL_DROPS / demand : 1
 
+            for (const cell of cells) {
+                const g = cell.geo
+                if (!g) continue
                 const { style } = cell
-                // The drop field extends SKY_LEAD above the shape, so streaks
-                // travel into the barangay rather than appearing inside it.
-                const fh = bh + SKY_LEAD
-                const want = Math.min(MAX_DROPS, Math.max(3, Math.round((bw * fh * style.density) / 10000)))
+                const fh = g.bh + SKY_LEAD
+                const want = Math.max(2, Math.round(cell.want * scale))
                 while (cell.drops.length < want) {
                     cell.drops.push({ u: Math.random(), v: Math.random(), k: 0.75 + Math.random() * 0.5 })
                 }
                 cell.drops.length = want
 
-                // Tint only the shape itself.
+                // Tint only the shape itself (no clip needed beyond the outline).
                 ctx.save()
-                ctx.clip(path, 'evenodd')
+                ctx.clip(g.path, 'evenodd')
                 ctx.fillStyle = `rgba(${WASH_COLOR}, ${style.wash})`
-                ctx.fillRect(minX, minY, bw, bh)
+                ctx.fillRect(g.minX, g.minY, g.bw, g.bh)
                 ctx.restore()
 
-                // Streaks are visible over the shape *and* the column of sky
-                // above it: sweep the outline upward and clip to that union.
-                const sky = new Path2D()
-                for (let k = 0; k <= SKY_LEAD; k += SKY_SWEEP_STEP) {
-                    sky.addPath(path, new DOMMatrix().translate(0, -k))
-                }
+                // Streaks over the shape and the sky column above it.
                 ctx.save()
-                ctx.clip(sky, 'nonzero')
-
-                // Fade in from the top of the sky band so rain emerges from nothing.
-                const fade = ctx.createLinearGradient(0, minY - SKY_LEAD, 0, minY)
-                fade.addColorStop(0, `rgba(${RAIN_COLOR}, 0)`)
-                fade.addColorStop(1, `rgba(${RAIN_COLOR}, ${style.alpha})`)
-                ctx.strokeStyle = fade
-                ctx.lineWidth = STROKE_WIDTH
-                ctx.lineCap = 'round'
+                ctx.clip(g.sky, 'nonzero')
+                ctx.strokeStyle = g.fade
                 ctx.beginPath()
                 for (const d of cell.drops) {
                     d.v += (style.speed * d.k * dt) / fh
@@ -157,23 +213,27 @@ const RainfallLayer = ({ data, visible }: Props) => {
                         d.v -= 1
                         d.u = Math.random()
                     }
-                    const x = minX + d.u * bw
-                    const y = minY - SKY_LEAD + d.v * fh
+                    const x = g.minX + d.u * g.bw
+                    const y = g.minY - SKY_LEAD + d.v * fh
                     ctx.moveTo(x, y)
                     ctx.lineTo(x - style.length * SLANT, y - style.length)
                 }
                 ctx.stroke()
                 ctx.restore()
             }
-            raf = requestAnimationFrame(draw)
         }
 
         resize()
         const ro = new ResizeObserver(resize)
         ro.observe(mapCanvas)
+        const markDirty = () => {
+            dirty = true
+        }
+        map.on('move', markDirty)
         raf = requestAnimationFrame(draw)
 
         return () => {
+            map.off('move', markDirty)
             cancelAnimationFrame(raf)
             ro.disconnect()
             canvas.remove()
