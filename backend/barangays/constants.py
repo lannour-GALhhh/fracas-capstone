@@ -10,11 +10,14 @@ class SusceptibilityLevel(models.TextChoices):
 
 
 # Keyed by the categorical `susc_level` label, not the numeric `Flood` field.
+# Multiplier on rainfall hazard per susceptibility level: a very-low zone needs 2.5x the rain
+# of a very-high zone to reach the same score, but is never zeroed out (hindcast: a steeper
+# 0.2-1.0 scale dropped HIGH detection sharply for no discrimination gain).
 SUSCEPTIBILITY_VALUES = {
-    SusceptibilityLevel.VERY_LOW: 0.2,
-    SusceptibilityLevel.LOW: 0.4,
-    SusceptibilityLevel.MODERATE: 0.6,
-    SusceptibilityLevel.HIGH: 0.8,
+    SusceptibilityLevel.VERY_LOW: 0.4,
+    SusceptibilityLevel.LOW: 0.6,
+    SusceptibilityLevel.MODERATE: 0.8,
+    SusceptibilityLevel.HIGH: 0.95,
     SusceptibilityLevel.VERY_HIGH: 1.0,
 }
 

@@ -51,9 +51,9 @@ class DominantSusceptibilityTests(TestCase):
             result[barangay.id],
             {
                 "level": "moderate",
-                "value": 0.6,
+                "value": 0.8,
                 "zone_count": 1,
-                "zones": [{"level": "moderate", "value": 0.6, "area_sqm": 1.0, "share": 1.0}],
+                "zones": [{"level": "moderate", "value": 0.8, "area_sqm": 1.0, "share": 1.0}],
                 "levels": {"moderate": {"area_sqm": 1.0, "share": 1.0}},
             },
         )

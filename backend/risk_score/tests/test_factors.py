@@ -38,9 +38,22 @@ class RainfallFactorTests(SimpleTestCase):
         result = RainfallFactor().evaluate(FactorInput(None, rainfall(f1=15.0), context()))
         self.assertAlmostEqual(result.value, 0.55)  # 15 mm/hr -> PAGASA heavy band
 
-    def test_accumulation_raises_hazard_without_intensity(self):
-        result = RainfallFactor().evaluate(FactorInput(None, rainfall(acc24=200.0), context()))
-        self.assertAlmostEqual(result.value, 0.5)  # saturation only
+    def test_saturation_alone_is_gated_by_intensity(self):
+        # 60 mm/24h is fully saturated, but with no rain falling the gate closes it.
+        result = RainfallFactor().evaluate(FactorInput(None, rainfall(acc24=60.0), context()))
+        self.assertAlmostEqual(result.value, 0.0)
+
+    def test_steady_drizzle_cannot_reach_high(self):
+        # 2 mm/h for a day = 48 mm/24h: saturation 0.9 * gate (2/6) = 0.3 -> MEDIUM at worst.
+        result = RainfallFactor().evaluate(FactorInput(None, rainfall(current=2.0, acc24=48.0), context()))
+        self.assertLess(result.value, 0.5)
+        self.assertGreater(result.value, 0.25)
+
+    def test_heavy_rain_on_wet_ground_is_extreme(self):
+        # 20 mm/h on 60 mm/24h: intensity 0.7 vs full saturation 1.0 (gate fully open).
+        result = RainfallFactor().evaluate(FactorInput(None, rainfall(current=20.0, acc24=60.0), context()))
+        self.assertAlmostEqual(result.value, 1.0)
+        self.assertEqual(result.detail["saturation_gate"], 1.0)
 
     def test_missing_reading_unavailable(self):
         result = RainfallFactor().evaluate(FactorInput(None, None, context()))

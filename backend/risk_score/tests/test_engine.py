@@ -5,6 +5,7 @@ from django.test import SimpleTestCase
 from risk_score.constants import (
     COMBINATION_RAINFALL_GATED,
     COMBINATION_WEIGHTED_SUM,
+    ZONE_AGG_AREA_WEIGHTED,
     ZONE_AGG_MAX,
     RiskCategory,
 )
@@ -95,6 +96,7 @@ class RainfallGatedTests(SimpleTestCase):
                 {"level": "very_high", "value": 1.0, "share": 0.5},
                 {"level": "very_low", "value": 0.2, "share": 0.5},
             ],
+            zone_aggregation=ZONE_AGG_AREA_WEIGHTED,
         )
         zones = {z["level"]: z for z in result.breakdown["zones"]}
         self.assertEqual(zones["very_high"]["score"], 50.0)  # 0.5 * 1.0 * 100
@@ -102,14 +104,26 @@ class RainfallGatedTests(SimpleTestCase):
         # Equal shares -> area-weighted average equals the simple mean -> 30.
         self.assertAlmostEqual(result.score, 30.0)
 
-    def test_area_weighted_is_default_and_weights_by_share(self):
-        # Area-weighted default should pull toward the dominant zone, not the mean.
+    def test_worst_zone_is_the_default_aggregation(self):
+        result = self._score(
+            1.0,
+            [
+                {"level": "very_high", "value": 1.0, "share": 0.1},
+                {"level": "very_low", "value": 0.4, "share": 0.9},
+            ],
+        )
+        self.assertAlmostEqual(result.score, 100.0)
+        self.assertEqual(result.breakdown["aggregation"], "max")
+
+    def test_area_weighted_weights_by_share(self):
+        # Area-weighted should pull toward the dominant zone, not the mean.
         result = self._score(
             1.0,
             [
                 {"level": "very_high", "value": 1.0, "share": 0.1},
                 {"level": "very_low", "value": 0.2, "share": 0.9},
             ],
+            zone_aggregation=ZONE_AGG_AREA_WEIGHTED,
         )
         # 1.0*0.1 + 0.2*0.9 = 0.28 -> 28 (a simple mean would be 60).
         self.assertAlmostEqual(result.score, 28.0)

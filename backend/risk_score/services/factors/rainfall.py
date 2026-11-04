@@ -1,6 +1,6 @@
-"""Rainfall hazard: peak short-term intensity blended with saturation."""
+"""Rainfall hazard: the larger of peak short-term intensity and intensity-gated 24h saturation."""
 
-from risk_score.constants import FACTOR_RAINFALL
+from risk_score.constants import FACTOR_RAINFALL, SATURATION_GATE_MM_HR
 from risk_score.services.normalization import clamp, normalize_accumulation, normalize_rainfall
 
 from .base import FactorInput, FactorResult
@@ -39,7 +39,11 @@ class RainfallFactor:
         saturation = normalize_accumulation(
             r.accumulated_24hr, getattr(data.context, "accumulation_curve", None)
         )
-        value = clamp(max(intensity, 0.5 * intensity + 0.5 * saturation))
+        # Saturation is the strongest flood signal, but only while it is actually raining: scale
+        # it by how close the peak intensity is to the gate so light drizzle can't saturate it.
+        gate = clamp(peak_intensity / SATURATION_GATE_MM_HR) if SATURATION_GATE_MM_HR > 0 else 1.0
+        effective_saturation = saturation * gate
+        value = clamp(max(intensity, effective_saturation))
 
         return FactorResult(
             self.key,
@@ -49,5 +53,6 @@ class RainfallFactor:
                 "accumulated_24hr_mm": r.accumulated_24hr,
                 "intensity_hazard": round(intensity, 4),
                 "saturation_hazard": round(saturation, 4),
+                "saturation_gate": round(gate, 4),
             },
         )
