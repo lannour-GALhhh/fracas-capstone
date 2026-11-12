@@ -18,7 +18,13 @@ const FRAME_INTERVAL_MS = 28
 const MAX_DPR = 1.5
 /** Outline vertices closer than this (screen px) to the previous kept one are dropped. */
 const SIMPLIFY_PX = 1.5
-const RAIN_COLOR = '186, 212, 255'
+const RAIN_COLOR = '235, 245, 255'
+/** Dark outline drawn under each streak so it stays visible on light backdrops. */
+const HALO_COLOR = '15, 35, 90'
+/** Halo is wider than the core by this many px, and never fainter than the core. */
+const HALO_EXTRA = 2.5
+/** Streak opacity floor/boost: the old tier alphas (0.35+) vanished on pale fills. */
+const coreAlpha = (a: number) => Math.min(1, 0.55 + a * 0.5)
 const WASH_COLOR = '70, 110, 190'
 /** Slight wind lean, px of horizontal travel per px of fall. */
 const SLANT = 0.18
@@ -40,6 +46,7 @@ interface Projected {
     path: Path2D
     sky: Path2D
     fade: CanvasGradient
+    halo: CanvasGradient
     minX: number
     minY: number
     bw: number
@@ -150,8 +157,11 @@ const RainfallLayer = ({ data, visible }: Props) => {
             // Fade in from the top of the sky band so rain emerges from nothing.
             const fade = ctx.createLinearGradient(0, minY - SKY_LEAD, 0, minY)
             fade.addColorStop(0, `rgba(${RAIN_COLOR}, 0)`)
-            fade.addColorStop(1, `rgba(${RAIN_COLOR}, ${cell.style.alpha})`)
-            return { path, sky, fade, minX, minY, bw, bh }
+            fade.addColorStop(1, `rgba(${RAIN_COLOR}, ${coreAlpha(cell.style.alpha)})`)
+            const halo = ctx.createLinearGradient(0, minY - SKY_LEAD, 0, minY)
+            halo.addColorStop(0, `rgba(${HALO_COLOR}, 0)`)
+            halo.addColorStop(1, `rgba(${HALO_COLOR}, ${Math.min(0.85, cell.style.alpha + 0.2)})`)
+            return { path, sky, fade, halo, minX, minY, bw, bh }
         }
 
         const draw = (now: number) => {
@@ -205,7 +215,6 @@ const RainfallLayer = ({ data, visible }: Props) => {
                 // Streaks over the shape and the sky column above it.
                 ctx.save()
                 ctx.clip(g.sky, 'nonzero')
-                ctx.strokeStyle = g.fade
                 ctx.beginPath()
                 for (const d of cell.drops) {
                     d.v += (style.speed * d.k * dt) / fh
@@ -218,6 +227,13 @@ const RainfallLayer = ({ data, visible }: Props) => {
                     ctx.moveTo(x, y)
                     ctx.lineTo(x - style.length * SLANT, y - style.length)
                 }
+                // Two passes: dark halo, then light core. One of the two always
+                // contrasts with whatever the map shows underneath.
+                ctx.lineWidth = STROKE_WIDTH + HALO_EXTRA
+                ctx.strokeStyle = g.halo
+                ctx.stroke()
+                ctx.lineWidth = STROKE_WIDTH
+                ctx.strokeStyle = g.fade
                 ctx.stroke()
                 ctx.restore()
             }
