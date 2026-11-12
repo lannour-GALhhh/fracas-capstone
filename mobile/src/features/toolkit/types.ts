@@ -38,17 +38,3 @@ export interface GoBagGroup {
     title: string
     items: GoBagItem[]
 }
-
-/** One rung of the hazard ladder, mirroring the map/badge risk ramp. */
-export interface HazardLevel {
-    category: 'low' | 'medium' | 'high' | 'critical'
-    label: string
-    /** Background swatch (a RISK_COLORS entry). */
-    color: string
-    /** Readable text color over `color`. */
-    onColor: string
-    /** What this level means for the resident. */
-    meaning: string
-    /** The recommended action at this level. */
-    action: string
-}

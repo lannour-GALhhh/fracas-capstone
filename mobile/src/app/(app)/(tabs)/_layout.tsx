@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router/tabs'
 import { StyleSheet, View } from 'react-native'
 
 import { useTheme } from '@/common/theme'
-import { Icon, type IconName } from '@/common/ui'
+import { Icon, Text, type IconName } from '@/common/ui'
 import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 
 const TAB_ICONS: Record<'status' | 'reports' | 'toolkit' | 'account', [IconName, IconName]> = {
@@ -58,6 +58,11 @@ export default function TabsLayout() {
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="status" focused={focused} color={color as string} size={size} />
                     ),
+                    headerLeft: () => (
+                        <Text variant="subtitle" style={styles.brand}>
+                            FRACAS
+                        </Text>
+                    ),
                     headerRight: () => (
                         <View style={styles.headerRight}>
                             <NotificationBell />
@@ -106,4 +111,5 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
     headerRight: { marginRight: 12 },
+    brand: { marginLeft: 16, letterSpacing: 1.5, fontWeight: '800' },
 })

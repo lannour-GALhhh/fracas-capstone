@@ -98,7 +98,11 @@ export function LoginScreen() {
                             }
                         />
 
-                        <Pressable hitSlop={8} style={styles.forgotPassword}>
+                        <Pressable
+                            hitSlop={8}
+                            style={styles.forgotPassword}
+                            onPress={() => router.push('/forgot-password')}
+                        >
                             <Text style={styles.forgotPasswordText}>Forgot my password</Text>
                         </Pressable>
 

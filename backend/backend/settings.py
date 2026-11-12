@@ -64,7 +64,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=15),
     "UPDATE_LAST_LOGIN": True,  # keeps User.last_login meaningful (admin "Last login")
     "AUTH_COOKIE": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
