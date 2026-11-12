@@ -4,7 +4,7 @@ from decouple import config
 
 from .base import PushProvider, SendError, SmsProvider
 from .push import ConsolePushProvider, FcmProvider
-from .sms import ConsoleSmsProvider, SemaphoreSmsProvider, SmsApiPhProvider, TwilioSmsProvider, UniSmsProvider
+from .sms import AndroidGatewaySmsProvider, ConsoleSmsProvider, SemaphoreSmsProvider, SmsApiPhProvider, TwilioSmsProvider, UniSmsProvider
 
 _SMS_PROVIDERS = {
     "console": ConsoleSmsProvider,
@@ -12,6 +12,7 @@ _SMS_PROVIDERS = {
     "semaphore": SemaphoreSmsProvider,
     "smsapiph": SmsApiPhProvider,
     "unisms": UniSmsProvider,
+    "android_gateway": AndroidGatewaySmsProvider,
 }
 _PUSH_PROVIDERS = {
     "console": ConsolePushProvider,

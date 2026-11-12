@@ -1,3 +1,4 @@
+import { currentRainfallAt } from '../utils/currentRainfall'
 import {
     AlertTriangle,
     BarChart3,
@@ -164,8 +165,9 @@ const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.React
         data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
-    const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
-    const strength = rainfallTier(data.current_rainfall)
+    const current = currentRainfallAt(data)
+    const rising = peak != null && current != null && peak > current
+    const strength = rainfallTier(current)
 
     return (
         <Card className='gap-3'>
@@ -177,13 +179,13 @@ const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.React
                 {action}
             </div>
             <div className='flex items-stretch'>
-                <RainfallStat label='Current' value={fmt(data.current_rainfall)} />
+                <RainfallStat label='Current' value={fmt(current)} />
                 <div className='bg-border mx-3 w-px' />
                 <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
             </div>
 
             <div className='flex items-center gap-2 border-t pt-2'>
-                <RainfallIcon mmPerHour={data.current_rainfall} className='size-6' />
+                <RainfallIcon mmPerHour={current} className='size-6' />
                 <div className='flex flex-col'>
                     <span className='text-muted-foreground text-xs'>Rainfall Strength</span>
                     <span className='text-sm font-medium'>{RAINFALL_TIER_LABELS[strength]}</span>
@@ -332,7 +334,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                             <div className='flex w-full items-center justify-between gap-3'>
                                                 <span className='text-muted-foreground capitalize'>{name}</span>
                                                 <span className='font-mono font-medium tabular-nums'>
-                                                    {value} mm/15 min
+                                                    {value} mm
                                                 </span>
                                             </div>
                                         )}

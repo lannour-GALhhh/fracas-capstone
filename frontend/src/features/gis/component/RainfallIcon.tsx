@@ -1,4 +1,4 @@
-import { RAINFALL_TIER_ICONS, RAINFALL_TIER_LABELS, rainfallTier } from '../constants/rainfall'
+import { RAINFALL_TIER_COLORS, RAINFALL_TIER_ICONS, RAINFALL_TIER_LABELS, rainfallTier } from '../constants/rainfall'
 
 interface Props {
     /** Current rainfall reading, mm/hr. `null`/`undefined` reads as "no data". */
@@ -7,14 +7,14 @@ interface Props {
     className?: string
 }
 
-/** Purple badge whose glyph escalates with rainfall intensity (PAGASA bands). */
+/** Badge (green→red) whose glyph escalates with rainfall intensity (PAGASA bands). */
 const RainfallIcon = ({ mmPerHour, className = 'size-7' }: Props) => {
     const tier = rainfallTier(mmPerHour)
     const Icon = RAINFALL_TIER_ICONS[tier]
 
     return (
         <div
-            className={`flex shrink-0 items-center justify-center rounded-full bg-purple-600 text-white shadow-sm ${className}`}
+            className={`flex shrink-0 items-center justify-center rounded-full ${RAINFALL_TIER_COLORS[tier]} text-white shadow-sm ${className}`}
             title={RAINFALL_TIER_LABELS[tier]}
         >
             <Icon className='size-[60%]' />

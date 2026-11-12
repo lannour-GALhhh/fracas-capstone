@@ -12,6 +12,9 @@ export interface RiskSnapshotEntry {
     is_degraded: boolean
     /** Latest reading, mm/hr — null when there's no fresh rainfall for this cycle. */
     current_rainfall: number | null
+    /** [current, +15min … +240min] anchored on `rainfall_recorded_at` (see currentFromSeries). */
+    rainfall_series?: (number | null)[] | null
+    rainfall_recorded_at?: string | null
 }
 
 /** GET /api/risk/snapshot/ — all barangays for the current cycle. */

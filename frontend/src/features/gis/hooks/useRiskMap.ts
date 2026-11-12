@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { RiskCategory, RiskFeatureCollection, RiskSnapshotEntry } from '../types/api'
 import { CATEGORY_ORDER } from '../constants/risk'
+import { currentFromSeries } from '../utils/currentRainfall'
 import { useBarangays } from './useBarangays'
 import { useRiskSnapshot } from './useRiskSnapshot'
 
@@ -61,7 +62,13 @@ export const useRiskMap = (): RiskMap => {
                               category: entry?.category ?? null,
                               score: entry?.score ?? null,
                               is_degraded: entry?.is_degraded ?? false,
-                              current_rainfall: entry?.current_rainfall ?? null,
+                              current_rainfall: entry
+                                  ? currentFromSeries(
+                                        entry.current_rainfall,
+                                        entry.rainfall_series,
+                                        entry.rainfall_recorded_at,
+                                    )
+                                  : null,
                           },
                       }
                   }),
