@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ThemeProvider, useThemeControls } from '@/common/theme'
 import { queryClient } from '@/core/queryClient'
 import { AuthProvider } from '@/features/auth/context/AuthProvider'
+import { UpdateNoticeModal } from '@/features/updates/UpdateNoticeModal'
 
 /**
  * Root layout — app-wide providers wrap every route.
@@ -24,6 +25,7 @@ export default function RootLayout() {
                             <AuthProvider>
                                 <ThemedStatusBar />
                                 <Slot />
+                                <UpdateNoticeModal />
                             </AuthProvider>
                         </QueryClientProvider>
                     </ThemeProvider>
