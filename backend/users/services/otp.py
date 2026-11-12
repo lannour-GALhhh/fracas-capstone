@@ -17,7 +17,8 @@ class OTPError(Exception):
     """Recoverable OTP problem surfaced to the client."""
 
 
-def generate_and_send(user) -> None:
+def generate_and_send(user, purpose: str = "phone verification", queued: bool = False) -> None:
+    """Issue a code and text it. ``queued`` hands the SMS to the task queue instead of sending inline."""
     if not user.phone_number:
         raise OTPError("No phone number on this account.")
     if user.phone_otps.filter(created_at__gte=timezone.now() - RESEND_COOLDOWN).exists():
@@ -30,11 +31,16 @@ def generate_and_send(user) -> None:
     PhoneOTP.objects.create(user=user, code=code, expires_at=timezone.now() + ttl)
     # Brand, code, purpose and expiry are all required — UniSMS rejects OTPs without them.
     minutes = int(ttl.total_seconds() // 60)
-    get_sms_provider().send(
-        user.phone_number,
-        f"Your FRACAS OTP code is {code} for phone verification. "
-        f"Please do not share. Expires in {minutes} minutes.",
+    message = (
+        f"Your FRACAS OTP code is {code} for {purpose}. "
+        f"Please do not share. Expires in {minutes} minutes."
     )
+    if queued:
+        from users.tasks import send_otp_sms_task
+
+        send_otp_sms_task.delay(user.phone_number, message)
+    else:
+        get_sms_provider().send(user.phone_number, message)
 
 
 def verify(user, code: str) -> None:

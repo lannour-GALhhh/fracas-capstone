@@ -31,6 +31,18 @@ def send_sms_task(user_id, dedup_key, to, message):
 
 
 @shared_task(bind=True, max_retries=3)
+def send_otp_sms_task(self, to, message):
+    """Deliver a one-time-code SMS off the request path, retrying transient gateway failures."""
+    try:
+        get_sms_provider().send(to, message)
+    except SendError as exc:
+        logger.error("OTP SMS send failed (attempt %s): %s", self.request.retries + 1, exc)
+        if self.request.retries >= self.max_retries:
+            return
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 5)
+
+
+@shared_task(bind=True, max_retries=3)
 def send_activation_email_task(self, user_id, token):
     user = User.objects.filter(pk=user_id, is_active=True, is_activated=False).first()
     if not (user and user.email):
