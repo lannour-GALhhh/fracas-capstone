@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, type ViewStyle } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, type TextStyle, type ViewStyle } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 
@@ -13,6 +13,7 @@ interface Props {
     loading?: boolean
     disabled?: boolean
     style?: ViewStyle
+    labelStyle?: TextStyle
 }
 
 /** Primary action button with loading + disabled states. */
@@ -23,6 +24,7 @@ export function Button({
     loading = false,
     disabled = false,
     style,
+    labelStyle,
 }: Props) {
     const theme = useTheme()
     const isDisabled = disabled || loading
@@ -50,7 +52,7 @@ export function Button({
             {loading ? (
                 <ActivityIndicator color={theme.colors[fg === 'onPrimary' ? 'onPrimary' : 'text']} />
             ) : (
-                <Text variant="label" color={fg}>
+                <Text variant="label" color={fg} style={labelStyle}>
                     {label}
                 </Text>
             )}
