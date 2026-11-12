@@ -2,7 +2,7 @@
 
 import logging
 
-from celery import shared_task
+from backend.inline import task
 from django.utils import timezone
 
 from .models import RiskConfig, RiskScore
@@ -14,7 +14,7 @@ from .services.factors import DEFAULT_FACTORS, FactorInput
 logger = logging.getLogger(__name__)
 
 
-@shared_task
+@task
 def compute_risk_scores() -> dict:
     """Score every barangay from the latest inputs; persist + cache the result."""
     active = RiskConfig.get_active()
@@ -68,7 +68,7 @@ def compute_risk_scores() -> dict:
     return {"count": len(rows), "computed_at": computed_at.isoformat()}
 
 
-@shared_task
+@task
 def run_validation_task(run_id: int) -> dict:
     """Execute the hindcast validation harness and fill the ValidationRun."""
     from .models import ValidationRun
@@ -104,7 +104,7 @@ def run_validation_task(run_id: int) -> dict:
     return {"run_id": run_id, "status": run.status}
 
 
-@shared_task
+@task
 def draft_auto_flood_events() -> dict:
     """Draft unconfirmed flood events for barangays over the auto-detect threshold."""
     from flood_events.services.auto_detect import draft_events
@@ -120,7 +120,7 @@ def draft_auto_flood_events() -> dict:
     return draft_events(scores)
 
 
-@shared_task
+@task
 def run_scoring_pipeline():
     """Kick the ingest -> score -> draft pipeline off in the background.
 

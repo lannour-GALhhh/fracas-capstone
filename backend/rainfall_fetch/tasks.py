@@ -3,7 +3,7 @@ import logging
 import time
 from datetime import timedelta
 
-from celery import shared_task
+from backend.inline import task
 
 from django.conf import settings
 from django.utils import timezone
@@ -185,7 +185,7 @@ def _fetch_is_due(now):
     return last is None or now - last >= timedelta(minutes=FETCH_INTERVAL_MIN - FETCH_JITTER_MIN)
 
 
-@shared_task
+@task
 def fetch_rainfall_information():
     timestamp = timezone.now()
     if not _fetch_is_due(timestamp):

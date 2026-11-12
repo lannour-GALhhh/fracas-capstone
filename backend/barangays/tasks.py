@@ -4,7 +4,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from celery import shared_task
+from backend.inline import task
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
@@ -33,7 +33,7 @@ def _invalidate_geometry_caches() -> None:
             delete_pattern(pattern)
 
 
-@shared_task
+@task
 def process_gis_import(import_id: int) -> None:
     job = GisImport.objects.get(pk=import_id)
     job.status = GisImport.Status.RUNNING
