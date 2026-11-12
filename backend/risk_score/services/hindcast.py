@@ -50,15 +50,11 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
     def at(i: int) -> float:
         return precip[i] if 0 <= i < len(precip) and precip[i] is not None else 0.0
 
-    # Archive data is hourly-only; only the on-the-hour points get a real value.
-    hourly_forecasts = {
-        m: at(index + m // 60) if m % 60 == 0 else 0.0
-        for m in range(15, 241, 15)
-    }
-
+    # Archive data is hourly: the same hourly inputs the live pipeline stores.
     return SimpleNamespace(
-        current_rainfall_strength=at(index),
-        **{f"forecast_strength_{m}min": v for m, v in hourly_forecasts.items()},
+        hourly_current=at(index),
+        **{f"hourly_forecast_{k}hr": at(index + k) for k in range(1, 5)},
+        accumulated_6hr=round(sum(at(i) for i in range(index - 5, index + 1)), 2),
         accumulated_24hr=round(sum(at(i) for i in range(index - 23, index + 1)), 2),
     )
 

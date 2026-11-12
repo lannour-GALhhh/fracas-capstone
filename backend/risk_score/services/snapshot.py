@@ -11,6 +11,25 @@ ZONES_SNAPSHOT_KEY = "risk:snapshot:zones"
 SNAPSHOT_TTL = 60 * 60 * 3  # 3h — longer than the hourly cycle, short enough to expire staleness
 
 
+FORECAST_STEPS = range(15, 241, 15)  # forecast_strength_15min … 240min
+
+
+def rainfall_fields(rain) -> dict:
+    """Snapshot rainfall fields for one reading (or None).
+
+    `rainfall_series` is [current, +15min, … +240min] anchored on `rainfall_recorded_at`, so
+    clients can pick the step matching the wall clock instead of the (possibly stale) reading.
+    """
+    if rain is None:
+        return {"current_rainfall": None, "rainfall_series": None, "rainfall_recorded_at": None}
+    return {
+        "current_rainfall": rain.current_rainfall_strength,
+        "rainfall_series": [rain.current_rainfall_strength]
+        + [getattr(rain, f"forecast_strength_{m}min") for m in FORECAST_STEPS],
+        "rainfall_recorded_at": rain.recorded_at.isoformat() if rain.recorded_at else None,
+    }
+
+
 def store(computed_at: datetime, entries: list[dict]) -> dict:
     payload = {
         "computed_at": computed_at.isoformat(),
@@ -57,7 +76,7 @@ def latest() -> dict:
     latest_rainfall = (
         Rainfall.objects.order_by("barangay_id", "-recorded_at").distinct("barangay_id")
     )
-    rainfall_by_barangay = {r.barangay_id: r.current_rainfall_strength for r in latest_rainfall}
+    rainfall_by_barangay = {r.barangay_id: r for r in latest_rainfall}
     entries = [
         {
             "id": r.barangay_id,
@@ -65,7 +84,7 @@ def latest() -> dict:
             "score": round(r.score, 2),
             "category": r.category,
             "is_degraded": r.is_degraded,
-            "current_rainfall": rainfall_by_barangay.get(r.barangay_id),
+            **rainfall_fields(rainfall_by_barangay.get(r.barangay_id)),
         }
         for r in rows
     ]

@@ -48,7 +48,7 @@ def compute_risk_scores() -> dict:
                 "score": round(scored.score, 2),
                 "category": scored.category.value,
                 "is_degraded": scored.is_degraded,
-                "current_rainfall": rain.current_rainfall_strength if rain else None,
+                **snapshot.rainfall_fields(rain),
             }
         )
         for zone in scored.breakdown.get("zones", []):

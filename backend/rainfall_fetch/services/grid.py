@@ -88,14 +88,13 @@ def grid_status() -> dict:
     """Dedup picture for the admin console: how many barangays share how many Open-Meteo cells,
     and how today's call usage compares with the cap."""
     cells = BarangayRainfallGrid.objects.values_list("grid_lat", "grid_lon").distinct().count()
-    # Barangays still unmapped each cost a call of their own per run.
-    unmapped = Barangay.objects.filter(rainfall_grid__isnull=True).count()
+    barangays = Barangay.objects.count()  # fetching is per barangay, so each one costs a call per run
     return {
-        "barangays": Barangay.objects.count(),
+        "barangays": barangays,
         "mapped": BarangayRainfallGrid.objects.count(),
         "cells": cells,
-        "expected_daily_calls": budget.expected_daily_calls(cells + unmapped),
+        "expected_daily_calls": budget.expected_daily_calls(barangays),
         "calls_today": budget.calls_today(),
         "daily_limit": settings.RAINFALL_DAILY_CALL_LIMIT,
-        "has_retry_headroom": budget.has_retry_headroom(cells + unmapped),
+        "has_retry_headroom": budget.has_retry_headroom(barangays),
     }

@@ -31,7 +31,7 @@ SECRET_KEY = config("SECRET_KEY")
 
 # Rain intensities below this (mm/hr) are treated as 0: the forecast model reports trace drizzle
 # that doesn't physically occur.
-RAINFALL_NOISE_FLOOR_MM_HR = config("RAINFALL_NOISE_FLOOR_MM_HR", default=2.0, cast=float)
+RAINFALL_NOISE_FLOOR_MM_HR = config("RAINFALL_NOISE_FLOOR_MM_HR", default=0.0, cast=float)
 
 # Open-Meteo's free tier allows 10,000 calls/day (one per location per request, retries included).
 # We stop at this lower cap so retries and one-off discovery/backfill runs always have room.
@@ -226,7 +226,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 

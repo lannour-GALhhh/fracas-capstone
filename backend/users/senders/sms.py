@@ -118,3 +118,35 @@ class SmsApiPhProvider:
             resp.raise_for_status()
         except requests.RequestException as exc:
             raise SendError(f"smsapiph send failed: {exc}") from exc
+
+
+class AndroidGatewaySmsProvider:
+    """Android SMS Gateway (sms-gate.app) — sends through a phone + SIM you own.
+
+    Works against the app's cloud relay (default; reachable from any server) or
+    its Local Server (``http://<phone-ip>:8080/message``) by setting
+    ANDROID_SMS_GATEWAY_URL. Basic auth with the credentials shown in the app.
+    A 2xx only means the phone accepted/queued the message — there is no
+    delivery receipt here.
+    """
+
+    DEFAULT_URL = "https://api.sms-gate.app/3rdparty/v1/messages"
+
+    def __init__(self):
+        self.url = config("ANDROID_SMS_GATEWAY_URL", default=self.DEFAULT_URL)
+        self.username = config("ANDROID_SMS_GATEWAY_USER")
+        self.password = config("ANDROID_SMS_GATEWAY_PASSWORD")
+
+    def send(self, to: str, message: str) -> None:
+        try:
+            resp = requests.post(
+                self.url,
+                json={"textMessage": {"text": message}, "phoneNumbers": [to]},
+                auth=(self.username, self.password),
+                timeout=TIMEOUT,
+            )
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            body = exc.response.text[:300] if getattr(exc, "response", None) is not None else ""
+            raise SendError(f"Android gateway send failed: {exc} {body}".strip()) from exc
+        logger.info("[SMS:android_gateway] to=%s HTTP %s", to, resp.status_code)

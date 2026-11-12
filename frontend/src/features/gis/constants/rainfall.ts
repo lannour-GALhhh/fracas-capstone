@@ -40,6 +40,16 @@ export const RAINFALL_TIER_ICONS: Record<RainfallTier, LucideIcon> = {
     torrential: Tornado,
 }
 
+/** Badge background per tier, green (calm) to red (torrential). */
+export const RAINFALL_TIER_COLORS: Record<RainfallTier, string> = {
+    none: 'bg-green-500',
+    light: 'bg-lime-500',
+    moderate: 'bg-yellow-500',
+    heavy: 'bg-orange-500',
+    intense: 'bg-red-500',
+    torrential: 'bg-red-700',
+}
+
 /** Upper bound (exclusive), mm/hr, of every tier below torrential. */
 const TIER_UPPER_BOUNDS: [RainfallTier, number][] = [
     ['light', 2.5],

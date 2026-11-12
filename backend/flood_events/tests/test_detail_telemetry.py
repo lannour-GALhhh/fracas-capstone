@@ -56,11 +56,11 @@ class FloodEventDetailTelemetryTests(APITestCase):
     def test_telemetry_picks_peak_readings_in_window(self):
         # Two rainfall readings in-window; the more intense one is the peak.
         Rainfall.objects.create(
-            barangay=self.barangay, current_rainfall_strength=20,
+            barangay=self.barangay, current_rainfall_strength=20, hourly_current=20,
             accumulated_24hr=50, recorded_at=self.at,
         )
         Rainfall.objects.create(
-            barangay=self.barangay, current_rainfall_strength=90,
+            barangay=self.barangay, current_rainfall_strength=90, hourly_current=90,
             accumulated_24hr=180, recorded_at=self.at + timedelta(hours=1),
         )
         RiskScore.objects.create(
@@ -81,7 +81,7 @@ class FloodEventDetailTelemetryTests(APITestCase):
 
     def test_readings_outside_window_are_ignored(self):
         Rainfall.objects.create(
-            barangay=self.barangay, current_rainfall_strength=99,
+            barangay=self.barangay, current_rainfall_strength=99, hourly_current=99,
             accumulated_24hr=200, recorded_at=self.at + timedelta(hours=48),
         )
         self.assertIsNone(self._get()["telemetry"]["rainfall"])

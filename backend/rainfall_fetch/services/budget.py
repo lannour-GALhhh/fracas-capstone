@@ -12,11 +12,9 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from backend.schedules import CRON_SCHEDULE
-
 logger = logging.getLogger(__name__)
 
-DEFAULT_RUN_INTERVAL_MIN = 15
+FETCH_INTERVAL_MIN = 30  # keep in step with rainfall_fetch.tasks.FETCH_INTERVAL_MIN
 RETRY_HEADROOM = 0.75  # steady-state use above this share of the limit leaves too little to retry with
 
 
@@ -49,10 +47,9 @@ def can_spend(calls: int) -> bool:
 
 
 def runs_per_day() -> int:
-    """Pipeline runs/day, read from the `*/N` minute field of the cron schedule."""
-    match = re.match(r"\*/(\d+) ", CRON_SCHEDULE["pipeline"]["cron"])
-    interval = int(match.group(1)) if match else DEFAULT_RUN_INTERVAL_MIN
-    return 24 * 60 // interval
+    """Open-Meteo fetches/day. The pipeline may run more often, but it fetches only every
+    `FETCH_INTERVAL_MIN` minutes."""
+    return 24 * 60 // FETCH_INTERVAL_MIN
 
 
 def expected_daily_calls(cells: int) -> int:

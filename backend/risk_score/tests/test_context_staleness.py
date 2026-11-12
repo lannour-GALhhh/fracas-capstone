@@ -18,7 +18,7 @@ class ContextStalenessTests(TestCase):
         Rainfall.objects.create(
             barangay=self.barangay,
             recorded_at=timezone.now(),
-            current_rainfall_strength=10.0,
+            current_rainfall_strength=10.0, hourly_current=10.0,
         )
         context = ScoringContext.build()
         self.assertIsNotNone(context.rainfall_for(self.barangay))
@@ -28,7 +28,7 @@ class ContextStalenessTests(TestCase):
         Rainfall.objects.create(
             barangay=self.barangay,
             recorded_at=stale_at,
-            current_rainfall_strength=10.0,
+            current_rainfall_strength=10.0, hourly_current=10.0,
         )
         context = ScoringContext.build()
         self.assertIsNone(context.rainfall_for(self.barangay))

@@ -1,3 +1,4 @@
+import { currentRainfallAt } from '../utils/currentRainfall'
 import {
     AlertTriangle,
     BarChart3,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
+import { formatServerDate, formatServerTime } from '@/common/utils/serverTime'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
@@ -163,8 +165,9 @@ const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.React
         data.rainfall_forecast_240min,
     ].filter((v): v is number => v != null)
     const peak = forecasts.length ? Math.max(...forecasts) : null
-    const rising = peak != null && data.current_rainfall != null && peak > data.current_rainfall
-    const strength = rainfallTier(data.current_rainfall)
+    const current = currentRainfallAt(data)
+    const rising = peak != null && current != null && peak > current
+    const strength = rainfallTier(current)
 
     return (
         <Card className='gap-3'>
@@ -176,13 +179,13 @@ const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.React
                 {action}
             </div>
             <div className='flex items-stretch'>
-                <RainfallStat label='Current' value={fmt(data.current_rainfall)} />
+                <RainfallStat label='Current' value={fmt(current)} />
                 <div className='bg-border mx-3 w-px' />
                 <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
             </div>
 
             <div className='flex items-center gap-2 border-t pt-2'>
-                <RainfallIcon mmPerHour={data.current_rainfall} className='size-6' />
+                <RainfallIcon mmPerHour={current} className='size-6' />
                 <div className='flex flex-col'>
                     <span className='text-muted-foreground text-xs'>Rainfall Strength</span>
                     <span className='text-sm font-medium'>{RAINFALL_TIER_LABELS[strength]}</span>
@@ -243,7 +246,11 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     const recordedAt = data.recorded_at ? new Date(data.recorded_at) : new Date()
-    const atOffset = (minutes: number) => format(new Date(recordedAt.getTime() + minutes * 60_000), 'h:mm a')
+    // The backend's forecast_Nmin is the 15-minute step N minutes after the *current step*, which
+    // starts on the quarter hour at or before the reading (not at the reading's own minute).
+    const QUARTER_MS = 15 * 60_000
+    const stepStart = Math.floor(recordedAt.getTime() / QUARTER_MS) * QUARTER_MS
+    const atOffset = (minutes: number) => formatServerTime(new Date(stepStart + minutes * 60_000))
 
     const chartData = [
         { name: atOffset(0), rainfall: data.current_rainfall },
@@ -281,7 +288,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
                 <Label>Rainfall forecast</Label>
-                <span className='text-muted-foreground text-xs'>{format(recordedAt, 'MMMM d, yyyy, EEEE')}</span>
+                <span className='text-muted-foreground text-xs'>{formatServerDate(recordedAt)}</span>
             </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
@@ -327,7 +334,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                             <div className='flex w-full items-center justify-between gap-3'>
                                                 <span className='text-muted-foreground capitalize'>{name}</span>
                                                 <span className='font-mono font-medium tabular-nums'>
-                                                    {value} mm/hr
+                                                    {value} mm
                                                 </span>
                                             </div>
                                         )}

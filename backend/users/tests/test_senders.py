@@ -5,7 +5,7 @@ from django.test import SimpleTestCase
 
 from users.senders import SendError, get_push_provider, get_sms_provider
 from users.senders.push import ConsolePushProvider
-from users.senders.sms import ConsoleSmsProvider, UniSmsProvider
+from users.senders.sms import AndroidGatewaySmsProvider, ConsoleSmsProvider, UniSmsProvider
 
 
 class ProviderRegistryTests(SimpleTestCase):
@@ -48,3 +48,32 @@ class UniSmsProviderTests(SimpleTestCase):
     def test_failure_raises_send_error(self, _post):
         with self.assertRaises(SendError):
             UniSmsProvider().send("+639123456789", "hi")
+
+
+class AndroidGatewayProviderTests(SimpleTestCase):
+    def setUp(self):
+        env = {"ANDROID_SMS_GATEWAY_USER": "u", "ANDROID_SMS_GATEWAY_PASSWORD": "p"}
+        patcher = mock.patch(
+            "users.senders.sms.config", side_effect=lambda k, default=None, **_: env.get(k, default)
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_registered(self):
+        self.assertIsInstance(get_sms_provider("android_gateway"), AndroidGatewaySmsProvider)
+
+    @mock.patch("users.senders.sms.requests.post")
+    def test_send_posts_basic_auth_json(self, post):
+        AndroidGatewaySmsProvider().send("+639123456789", "hi")
+        args, kwargs = post.call_args
+        self.assertEqual(args[0], AndroidGatewaySmsProvider.DEFAULT_URL)
+        self.assertEqual(
+            kwargs["json"], {"textMessage": {"text": "hi"}, "phoneNumbers": ["+639123456789"]}
+        )
+        self.assertEqual(kwargs["auth"], ("u", "p"))
+        post.return_value.raise_for_status.assert_called_once()
+
+    @mock.patch("users.senders.sms.requests.post", side_effect=requests.ConnectionError("down"))
+    def test_failure_raises_send_error(self, _post):
+        with self.assertRaises(SendError):
+            AndroidGatewaySmsProvider().send("+639123456789", "hi")

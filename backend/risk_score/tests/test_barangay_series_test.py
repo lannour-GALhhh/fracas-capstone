@@ -134,7 +134,7 @@ class RunSeriesTestTests(TestCase):
         self.assertEqual(config.zone_aggregation, "area_weighted")
 
     def test_min_category_raises_the_bar(self):
-        rain = [0.0] * 30 + [10.0] * 6 + [0.0] * 6
+        rain = [0.0] * 30 + [4.0] * 6 + [0.0] * 6
         self.assertTrue(self.run_test(rain, 36, min_category=RiskCategory.MEDIUM)["result"]["success"])
         self.assertFalse(self.run_test(rain, 36, min_category=RiskCategory.CRITICAL)["result"]["success"])
 

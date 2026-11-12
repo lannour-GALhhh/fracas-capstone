@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.contrib.gis.geos import MultiPolygon, Polygon
-from django.test import SimpleTestCase, TestCase
+from django.test import override_settings, SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -27,20 +27,20 @@ class ParseRainfallTests(SimpleTestCase):
             "minutely_15": {"time": quarter_times, "precipitation": quarter_precip},
         }
 
-    def test_parses_intensity_as_mm_per_hour(self):
+    def test_parses_amounts_as_mm_per_15_minutes(self):
         result = parse_rainfall_data(self._payload())
-        self.assertEqual(result["current_rainfall_strength"], 40)  # 10 mm/15min -> 40 mm/hr
-        self.assertEqual(result["forecast_strength_60min"], 80)  # index 16 + 4 -> 20 mm/15min
+        self.assertEqual(result["current_rainfall_strength"], 10)  # mm per 15 min, not scaled
+        self.assertEqual(result["forecast_strength_60min"], 20)  # index 16 + 4
         self.assertNotIn("accumulated_6hr", result)  # accumulations come from stored hourly rows
 
     def test_parses_quarter_hour_forecasts(self):
         result = parse_rainfall_data(self._payload())
-        self.assertEqual(result["forecast_strength_15min"], 68)  # index 16 + 1
-        self.assertEqual(result["forecast_strength_30min"], 72)  # index 16 + 2
-        self.assertEqual(result["forecast_strength_45min"], 76)  # index 16 + 3
-        self.assertEqual(result["forecast_strength_90min"], 88)  # index 16 + 6
-        self.assertEqual(result["forecast_strength_150min"], 104)  # index 16 + 10
-        self.assertEqual(result["forecast_strength_210min"], 120)  # index 16 + 14
+        self.assertEqual(result["forecast_strength_15min"], 17)  # index 16 + 1
+        self.assertEqual(result["forecast_strength_30min"], 18)  # index 16 + 2
+        self.assertEqual(result["forecast_strength_45min"], 19)  # index 16 + 3
+        self.assertEqual(result["forecast_strength_90min"], 22)  # index 16 + 6
+        self.assertEqual(result["forecast_strength_150min"], 26)  # index 16 + 10
+        self.assertEqual(result["forecast_strength_210min"], 30)  # index 16 + 14
         self.assertEqual(result["forecast_strength_240min"], 0)  # index 16 + 16 -> out of range
 
     def test_missing_current_time_defaults_to_zero(self):
@@ -73,78 +73,75 @@ def _mock_forecast_payload(n, hour_total=5):
 
 
 class QueryGroupsTests(TestCase):
-    """`_query_groups` must dedup by the *discovered* grid cell (BarangayRainfallGrid),
-    never by an assumed geographic distance."""
+    """Every barangay is queried at its own centroid; grid cells are not shared."""
 
-    def test_barangays_sharing_a_discovered_grid_cell_are_grouped_together(self):
+    def test_each_barangay_gets_its_own_query_point_even_if_a_grid_cell_is_shared(self):
         b1 = make_barangay("Alpha", "A1")
         b2 = make_barangay("Beta", "B1")
         BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
         BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.0, grid_lon=122.0)
 
-        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
-        groups = _query_groups(barangays)
-
-        self.assertEqual(len(groups), 1)
-        self.assertCountEqual([b.name for b in groups[0]["members"]], ["Alpha", "Beta"])
-        self.assertEqual((groups[0]["lat"], groups[0]["lon"]), (7.0, 122.0))
-
-    def test_barangays_in_different_discovered_cells_stay_separate(self):
-        b1 = make_barangay("Alpha", "A1")
-        b2 = make_barangay("Beta", "B1")
-        BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
-        BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.1, grid_lon=122.1)
-
-        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
+        barangays = list(Barangay.objects.all())
         groups = _query_groups(barangays)
 
         self.assertEqual(len(groups), 2)
-
-    def test_undiscovered_barangay_falls_back_to_its_own_centroid(self):
-        make_barangay("Undiscovered", "U1")
-
-        barangays = list(Barangay.objects.select_related("rainfall_grid").all())
-        groups = _query_groups(barangays)
-
-        self.assertEqual(len(groups), 1)
-        self.assertEqual(len(groups[0]["members"]), 1)
-        # Falls back to the barangay's own centroid, not a guessed/shared point.
-        centroid = barangays[0].boundary.centroid
-        self.assertEqual((groups[0]["lat"], groups[0]["lon"]), (centroid.y, centroid.x))
+        for group in groups:
+            self.assertEqual(len(group["members"]), 1)
+            centroid = group["members"][0].boundary.centroid
+            self.assertEqual((group["lat"], group["lon"]), (centroid.y, centroid.x))
 
 
-class FetchRainfallDedupTests(TestCase):
-    """Barangays sharing a discovered grid cell must be fetched with a single
-    Open-Meteo query, not one query per barangay."""
+class FetchPerBarangayTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
 
-    @patch("rainfall_fetch.tasks.ensure_grid_mapping")
     @patch("rainfall_fetch.tasks.requests.get")
-    def test_shared_grid_cell_is_queried_once_but_stores_a_reading_per_barangay(self, mock_get, _mapping):
-        b1 = make_barangay("Alpha", "A1")
-        b2 = make_barangay("Beta", "B1")
-        b3 = make_barangay("Gamma", "G1")
-        BarangayRainfallGrid.objects.create(barangay=b1, grid_lat=7.0, grid_lon=122.0)
-        BarangayRainfallGrid.objects.create(barangay=b2, grid_lat=7.0, grid_lon=122.0)
-        # Gamma left undiscovered on purpose -> queried separately via its own centroid.
-
+    def test_one_query_point_and_one_reading_per_barangay(self, mock_get):
+        for i, name in enumerate(["Alpha", "Beta", "Gamma"]):
+            make_barangay(name, f"C{i}")
         mock_get.return_value.raise_for_status.return_value = None
-        mock_get.return_value.json.return_value = _mock_forecast_payload(2)
+        mock_get.return_value.json.return_value = _mock_forecast_payload(3)
 
         fetch_rainfall_information()
 
-        # Two distinct query points went out (the shared cell + Gamma's own centroid),
-        # not three -- and a single (minutely) HTTP call, since history is stored locally.
+        # One HTTP call carries hourly + minutely_15 for all three barangays.
         self.assertEqual(mock_get.call_count, 1)
-        self.assertNotIn("past_days", mock_get.call_args_list[0].args[0])
-        queried_url = mock_get.call_args_list[0].args[0]
-        latitude_param = queried_url.split("latitude=")[1].split("&")[0]
-        self.assertEqual(len(latitude_param.split(",")), 2)  # 2 query points, not 3
-
-        # But every barangay still gets its own stored reading.
+        url = mock_get.call_args_list[0].args[0]
+        self.assertIn("minutely_15", url)
+        self.assertIn("hourly=precipitation", url)
+        self.assertEqual(len(url.split("latitude=")[1].split("&")[0].split(",")), 3)
         self.assertEqual(Rainfall.objects.count(), 3)
-        self.assertEqual(Rainfall.objects.filter(barangay=b1).count(), 1)
-        self.assertEqual(Rainfall.objects.filter(barangay=b2).count(), 1)
-        self.assertEqual(Rainfall.objects.filter(barangay=b3).count(), 1)
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_fetches_at_most_once_per_30_minutes(self, mock_get):
+        make_barangay()
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
+
+        fetch_rainfall_information()
+        fetch_rainfall_information()  # next pipeline run: too soon
+        self.assertEqual(mock_get.call_count, 1)
+
+        Rainfall.objects.update(recorded_at=timezone.now() - timedelta(minutes=30))
+        fetch_rainfall_information()
+        self.assertEqual(mock_get.call_count, 2)
+
+
+class HourlyInputsTests(SimpleTestCase):
+    def test_hourly_inputs_come_from_the_hourly_series_not_the_15_minute_steps(self):
+        from rainfall_fetch.tasks import hourly_inputs
+
+        hour = _this_hour()
+        stamp = lambda k: (hour + timedelta(hours=k)).strftime("%Y-%m-%dT%H:%M")
+        data = {"hourly": {"time": [stamp(k) for k in range(0, 5)], "precipitation": [0.2, 0.1, 0.3, None, 1.5]}}
+
+        self.assertEqual(
+            hourly_inputs(data, hour),
+            {"hourly_current": 0.2, "hourly_forecast_1hr": 0.1, "hourly_forecast_2hr": 0.3,
+             "hourly_forecast_3hr": 0, "hourly_forecast_4hr": 1.5},
+        )
+        self.assertEqual(hourly_inputs({"hourly": {"time": [], "precipitation": []}}, hour)["hourly_current"], 0)
 
 
 class AccumulationTests(TestCase):
@@ -168,21 +165,24 @@ class AccumulationTests(TestCase):
 
 
 class NoiseFloorTests(SimpleTestCase):
-    def test_trace_intensity_is_zeroed_after_conversion_to_mm_per_hour(self):
+    def test_nothing_is_dropped_by_default(self):
         data = {
-            "current": {"time": "2026-07-01T00:00", "precipitation": 0.4},  # 1.6 mm/hr: drizzle
+            "current": {"time": "2026-07-01T00:00", "precipitation": 0.1},
+            "minutely_15": {"time": ["2026-07-01T00:00", "2026-07-01T00:15"], "precipitation": [0.1, 0.1]},
+        }
+        result = parse_rainfall_data(data)
+        self.assertEqual(result["current_rainfall_strength"], 0.1)  # mm per 15 min, as reported
+        self.assertEqual(result["forecast_strength_15min"], 0.1)
+
+    @override_settings(RAINFALL_NOISE_FLOOR_MM_HR=0.5)
+    def test_a_configured_floor_still_zeroes_trace_amounts(self):
+        data = {
+            "current": {"time": "2026-07-01T00:00", "precipitation": 0.4},
             "minutely_15": {"time": ["2026-07-01T00:00", "2026-07-01T00:15"], "precipitation": [0.4, 0.5]},
         }
         result = parse_rainfall_data(data)
         self.assertEqual(result["current_rainfall_strength"], 0)
-        self.assertEqual(result["forecast_strength_15min"], 2.0)  # 0.5 mm/15min = 2 mm/hr, at the floor
-
-    def test_heavy_rain_is_scaled_not_flattened(self):
-        data = {
-            "current": {"time": "2026-07-01T00:00", "precipitation": 5.0},
-            "minutely_15": {"time": ["2026-07-01T00:00"], "precipitation": [5.0]},
-        }
-        self.assertEqual(parse_rainfall_data(data)["current_rainfall_strength"], 20.0)
+        self.assertEqual(result["forecast_strength_15min"], 0.5)
 
     def test_hour_total_matched_by_hour_label_and_not_scaled(self):
         hour = _this_hour()
@@ -202,6 +202,7 @@ class HourlyRecordingTests(TestCase):
     def test_records_on_the_hour_and_first_reading_wins(self, mock_get):
         b = make_barangay()
         self._run(mock_get, 5)
+        Rainfall.objects.update(recorded_at=timezone.now() - timedelta(minutes=30))
         self._run(mock_get, 9)  # later run, same hour: must not overwrite
 
         row = HourlyRainfall.objects.get(barangay=b)
@@ -360,53 +361,11 @@ class RainfallSettingsApiTests(APITestCase):
 
 
 class GridMappingTests(TestCase):
-    """The fetch maps unmapped barangays itself, so dedup works without a shell."""
+    """Grid mapping is no longer used by the fetch; the reset helper still works."""
 
     def setUp(self):
         cache.clear()
         self.addCleanup(cache.clear)
-
-    @patch("rainfall_fetch.tasks.time.sleep")
-    @patch("rainfall_fetch.tasks.requests.get")
-    def test_fetch_maps_unmapped_barangays_into_shared_cells(self, mock_get, _sleep):
-        make_barangay("Alpha", "A1")
-        make_barangay("Beta", "B1")
-        mock_get.return_value.raise_for_status.return_value = None
-        mock_get.return_value.json.side_effect = [
-            [{"latitude": 7.0, "longitude": 122.0}, {"latitude": 7.0, "longitude": 122.0}],  # discovery
-            _mock_forecast_payload(1),  # one shared cell -> one location
-        ]
-
-        fetch_rainfall_information()
-
-        self.assertEqual(BarangayRainfallGrid.objects.count(), 2)
-        forecast_url = mock_get.call_args_list[1].args[0]
-        self.assertEqual(len(forecast_url.split("latitude=")[1].split("&")[0].split(",")), 1)
-        self.assertEqual(Rainfall.objects.count(), 2)  # still a reading per barangay
-
-    @patch("rainfall_fetch.tasks.time.sleep")
-    @patch("rainfall_fetch.tasks.requests.get")
-    def test_mapped_barangays_are_not_rediscovered(self, mock_get, _sleep):
-        b = make_barangay("Alpha", "A1")
-        BarangayRainfallGrid.objects.create(barangay=b, grid_lat=7.0, grid_lon=122.0)
-        mock_get.return_value.raise_for_status.return_value = None
-        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
-
-        fetch_rainfall_information()
-
-        self.assertEqual(mock_get.call_count, 1)  # forecast only
-
-    @patch("rainfall_fetch.tasks.time.sleep")
-    @patch("rainfall_fetch.tasks.requests.get")
-    def test_failed_discovery_falls_back_to_the_centroid(self, mock_get, _sleep):
-        make_barangay("Alpha", "A1")
-        mock_get.return_value.raise_for_status.side_effect = [Exception("down")] * 3 + [None]
-        mock_get.return_value.json.return_value = _mock_forecast_payload(1)
-
-        fetch_rainfall_information()
-
-        self.assertEqual(BarangayRainfallGrid.objects.count(), 0)
-        self.assertEqual(Rainfall.objects.count(), 1)
 
     def test_model_switch_drops_the_mapping(self):
         from rainfall_fetch.services.grid import reset_grid_mapping
@@ -437,9 +396,9 @@ class CallBudgetTests(TestCase):
         from rainfall_fetch.services import budget
 
         with override_settings(RAINFALL_DAILY_CALL_LIMIT=8000):
-            self.assertEqual(budget.runs_per_day(), 144)  # pipeline every 10 min
-            self.assertTrue(budget.has_retry_headroom(30))   # 4,320/day
-            self.assertFalse(budget.has_retry_headroom(55))  # 7,920/day: no room for retries
+            self.assertEqual(budget.runs_per_day(), 48)  # fetched every 30 min
+            self.assertTrue(budget.has_retry_headroom(100))  # 4,800/day
+            self.assertFalse(budget.has_retry_headroom(150))  # 7,200/day: no room for retries
 
     @patch("rainfall_fetch.tasks.requests.get")
     def test_fetch_stops_when_the_daily_limit_is_reached(self, mock_get):
@@ -475,7 +434,7 @@ class RainfallGridViewTests(APITestCase):
         data = self.client.get(self.url).json()
 
         self.assertEqual((data["barangays"], data["mapped"], data["cells"]), (2, 2, 1))
-        self.assertEqual(data["expected_daily_calls"], 144)
+        self.assertEqual(data["expected_daily_calls"], 96)  # 2 barangays x 48
         self.assertTrue(data["has_retry_headroom"])
 
     @patch("rainfall_fetch.settings_views.ensure_grid_mapping", return_value=(2, []))
