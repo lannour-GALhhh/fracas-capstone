@@ -91,6 +91,15 @@ class Rainfall(models.Model):
     forecast_strength_225min = models.FloatField(default=0)
     forecast_strength_240min = models.FloatField(default=0)
 
+    # Hourly values (mm in the hour == mm/hr) that feed the risk calculation; the 15-minute
+    # fields above are for display only. `hourly_current` is the last completed hour; the
+    # forecasts are the 1st-4th hours after it (the 1st is the hour now in progress).
+    hourly_current = models.FloatField(default=0)
+    hourly_forecast_1hr = models.FloatField(default=0)
+    hourly_forecast_2hr = models.FloatField(default=0)
+    hourly_forecast_3hr = models.FloatField(default=0)
+    hourly_forecast_4hr = models.FloatField(default=0)
+
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
     accumulated_6hr = models.FloatField(default=0)
     accumulated_12hr = models.FloatField(default=0)

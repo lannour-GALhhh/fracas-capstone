@@ -13,7 +13,6 @@ from monitoring.constants import SOURCE_RAINFALL
 from monitoring.services.recorder import record_failure, record_success
 from .models import HourlyRainfall, Rainfall, RainfallSettings
 from .services import budget
-from .services.grid import ensure_grid_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +23,15 @@ CHUNK_SIZE = 50
 CHUNK_DELAY = 3  # seconds between chunk requests, to avoid bursting the rate limit
 CALL_DELAY = 1  # seconds between the hourly and minutely calls within a chunk
 REQUEST_TIMEOUT = 20
+FETCH_INTERVAL_MIN = 30  # Open-Meteo is hit once per this many minutes (hourly + 15-minutely in one request)
+FETCH_JITTER_MIN = 5
 RETRY_BACKOFF = 5
 
 # Trailing windows (hours) for the accumulation fields, summed from our own hourly records.
 ACCUMULATION_WINDOWS = {"accumulated_6hr": 6, "accumulated_12hr": 12, "accumulated_24hr": 24, "accumulated_7day": 24 * 7}
 
-# minutely_15 / current amounts cover 15 minutes; x4 gives mm/hr.
-INTENSITY_PER_STEP = 4
+# minutely_15 / current amounts are stored as Open-Meteo reports them: mm per 15-minute step,
+# NOT scaled to mm/hr. They are for display only; the risk score uses the hourly values.
 
 # Every 15-minute step out to 4 hours (16 points).
 FORECAST_STEPS_MIN = [15 * n for n in range(1, 17)]
@@ -51,7 +52,7 @@ def minutely_url(latitudes: str, longitudes: str, model_param: str = "") -> str:
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
-        f"&current=precipitation&hourly=precipitation&minutely_15=precipitation&forecast_days=1{model_param}"
+        f"&current=precipitation&hourly=precipitation&minutely_15=precipitation&forecast_days=2{model_param}"
     )
 
 
@@ -87,11 +88,11 @@ def _get_with_retry(url, *, retries=2):
 
 
 def _intensity(mm_per_15min):
-    """Open-Meteo's `current`/`minutely_15` precipitation is mm per 15-minute step; convert to
-    mm/hr (what the engine's curves expect), then zero trace drizzle below
+    """Open-Meteo's `current`/`minutely_15` precipitation is mm per 15-minute step; kept as is
+    (no x4 to mm/hr), then zero trace drizzle below
     `RAINFALL_NOISE_FLOOR_MM_HR` that the forecast model invents."""
-    mm_hr = (mm_per_15min or 0) * INTENSITY_PER_STEP
-    return mm_hr if mm_hr >= settings.RAINFALL_NOISE_FLOOR_MM_HR else 0
+    mm = mm_per_15min or 0
+    return mm if mm >= settings.RAINFALL_NOISE_FLOOR_MM_HR else 0
 
 
 def _hour_total(data, hour):
@@ -105,6 +106,16 @@ def _hour_total(data, hour):
     return data['hourly']['precipitation'][times.index(label)] or 0
 
 
+def hourly_inputs(data, hour):
+    """The hourly values the risk engine uses (mm in the hour == mm/hr): the last completed hour
+    and the next four, from Open-Meteo's `hourly` series. A missing hour counts as 0."""
+    amount = lambda h: _hour_total(data, h) or 0
+    return {
+        'hourly_current': amount(hour),
+        **{f'hourly_forecast_{k}hr': amount(hour + timedelta(hours=k)) for k in range(1, 5)},
+    }
+
+
 def _quarter_index(data):
     """Index of the current 15-minute bucket in `minutely_15`, or None if it isn't there."""
     return next(
@@ -113,7 +124,7 @@ def _quarter_index(data):
 
 
 def parse_rainfall_data(data, barangay_name=None):
-    """Current intensity + 4h forecast, all in mm/hr from one location's response. Accumulations are
+    """Current + 4h forecast, in mm per 15 min (display only), from one location's response. Accumulations are
     computed separately from our stored hourly records (see `_accumulations`)."""
     quarter_index = _quarter_index(data)
     if quarter_index is None:
@@ -156,41 +167,40 @@ def _accumulations(barangay_ids, hour):
 
 
 def _query_groups(barangays):
-    """Group barangays by the Open-Meteo grid-cell they actually resolve to
-    (from `discover_rainfall_grid`), so each unique cell is queried once instead
-    of once per barangay. Barangays not yet mapped fall back to their own
-    centroid as a singleton group, so the task still works before discovery runs
-    -- just without the dedup benefit for those barangays."""
-    groups = {}
+    """One query point per barangay, at its own centroid (no grid-cell sharing), so every
+    barangay gets its own precipitation reading. Kept in the {lat, lon, members} shape the
+    batching code and the backfill command expect."""
+    groups = []
     for barangay in barangays:
-        grid = getattr(barangay, "rainfall_grid", None)
-        if grid is not None:
-            key = (grid.grid_lat, grid.grid_lon)
-            lat, lon = grid.grid_lat, grid.grid_lon
-        else:
-            centroid = barangay.boundary.centroid
-            key = ("unmapped", barangay.id)
-            lat, lon = centroid.y, centroid.x
-        group = groups.setdefault(key, {"lat": lat, "lon": lon, "members": []})
-        group["members"].append(barangay)
-    return list(groups.values())
+        centroid = barangay.boundary.centroid
+        groups.append({"lat": centroid.y, "lon": centroid.x, "members": [barangay]})
+    return groups
+
+
+def _fetch_is_due(now):
+    """True unless a reading was stored less than `FETCH_INTERVAL_MIN` ago. The pipeline runs more
+    often than we fetch; the in-between runs re-score the latest stored reading. `FETCH_JITTER_MIN`
+    of slack stops a cron firing a few seconds early from slipping a whole cycle."""
+    last = Rainfall.objects.order_by("-recorded_at").values_list("recorded_at", flat=True).first()
+    return last is None or now - last >= timedelta(minutes=FETCH_INTERVAL_MIN - FETCH_JITTER_MIN)
 
 
 @shared_task
 def fetch_rainfall_information():
-    ensure_grid_mapping()  # new/unmapped barangays join a shared cell instead of costing a call each
-    # defer the heavy boundary: it is only read (lazily) for the few barangays not yet grid-mapped.
-    barangays = list(Barangay.objects.select_related("rainfall_grid").defer("boundary"))
     timestamp = timezone.now()
+    if not _fetch_is_due(timestamp):
+        logger.info(f"Rainfall fetched less than {FETCH_INTERVAL_MIN} min ago; reusing the stored reading.")
+        return
+    barangays = list(Barangay.objects.all())
     hour = timestamp.replace(minute=0, second=0, microsecond=0)
-    parsed_by_barangay = {}  # barangay -> (parsed forecast, mm in the hour ending `hour`, or None)
+    parsed_by_barangay = {}  # barangay -> (15-min display values + hourly inputs, mm in the hour ending `hour`, or None)
 
     model_param = RainfallSettings.cached().model_param
     groups = _query_groups(barangays)
     chunks = list(_chunked(groups, CHUNK_SIZE))
     if not budget.has_retry_headroom(len(groups)):
         logger.warning(
-            f"{len(groups)} Open-Meteo locations x {budget.runs_per_day()} runs/day = "
+            f"{len(groups)} Open-Meteo locations (one per barangay) x {budget.runs_per_day()} runs/day = "
             f"{budget.expected_daily_calls(len(groups))} calls/day, too close to the "
             f"{settings.RAINFALL_DAILY_CALL_LIMIT} cap to leave room for retries."
         )
@@ -213,7 +223,7 @@ def fetch_rainfall_information():
             for group, data in zip(chunk, batch):
                 for barangay in group["members"]:
                     try:
-                        parsed = parse_rainfall_data(data, barangay.name)
+                        parsed = {**parse_rainfall_data(data, barangay.name), **hourly_inputs(data, hour)}
                         parsed_by_barangay[barangay] = (parsed, _hour_total(data, hour))
                     except Exception as e:
                         logger.error(f"Failed to parse rainfall information for: {barangay.name}: {e}")

@@ -36,7 +36,7 @@ class ComputeRiskScoresTests(TestCase):
         low = make_barangay("Lowland", "L1")
         make_barangay("Highland", "H1")
         Rainfall.objects.create(
-            barangay=low, recorded_at=timezone.now(), current_rainfall_strength=30.0
+            barangay=low, recorded_at=timezone.now(), current_rainfall_strength=30.0, hourly_current=30.0
         )
 
         result = compute_risk_scores()
@@ -60,7 +60,7 @@ class ComputeRiskScoresTests(TestCase):
         barangay = make_barangay("Lowland", "L1")
         make_susceptibility(barangay, level="very_high")
         Rainfall.objects.create(
-            barangay=barangay, recorded_at=timezone.now(), current_rainfall_strength=30.0
+            barangay=barangay, recorded_at=timezone.now(), current_rainfall_strength=30.0, hourly_current=30.0
         )
 
         compute_risk_scores()

@@ -24,8 +24,8 @@ class ReconstructRainfallTests(SimpleTestCase):
         when = datetime(2024, 7, 15, 14)
         data = hourly_series(when, value=1.0, spike=25.0)
         r = reconstruct_rainfall(data, when)
-        self.assertEqual(r.current_rainfall_strength, 25.0)
-        self.assertEqual(r.forecast_strength_60min, 1.0)
+        self.assertEqual(r.hourly_current, 25.0)
+        self.assertEqual(r.hourly_forecast_1hr, 1.0)
         self.assertEqual(r.accumulated_24hr, 23 * 1.0 + 25.0)  # 23 prior hours + spike
 
 

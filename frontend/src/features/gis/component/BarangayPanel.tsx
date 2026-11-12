@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
+import { formatServerDate, formatServerTime } from '@/common/utils/serverTime'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
@@ -243,7 +244,11 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
 
 const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     const recordedAt = data.recorded_at ? new Date(data.recorded_at) : new Date()
-    const atOffset = (minutes: number) => format(new Date(recordedAt.getTime() + minutes * 60_000), 'h:mm a')
+    // The backend's forecast_Nmin is the 15-minute step N minutes after the *current step*, which
+    // starts on the quarter hour at or before the reading (not at the reading's own minute).
+    const QUARTER_MS = 15 * 60_000
+    const stepStart = Math.floor(recordedAt.getTime() / QUARTER_MS) * QUARTER_MS
+    const atOffset = (minutes: number) => formatServerTime(new Date(stepStart + minutes * 60_000))
 
     const chartData = [
         { name: atOffset(0), rainfall: data.current_rainfall },
@@ -281,7 +286,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
         <Card className='gap-1 py-3'>
             <div className='flex items-center justify-between'>
                 <Label>Rainfall forecast</Label>
-                <span className='text-muted-foreground text-xs'>{format(recordedAt, 'MMMM d, yyyy, EEEE')}</span>
+                <span className='text-muted-foreground text-xs'>{formatServerDate(recordedAt)}</span>
             </div>
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
@@ -327,7 +332,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                             <div className='flex w-full items-center justify-between gap-3'>
                                                 <span className='text-muted-foreground capitalize'>{name}</span>
                                                 <span className='font-mono font-medium tabular-nums'>
-                                                    {value} mm/hr
+                                                    {value} mm/15 min
                                                 </span>
                                             </div>
                                         )}
