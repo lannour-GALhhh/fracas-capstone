@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ThemeProvider, useThemeControls } from '@/common/theme'
 import { queryClient } from '@/core/queryClient'
 import { AuthProvider } from '@/features/auth/context/AuthProvider'
+import { OfflineGate } from '@/features/offline/OfflineGate'
 import { UpdateNoticeModal } from '@/features/updates/UpdateNoticeModal'
 
 /**
@@ -25,6 +26,7 @@ export default function RootLayout() {
                             <AuthProvider>
                                 <ThemedStatusBar />
                                 <Slot />
+                                <OfflineGate />
                                 <UpdateNoticeModal />
                             </AuthProvider>
                         </QueryClientProvider>

@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { decodeJwt } from '@/core/decodeJwt'
@@ -41,20 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         [applyAccess],
     )
 
-    // Cold start: validate a stored refresh token, otherwise stay logged out.
+    // Cold start: validate a stored refresh token, otherwise stay logged out. A network
+    // failure is not a rejected session: keep the token and retry, so opening the app
+    // offline doesn't sign the resident out (the offline toolkit covers the wait).
     useEffect(() => {
+        let cancelled = false
+        let timer: ReturnType<typeof setTimeout>
         const initialize = async () => {
             try {
                 const refresh = await tokenService.getRefresh()
                 if (!refresh) throw new Error('No stored session')
                 applyAccess(await refreshAccess(refresh))
-            } catch {
+            } catch (err) {
+                if (isAxiosError(err) && !err.response) {
+                    if (!cancelled) timer = setTimeout(initialize, 8000)
+                    return
+                }
                 clearAuth()
-            } finally {
-                setInitializing(false)
             }
+            if (!cancelled) setInitializing(false)
         }
         void initialize()
+        return () => {
+            cancelled = true
+            clearTimeout(timer)
+        }
     }, [applyAccess, clearAuth])
 
     // A failed refresh (from apiClient) ends the session.
