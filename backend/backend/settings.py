@@ -239,7 +239,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Scratch space for admin-uploaded GIS archives, shared by the web and celery containers.
+# Scratch space for admin-uploaded GIS archives, shared.
 GIS_IMPORT_DIR = config('GIS_IMPORT_DIR', default=str(BASE_DIR / 'gis_imports'))
 
 MEDIA_URL = '/media/'
@@ -281,12 +281,6 @@ elif MEDIA_STORAGE == "cloudinary":
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# No worker/broker in production: .delay() runs the task inline in the calling
-# process. Set CELERY_TASK_ALWAYS_EAGER=False and a real broker URL only if a
-# worker is ever added back.
-CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="memory://")
-CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=True, cast=bool)
-
 # Shared secret the external cron service sends as X-Cron-Key. Empty = cron endpoints disabled.
 CRON_SECRET = config("CRON_SECRET", default="")
 
@@ -311,7 +305,7 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
-        "celery.metrics": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "tasks": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 

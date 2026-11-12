@@ -78,23 +78,12 @@ class EmailTests(TestCase):
         self.assertEqual(mail.outbox, [])
 
 
-class TaskRetryTests(TestCase):
-    def setUp(self):
-        self.user, self.token = make_pending()
-
-    def test_permanent_brevo_error_is_not_retried(self):
+class TaskFailureTests(TestCase):
+    def test_delay_logs_instead_of_raising(self):
+        user, token = make_pending()
         with patch("users.tasks.activation.send_activation_email", side_effect=BrevoError("no", True)):
-            with patch.object(send_activation_email_task, "retry") as retry:
-                with self.assertRaises(BrevoError):
-                    send_activation_email_task(self.user.pk, self.token)
-        retry.assert_not_called()
-
-    def test_transient_error_is_retried(self):
-        with patch("users.tasks.activation.send_activation_email", side_effect=BrevoError("busy", False)):
-            with patch.object(send_activation_email_task, "retry", side_effect=RuntimeError("retried")) as retry:
-                with self.assertRaises(RuntimeError):
-                    send_activation_email_task(self.user.pk, self.token)
-        retry.assert_called_once()
+            with self.assertLogs("tasks", level="ERROR"):
+                send_activation_email_task.delay(user.pk, token)
 
 
 class ActivationApiTests(TestCase):
