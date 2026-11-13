@@ -15,12 +15,14 @@ from rainfall_fetch.models import Rainfall
 from .models import RiskConfig, RiskScore, ValidationRun
 from .serializers import (
     BarangayRiskSerializer,
+    RainfallSimulationRequestSerializer,
     RiskConfigSerializer,
     SeriesTestRequestSerializer,
     ValidationRunSerializer,
 )
 from .services import snapshot
 from .services.rainfall_csv import CsvError, parse_local_hour, parse_rainfall_csv
+from .services.simulation import simulate
 from .services.series_test import SeriesTestParams, run_series_test
 from .tasks import run_validation_task
 
@@ -174,3 +176,22 @@ class BarangaySeriesTestView(APIView):
         except (CsvError, ValueError) as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response(result)
+
+
+class RainfallSimulationView(APIView):
+    """Admin-only: score hypothetical hourly rainfall for many barangays through the real engine.
+
+    Stateless: nothing is stored, no alerts fire, and the live snapshot is untouched."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        form = RainfallSimulationRequestSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        items = form.validated_data["barangays"]
+        by_id = {b.id: b for b in Barangay.objects.defer("boundary").filter(id__in=[i["id"] for i in items])}
+        missing = [i["id"] for i in items if i["id"] not in by_id]
+        if missing:
+            return Response({"detail": f"Unknown barangay id(s): {missing[:5]}."}, status=400)
+        results = simulate([by_id[i["id"]] for i in items], {i["id"]: i["rain_mm"] for i in items})
+        return Response({"hours": len(items[0]["rain_mm"]), "barangays": results})

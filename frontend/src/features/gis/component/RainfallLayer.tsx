@@ -20,7 +20,7 @@ const MAX_DPR = 1.5
 const SIMPLIFY_PX = 1.5
 const RAIN_COLOR = '235, 245, 255'
 /** Dark outline drawn under each streak so it stays visible on light backdrops. */
-const HALO_COLOR = '15, 35, 90'
+const HALO_COLOR = '70, 105, 170'
 /** Halo is wider than the core by this many px, and never fainter than the core. */
 const HALO_EXTRA = 2.5
 /** Streak opacity floor/boost: the old tier alphas (0.35+) vanished on pale fills. */
@@ -250,7 +250,7 @@ const RainfallLayer = ({ data, visible }: Props) => {
             fade.addColorStop(1, `rgba(${RAIN_COLOR}, ${coreAlpha(cell.style.alpha)})`)
             const halo = ctx.createLinearGradient(0, minY - lead, 0, minY)
             halo.addColorStop(0, `rgba(${HALO_COLOR}, 0)`)
-            halo.addColorStop(1, `rgba(${HALO_COLOR}, ${Math.min(0.85, cell.style.alpha + 0.2)})`)
+            halo.addColorStop(1, `rgba(${HALO_COLOR}, ${Math.min(0.6, cell.style.alpha + 0.1)})`)
             return { path, lead, sky, fade, halo, minX, minY, bw, bh }
         }
 
