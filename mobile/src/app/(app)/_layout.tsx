@@ -19,11 +19,10 @@ export default function AppLayout() {
 }
 
 /**
- * Header back affordance for secondary screens. Reads as a real button — a
- * bordered pill with a label — because it is the only way back on those screens
- * (they no longer carry an in-body "Back" button).
+ * Header back affordance for secondary screens. Mirrors the ghost "Cancel"
+ * button on the Report flooding sheet — bordered, top right — with an arrow.
  */
-function HeaderBackButton({ fallback }: { fallback: Href }) {
+function HeaderBackButton({ fallback, left = false }: { fallback: Href; left?: boolean }) {
     const theme = useTheme()
     return (
         <Pressable
@@ -33,10 +32,8 @@ function HeaderBackButton({ fallback }: { fallback: Href }) {
             accessibilityLabel="Go back"
             style={({ pressed }) => [
                 styles.backBtn,
-                {
-                    backgroundColor: theme.colors.surfaceAlt,
-                    borderColor: theme.colors.border,
-                },
+                left && styles.backLeft,
+                { borderColor: theme.colors.border },
                 pressed && styles.pressed,
             ]}
         >
@@ -59,7 +56,11 @@ function SignedInStack() {
     // (push-notification tap, deep link), so without it `goBack` would have
     // nothing to pop and the button would do nothing.
     const secondary = (fallback: Href) => ({
-        headerLeft: () => <HeaderBackButton fallback={fallback} />,
+        headerRight: () => <HeaderBackButton fallback={fallback} />,
+    })
+    // Report detail keeps the original top-left pill.
+    const secondaryLeft = (fallback: Href) => ({
+        headerLeft: () => <HeaderBackButton fallback={fallback} left />,
     })
 
     return (
@@ -78,7 +79,7 @@ function SignedInStack() {
             <Stack.Screen name="notification-settings" options={secondary('/account')} />
             <Stack.Screen name="edit-profile" options={secondary('/account')} />
             <Stack.Screen name="change-password" options={secondary('/account')} />
-            <Stack.Screen name="report/[id]" options={secondary('/reports')} />
+            <Stack.Screen name="report/[id]" options={secondaryLeft('/reports')} />
         </Stack>
     )
 }
@@ -88,12 +89,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.xs,
-        minHeight: 36,
-        marginLeft: spacing.lg,
-        paddingLeft: spacing.sm,
-        paddingRight: spacing.md,
+        minHeight: 40,
+        marginRight: spacing.lg,
+        paddingHorizontal: spacing.md,
         borderWidth: 1,
-        borderRadius: radius.pill,
+        borderRadius: radius.md,
     },
+    backLeft: { marginRight: 0, marginLeft: spacing.lg },
     pressed: { opacity: 0.6 },
 })
