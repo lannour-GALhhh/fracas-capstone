@@ -33,6 +33,8 @@ interface GISMapProps {
     visibleLevels: SusceptibilityLevel[]
     /** Evacuation center to fly to on load (from the Evacuation Centers page). */
     focusCenterId?: number | null
+    /** Admin rainfall simulation: data is hypothetical, so real evacuation actions are hidden. */
+    simulating?: boolean
 }
 
 /** Centre of a barangay's bounding box, to anchor its hover tooltip. */
@@ -82,10 +84,12 @@ const GISMap = ({
     zoneColorMode,
     visibleLevels,
     focusCenterId = null,
+    simulating = false,
 }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const mapRef = useRef<MapRef>(null)
-    const { isOperator } = useAuth()
+    const { isOperator: isOperatorRole } = useAuth()
+    const isOperator = isOperatorRole && !simulating
     const [massActive, setMassActive] = useState(false)
     const [massIds, setMassIds] = useState<number[]>([])
     const [confirmOpen, setConfirmOpen] = useState(false)

@@ -98,12 +98,27 @@ export interface RainStyle {
     alpha: number
     /** Whole-polygon tint opacity, 0–1. */
     wash: number
+    cloud: CloudStyle
+}
+
+/** How a tier looks as the cloud above the barangay: light and scattered when drizzling, dark and solid in a deluge. */
+export interface CloudStyle {
+    /** Share of the barangay's footprint the cloud covers, 0–1 (low = scattered puffs). */
+    coverage: number
+    /** Stacked puff layers; more layers = a thicker, taller cloud. */
+    layers: number
+    /** Puff size relative to the barangay's smaller screen dimension. */
+    size: number
+    /** Darkness, 0 (white) – 1 (storm grey). */
+    shade: number
+    /** Cloud opacity, 0–1. */
+    alpha: number
 }
 
 export const RAIN_STYLES: Record<Exclude<RainfallTier, 'none'>, RainStyle> = {
-    light: { density: 1.5, speed: 220, length: 8, alpha: 0.35, wash: 0.04 },
-    moderate: { density: 4, speed: 320, length: 11, alpha: 0.5, wash: 0.08 },
-    heavy: { density: 8, speed: 420, length: 14, alpha: 0.6, wash: 0.12 },
-    intense: { density: 14, speed: 540, length: 17, alpha: 0.7, wash: 0.17 },
-    torrential: { density: 22, speed: 680, length: 21, alpha: 0.8, wash: 0.22 },
+    light: { density: 0.4, speed: 200, length: 7, alpha: 0.3, wash: 0.04, cloud: { coverage: 0.25, layers: 1, size: 0.12, shade: 0.05, alpha: 0.35 } },
+    moderate: { density: 4, speed: 320, length: 11, alpha: 0.5, wash: 0.08, cloud: { coverage: 0.5, layers: 2, size: 0.16, shade: 0.3, alpha: 0.55 } },
+    heavy: { density: 8, speed: 420, length: 14, alpha: 0.6, wash: 0.12, cloud: { coverage: 0.75, layers: 3, size: 0.2, shade: 0.5, alpha: 0.72 } },
+    intense: { density: 14, speed: 540, length: 17, alpha: 0.7, wash: 0.17, cloud: { coverage: 0.92, layers: 4, size: 0.24, shade: 0.7, alpha: 0.85 } },
+    torrential: { density: 22, speed: 680, length: 21, alpha: 0.8, wash: 0.22, cloud: { coverage: 1, layers: 5, size: 0.28, shade: 0.9, alpha: 0.95 } },
 }

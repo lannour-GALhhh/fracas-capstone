@@ -1,5 +1,6 @@
 import type { AdminUserFilters } from '../types/user'
 import type { SettingsGroup } from '../types/settings'
+import type { SimulationParams } from '../types/simulation'
 
 /** Centralized query keys for the admin feature. */
 export const adminKeys = {
@@ -14,5 +15,6 @@ export const adminKeys = {
     gisActive: () => ['admin', 'gis-imports', 'active'] as const,
     gisImports: () => ['admin', 'gis-imports'] as const,
     rainfallGrid: () => ['admin', 'settings', 'rainfall', 'grid'] as const,
+    rainfallSimulation: (params: SimulationParams) => ['admin', 'rainfall-simulation', params] as const,
     settings: (group: SettingsGroup) => ['admin', 'settings', group] as const,
 }

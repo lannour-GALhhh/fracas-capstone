@@ -12,6 +12,11 @@ import MapViewToggle from './component/MapViewToggle'
 import BarangayPanel from './component/BarangayPanel'
 import UnderEvacuationCard from './component/UnderEvacuationCard'
 import HighRiskStreetsPanel from './component/HighRiskStreetsPanel'
+import { useAuth } from '@/features/auth/context/useAuth'
+import SimulationBar from '@/features/admin/simulation/SimulationBar'
+import SimulationCard from '@/features/admin/simulation/SimulationCard'
+import { useSimulationEnabled } from '@/features/admin/simulation/simulationStore'
+import { useSimulationSession } from '@/features/admin/simulation/useSimulationSession'
 import { useRiskMap } from './hooks/useRiskMap'
 import { SUSCEPTIBILITY_LAYER_KEYS, type LayerKey, type LayerVisibility } from './constants/layers'
 import { type ZoneColorMode } from './constants/susceptibility'
@@ -52,6 +57,9 @@ const FreshnessBar = ({
 
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
+    const { isAdmin } = useAuth()
+    const simulating = useSimulationEnabled() && isAdmin
+    const sim = useSimulationSession(features, simulating)
     const [selectedId, setSelectedId] = useState<number | null>(null)
     // `?center=<id>` flies to that evacuation center (linked from its management page).
     const [searchParams] = useSearchParams()
@@ -76,16 +84,17 @@ const Dashboard = () => {
         [layers],
     )
     const viewportWidth = useViewportWidth()
-    const cardsVisible = selectedId == null
+    const cardsVisible = selectedId == null && !simulating
     const legendVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
     const barangayPanelVisible = selectedId != null && !panelHidden
     const panelWidth = barangayPanelVisible ? Math.round(viewportWidth * 0.25) : 0
 
     const handleSelect = useCallback((id: number | null) => {
+        if (simulating) return sim.pick(id) // clicks build the scenario instead of opening live details
         setSelectedId(id)
         setPanelHidden(false) // a fresh selection always shows the panel
-    }, [])
+    }, [simulating, sim])
 
     const toggleLayer = (key: LayerKey) => setLayers((l) => ({ ...l, [key]: !l[key] }))
 
@@ -133,17 +142,18 @@ const Dashboard = () => {
             )}
 
             <GISMap
-                data={features}
-                selectedId={selectedId}
+                data={simulating ? (sim.mapData ?? features) : features}
+                simulating={simulating}
+                selectedId={simulating ? null : selectedId}
                 onSelect={handleSelect}
                 panelWidth={panelWidth}
-                layers={layers}
+                layers={simulating ? { ...layers, rainfall: true } : layers}
                 zoneColorMode={zoneColorMode}
                 visibleLevels={visibleLevels}
                 focusCenterId={focusCenterId}
             />
 
-            {barangayPanelVisible && selectedId != null && (
+            {!simulating && barangayPanelVisible && selectedId != null && (
                 <>
                     <HighRiskStreetsPanel barangayId={selectedId} />
                     <BarangayPanel
@@ -154,10 +164,17 @@ const Dashboard = () => {
                 </>
             )}
 
-            {!barangayPanelVisible && <UnderEvacuationCard onSelect={handleSelect} />}
+            {!simulating && !barangayPanelVisible && <UnderEvacuationCard onSelect={handleSelect} />}
+
+            {simulating && (
+                <>
+                    <SimulationCard session={sim} />
+                    <SimulationBar session={sim} />
+                </>
+            )}
 
             {/* Restore chip: shown when a barangay is focused but its panel is hidden. */}
-            {selectedId != null && panelHidden && (
+            {!simulating && selectedId != null && panelHidden && (
                 <button
                     type='button'
                     onClick={() => setPanelHidden(false)}

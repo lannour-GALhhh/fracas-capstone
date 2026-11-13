@@ -129,3 +129,25 @@ class SeriesTestRequestSerializer(serializers.Serializer):
         if f.size > MAX_UPLOAD_BYTES:
             raise serializers.ValidationError("The file is larger than 1 MB.")
         return f
+
+
+class SimulationBarangaySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    # Hourly rainfall in mm, one value per simulated hour.
+    rain_mm = serializers.ListField(
+        child=serializers.FloatField(min_value=0, max_value=300), min_length=1, max_length=72
+    )
+
+
+class RainfallSimulationRequestSerializer(serializers.Serializer):
+    """JSON input for the admin rainfall simulation (see views.RainfallSimulationView)."""
+
+    barangays = SimulationBarangaySerializer(many=True, min_length=1, max_length=200)
+
+    def validate_barangays(self, items):
+        ids = [item["id"] for item in items]
+        if len(set(ids)) != len(ids):
+            raise serializers.ValidationError("Each barangay may appear only once.")
+        if len({len(item["rain_mm"]) for item in items}) > 1:
+            raise serializers.ValidationError("Every barangay needs the same number of hours.")
+        return items

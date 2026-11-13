@@ -4,6 +4,7 @@ import type { RainfallSettings, WeatherModel } from '../../types/settings'
 import { SettingsSection } from '../components/SettingsSection'
 import { SaveBar } from '../components/fields'
 import GridMapping from '../components/GridMapping'
+import SimulationToggle from '../../simulation/SimulationToggle'
 
 const MODELS: { value: WeatherModel; label: string; description: string }[] = [
     {
@@ -54,6 +55,15 @@ const RainfallForm = ({ initial }: { initial: RainfallSettings }) => {
 }
 
 const RainfallPanel = () => (
+    <div className='flex flex-col gap-4'>
+        <div className='max-w-2xl'>
+            <RainfallSourceSection />
+        </div>
+        <SimulationToggle />
+    </div>
+)
+
+const RainfallSourceSection = () => (
     <SettingsSection
         group='rainfall'
         title='Rainfall source'
