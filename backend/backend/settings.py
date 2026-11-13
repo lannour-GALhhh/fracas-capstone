@@ -334,4 +334,4 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Token-in-body clients (mobile, web SPA) identify themselves with X-Client.
 from corsheaders.defaults import default_headers  # noqa: E402
-CORS_ALLOW_HEADERS = (*default_headers, "x-client")
+CORS_ALLOW_HEADERS = (*default_headers, "x-client", "ngrok-skip-browser-warning")
