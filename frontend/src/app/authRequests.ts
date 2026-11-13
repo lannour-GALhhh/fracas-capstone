@@ -3,7 +3,7 @@ import tokenService from './tokenService'
 
 const BASE_URL = import.meta.env.VITE_API_URL
 // X-Client tells the API to return the refresh token in the body (no cookie).
-const headers = { 'X-Client': 'web' }
+const headers = { 'X-Client': 'web', 'ngrok-skip-browser-warning': 'true' }
 
 interface Credentials { username: string; password: string }
 
