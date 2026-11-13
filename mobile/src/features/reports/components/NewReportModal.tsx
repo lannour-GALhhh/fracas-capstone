@@ -1,10 +1,10 @@
 import { Image } from 'expo-image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Button, Icon, Input, Text } from '@/common/ui'
+import { Button, Icon, Input, Text, type IconName } from '@/common/ui'
 import { apiErrorMessage } from '@/common/utils/apiError'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 
@@ -31,6 +31,12 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
     const [barangay, setBarangay] = useState<{ id: number; name: string } | null>(null)
     const [choosing, setChoosing] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Default to the device's location whenever the sheet opens.
+    const { request: requestGps } = gps
+    useEffect(() => {
+        if (visible) void requestGps()
+    }, [visible, requestGps])
 
     const located = gps.coords != null || barangay != null
     const canSubmit = picker.photos.length > 0 && located && !submit.isPending
@@ -92,8 +98,8 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
                     <View style={styles.section}>
                         <Text variant="label">Photos ({picker.photos.length}/{MAX_PHOTOS})</Text>
                         <View style={styles.row}>
-                            <Button label="Take photo" variant="secondary" onPress={() => pick('camera')} style={styles.flex} />
-                            <Button label="Gallery" variant="secondary" onPress={() => pick('gallery')} style={styles.flex} />
+                            <PhotoTile icon="camera-outline" label="Take a photo" onPress={() => pick('camera')} />
+                            <PhotoTile icon="images-outline" label="Get from Gallery" onPress={() => pick('gallery')} />
                         </View>
                         {picker.photos.length > 0 ? (
                             <View style={styles.thumbs}>
@@ -114,7 +120,7 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
                         ) : null}
                     </View>
 
-                    <View style={styles.section}>
+                    <View style={[styles.section, styles.divided, { borderTopColor: theme.colors.border }]}>
                         <Text variant="label">Comment</Text>
                         <Input
                             value={description}
@@ -125,23 +131,25 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
                         />
                     </View>
 
-                    <View style={styles.section}>
+                    <View style={[styles.section, styles.divided, { borderTopColor: theme.colors.border }]}>
                         <Text variant="label">Location</Text>
-                        <View style={styles.row}>
-                            <Button
-                                label={gps.coords ? 'Using my location' : 'Use my location'}
-                                variant={gps.coords ? 'primary' : 'secondary'}
-                                onPress={useGps}
-                                loading={gps.status === 'requesting'}
-                                style={styles.flex}
-                            />
-                            <Button
-                                label={barangay && !gps.coords ? barangay.name : 'Choose barangay'}
-                                variant={barangay && !gps.coords ? 'primary' : 'secondary'}
-                                onPress={() => setChoosing(true)}
-                                style={styles.flex}
-                            />
+                        <View style={styles.locationRow}>
+                            <Icon name="location-outline" size={18} color={theme.colors.primary} />
+                            <Text variant="caption" style={styles.locationText}>
+                                {gps.coords
+                                    ? 'Using your current location'
+                                    : barangay
+                                      ? barangay.name
+                                      : gps.status === 'requesting'
+                                        ? 'Getting your location…'
+                                        : 'Location unavailable'}
+                            </Text>
                         </View>
+                        <Button
+                            label="Select barangay"
+                            variant="secondary"
+                            onPress={() => setChoosing(true)}
+                        />
                     </View>
 
                     {error ? (
@@ -152,7 +160,13 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
                 </ScrollView>
 
                 <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
-                    <Button label="Send report" onPress={send} disabled={!canSubmit} loading={submit.isPending} />
+                    <Button
+                        label="Send report"
+                        onPress={send}
+                        disabled={!canSubmit}
+                        loading={submit.isPending}
+                        labelStyle={styles.sendLabel}
+                    />
                 </View>
             </KeyboardAvoidingView>
 
@@ -169,6 +183,27 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
     )
 }
 
+function PhotoTile({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+    const theme = useTheme()
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            style={({ pressed }) => [
+                styles.tile,
+                { backgroundColor: theme.colors.surfaceAlt },
+                pressed && styles.pressed,
+            ]}
+        >
+            <Icon name={icon} size={44} color={theme.colors.primary} />
+            <Text variant="caption" style={styles.tileLabel}>
+                {label}
+            </Text>
+        </Pressable>
+    )
+}
+
 const styles = StyleSheet.create({
     sheet: { flex: 1 },
     header: {
@@ -182,7 +217,20 @@ const styles = StyleSheet.create({
     body: { padding: spacing.lg, gap: spacing.xl },
     section: { gap: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },
-    flex: { flex: 1 },
+    tile: {
+        flex: 1,
+        aspectRatio: 1,
+        borderRadius: radius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+    },
+    pressed: { opacity: 0.6 },
+    tileLabel: { textAlign: 'center' },
+    divided: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.xl },
+    locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    locationText: { flexShrink: 1 },
+    sendLabel: { fontSize: 15, lineHeight: 20 },
     thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     thumb: { width: 88, height: 88, borderRadius: radius.md, overflow: 'hidden' },
     fill: { width: '100%', height: '100%' },

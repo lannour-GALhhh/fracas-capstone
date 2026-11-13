@@ -1,12 +1,14 @@
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { spacing, useTheme } from '@/common/theme'
-import { Badge, Button, Card, Icon, Spinner, Text } from '@/common/ui'
+import { Badge, Button, Card, Collapsible, Icon, Spinner, Text } from '@/common/ui'
 import { ErrorState } from '@/common/components/ErrorState'
 import { timeAgo } from '@/common/utils/time'
 import { RAINFALL_TIER_ICONS, RAINFALL_TIER_LABELS, rainfallTier } from '@/features/gis/constants/rainfall'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
 import { SUSCEPTIBILITY_LABELS } from '@/features/gis/constants/susceptibility'
+import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useBarangayRisk } from '@/features/gis/hooks/useBarangayRisk'
 import type { BarangayRisk, RiskCategory, ZoneScore } from '@/features/gis/types'
 
@@ -25,6 +27,7 @@ const fmt = (v: number | null | undefined): string => (v == null ? '—' : `${Ma
 export function BarangayDetailModal({ barangayId, onClose }: Props) {
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
     const theme = useTheme()
+    const insets = useSafeAreaInsets()
 
     return (
         <Modal
@@ -34,7 +37,7 @@ export function BarangayDetailModal({ barangayId, onClose }: Props) {
             presentationStyle="pageSheet"
         >
             <View style={[styles.sheet, { backgroundColor: theme.colors.bg }]}>
-                <View style={styles.header}>
+                <View style={[styles.header, { paddingTop: spacing.lg + insets.top }]}>
                     <Text variant="title" style={styles.title}>
                         {data?.name ?? 'Barangay'}
                     </Text>
@@ -55,6 +58,7 @@ export function BarangayDetailModal({ barangayId, onClose }: Props) {
                         <HazardHero data={data} />
                         <Conditions data={data} />
                         <ZoneBreakdown data={data} />
+                        <EvacuationCenters barangayId={barangayId} />
                         <Footer data={data} />
                     </ScrollView>
                 ) : null}
@@ -148,12 +152,12 @@ const RainfallStrength = ({ tier }: { tier: ReturnType<typeof rainfallTier> }) =
 
 const StatTile = ({ label, value, unit }: { label: string; value: string; unit: string }) => (
     <Card style={styles.tile}>
-        <Text variant="caption" color="textMuted">
+        <Text variant="caption" color="textMuted" style={styles.tileLabel}>
             {label}
         </Text>
         <View style={styles.tileValue}>
-            <Text variant="subtitle">{value}</Text>
-            <Text variant="caption" color="textMuted">
+            <Text variant="subtitle" style={styles.tileNumber}>{value}</Text>
+            <Text variant="caption" color="textMuted" style={styles.tileUnit}>
                 {unit}
             </Text>
         </View>
@@ -205,6 +209,39 @@ const ZoneRow = ({ zone }: { zone: ZoneScore }) => {
     )
 }
 
+/** Centers serving this barangay, tucked into a collapsible; hidden when there are none. */
+const EvacuationCenters = ({ barangayId }: { barangayId: number | null }) => {
+    const { data } = useEvacuationCenters()
+    const centers = (data?.features ?? [])
+        .map((f) => f.properties)
+        .filter((c) => c.barangay === barangayId)
+    if (!centers.length) return null
+    return (
+        <Collapsible
+            title="Evacuation centers"
+            subtitle={`${centers.length} in this barangay`}
+            icon="home-outline"
+        >
+            <View style={styles.centers}>
+                {centers.map((c) => (
+                    <View key={c.id} style={styles.center}>
+                        <Text variant="subtitle">{c.name}</Text>
+                        <Text variant="caption" color="textMuted">
+                            Capacity:{' '}
+                            {c.capacity == null ? '—' : `${c.capacity} ${c.capacity_unit ?? ''}`.trim()}
+                        </Text>
+                        {c.contact ? (
+                            <Text variant="caption" color="textMuted">
+                                Contact: {c.contact}
+                            </Text>
+                        ) : null}
+                    </View>
+                ))}
+            </View>
+        </Collapsible>
+    )
+}
+
 const Footer = ({ data }: { data: BarangayRisk }) => {
     const scored = timeAgo(data.computed_at)
     const read = timeAgo(data.recorded_at)
@@ -243,8 +280,11 @@ const styles = StyleSheet.create({
     scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
     score: { fontSize: 40, fontWeight: '700', lineHeight: 44 },
     conditions: { gap: spacing.md },
-    tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-    tile: { gap: spacing.xs, flexGrow: 1, flexBasis: '45%' },
+    tiles: { gap: spacing.md },
+    tile: { gap: spacing.xs, width: '100%' },
+    tileLabel: { fontSize: 14, lineHeight: 18 },
+    tileNumber: { fontSize: 20, lineHeight: 26 },
+    tileUnit: { fontSize: 14, lineHeight: 18 },
     tileValue: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
     strength: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     breakdown: { gap: spacing.sm },
@@ -260,5 +300,7 @@ const styles = StyleSheet.create({
     },
     track: { height: 6, borderRadius: 3, overflow: 'hidden' },
     fill: { height: '100%', borderRadius: 3 },
+    centers: { gap: spacing.md },
+    center: { gap: 2 },
     footer: { alignItems: 'center', gap: spacing.xs, paddingTop: spacing.sm },
 })

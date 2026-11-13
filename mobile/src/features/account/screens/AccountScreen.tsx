@@ -29,17 +29,17 @@ export function AccountScreen() {
 
             <LinkCard
                 title="Edit profile"
-                description="Your name, email, and permanent address."
+                icon="person-outline"
                 onPress={() => router.navigate('/edit-profile')}
             />
             <LinkCard
                 title="Change password"
-                description="Update the password you use to sign in."
+                icon="lock-closed-outline"
                 onPress={() => router.navigate('/change-password')}
             />
             <LinkCard
                 title="Notification settings"
-                description="Channels, quiet hours, and which barangay alerts you get."
+                icon="notifications-outline"
                 onPress={() => router.navigate('/notification-settings')}
             />
 
