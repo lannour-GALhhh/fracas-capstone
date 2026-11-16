@@ -7,6 +7,7 @@ import { goBack } from '@/common/utils/navigation'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
+import { useFirstRunOnboarding } from '@/features/onboarding/useFirstRunOnboarding'
 
 /** Signed-in shell. Redirects to login when there is no session. */
 export default function AppLayout() {
@@ -51,6 +52,9 @@ function SignedInStack() {
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
 
+    // First launch on this device: walk the resident through the tour.
+    useFirstRunOnboarding()
+
     // Secondary screens get a back button. The `fallback` names the screen each
     // one is opened from: there is no history when the app lands straight here
     // (push-notification tap, deep link), so without it `goBack` would have
@@ -76,6 +80,7 @@ function SignedInStack() {
         >
             {/* The bottom-tab group (GIS, Reports, Toolkit, Me) draws its own header. */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="notification-settings" options={secondary('/account')} />
             <Stack.Screen name="edit-profile" options={secondary('/account')} />
             <Stack.Screen name="change-password" options={secondary('/account')} />
