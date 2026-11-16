@@ -10,6 +10,7 @@ import { useWatchedLocation } from '@/common/hooks/useWatchedLocation'
 import { RadiusEvacuationBanner } from '@/features/evacuation/radius/RadiusEvacuationBanner'
 import { useRadiusEvacuations } from '@/features/evacuation/radius/useRadiusEvacuations'
 import { useRadiusTracker } from '@/features/evacuation/radius/useRadiusTracker'
+import { AlertsOffCard } from '@/features/alerts/components/AlertsOffCard'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
@@ -190,8 +191,8 @@ export function StatusScreen() {
                 radiusEvacuations={activeRadius}
             />
 
-            {homeEvac || activeRadius.length > 0 ? (
-                <View style={styles.bannerOverlay} pointerEvents="box-none">
+            <View style={styles.bannerOverlay} pointerEvents="box-none">
+                <AlertsOffCard />
                     {activeRadius.map((e) => (
                         <RadiusEvacuationBanner key={e.id} evacuation={e} coords={radiusCoords} />
                     ))}
@@ -205,8 +206,7 @@ export function StatusScreen() {
                         outsideZones={outsideZones}
                     />
                     ) : null}
-                </View>
-            ) : null}
+            </View>
 
             <BottomSheet
                 ref={sheetRef}

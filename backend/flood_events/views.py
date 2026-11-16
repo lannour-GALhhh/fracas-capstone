@@ -106,6 +106,23 @@ class FloodEventChangesView(ListAPIView):
         ).select_related("editor")
 
 
+class MyReportBlockView(APIView):
+    """The signed-in resident's own report-submission ban status (always 200)."""
+
+    def get(self, request):
+        block = blocking.active_block(request.user)
+        if block is None:
+            return Response({"blocked": False, "permanent": False, "until": None, "reason": ""})
+        return Response(
+            {
+                "blocked": True,
+                "permanent": block.blocked_until is None,
+                "until": block.blocked_until,
+                "reason": block.reason,
+            }
+        )
+
+
 class MyFloodActivityView(ListAPIView):
     """The signed-in operator's own flood-event actions, newest first."""
 

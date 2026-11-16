@@ -225,6 +225,18 @@ class ReporterBlockTests(APITestCase):
         ReporterBlock.objects.update(blocked_until=timezone.now() - timedelta(minutes=1))
         self.assertEqual(self.submit().status_code, 201)
 
+    def test_resident_can_read_own_block_status(self):
+        url = reverse("flood-report-my-block")
+        self.client.force_authenticate(self.resident)
+        self.assertFalse(self.client.get(url).data["blocked"])
+        self.client.force_authenticate(self.operator)
+        self.client.post(self.block_url, {"days": 3, "reason": "spam"})
+        self.client.force_authenticate(self.resident)
+        data = self.client.get(url).data
+        self.assertTrue(data["blocked"])
+        self.assertFalse(data["permanent"])
+        self.assertEqual(data["reason"], "spam")
+
     def test_omitting_days_is_permanent(self):
         self.client.force_authenticate(self.operator)
         resp = self.client.post(self.block_url, {})

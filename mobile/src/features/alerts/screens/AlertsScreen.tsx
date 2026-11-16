@@ -7,6 +7,9 @@ import { ErrorState } from '@/common/components/ErrorState'
 import { spacing, useTheme } from '@/common/theme'
 import { Button, Spinner, Text } from '@/common/ui'
 
+import { ReportBlockedCard } from '@/features/reports/components/ReportBlockedCard'
+import { useMyReportBlock } from '@/features/reports/hooks/useMyReportBlock'
+
 import { NotificationDetailModal } from '../components/NotificationDetailModal'
 import { NotificationRow } from '../components/NotificationRow'
 import { useMarkAllRead } from '../hooks/useNotificationMutations'
@@ -29,6 +32,7 @@ export function AlertsScreen() {
     } = useNotifications()
     const unread = useUnreadCount()
     const markAll = useMarkAllRead()
+    const reportBlock = useMyReportBlock()
 
     const [selected, setSelected] = useState<Notification | null>(null)
     const hasUnread = (unread.data ?? 0) > 0
@@ -77,6 +81,7 @@ export function AlertsScreen() {
 
             <FlatList
                 data={notifications}
+                ListHeaderComponent={reportBlock.data?.blocked ? <ReportBlockedCard /> : null}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={styles.list}
                 renderItem={({ item }) => (
