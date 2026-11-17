@@ -2,6 +2,7 @@ import io
 from datetime import timedelta
 import tempfile
 
+from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.test import override_settings
@@ -11,7 +12,7 @@ from PIL import Image
 from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
-from flood_events.models import FloodEvent, FloodEventChange, FloodEventReport, ReporterBlock
+from flood_events.models import FloodEvent, FloodEventChange, FloodEventReport, FloodEventReportImage, ReporterBlock
 
 
 def make_image(name="evidence.png"):
@@ -262,3 +263,25 @@ class ReporterBlockTests(APITestCase):
         self.report.save()
         self.client.force_authenticate(self.operator)
         self.assertEqual(self.client.post(self.block_url, {}).status_code, 400)
+
+
+    def test_blocked_list_shows_photos_without_identity_and_unblocks(self):
+        FloodEventReportImage.objects.create(
+            report=self.report, image=ContentFile(make_image().read(), name="a.png")
+        )
+        list_url = reverse("flood-report-blocked")
+        self.client.force_authenticate(self.operator)
+        self.client.post(self.block_url, {"days": 3})
+        resp = self.client.get(list_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        row = resp.data[0]
+        self.assertEqual(len(row["images"]), 1)
+        self.assertEqual(set(row), {"id", "until", "permanent", "blocked_at", "images"})
+        url = reverse("flood-report-blocked-unblock", args=[row["id"]])
+        self.assertEqual(self.client.post(url).status_code, 204)
+        self.assertEqual(self.client.get(list_url).data, [])
+
+    def test_resident_cannot_list_blocked(self):
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self.client.get(reverse("flood-report-blocked")).status_code, 403)

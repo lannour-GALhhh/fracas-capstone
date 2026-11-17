@@ -268,6 +268,14 @@ class ReporterBlock(models.Model):
     )
     blocked_until = models.DateTimeField(null=True, blank=True, help_text="Empty = permanent.")
     reason = models.CharField(max_length=255, blank=True)
+    report = models.ForeignKey(
+        "FloodEventReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="The report that triggered the block.",
+    )
     blocked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

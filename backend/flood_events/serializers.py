@@ -341,3 +341,33 @@ class ReporterBlockSerializer(serializers.Serializer):
 
     days = serializers.IntegerField(min_value=1, max_value=3650, required=False, allow_null=True)
     reason = serializers.CharField(max_length=255, allow_blank=True, required=False, default="")
+
+
+class BlockedSenderSerializer(serializers.Serializer):
+    """A block as shown to operators: the photos and expiry, no identity."""
+
+    id = serializers.IntegerField(read_only=True)
+    until = serializers.DateTimeField(source="blocked_until", read_only=True)
+    permanent = serializers.SerializerMethodField()
+    blocked_at = serializers.DateTimeField(source="created_at", read_only=True)
+    images = serializers.SerializerMethodField()
+
+    def get_permanent(self, obj):
+        return obj.blocked_until is None
+
+    def get_images(self, obj):
+        report = obj.report
+        if report is None:  # block predates the report link: use the sender's latest photos
+            report = (
+                FloodEventReport.objects.filter(reporter=obj.user, images__isnull=False)
+                .prefetch_related("images")
+                .order_by("-created_at")
+                .first()
+            )
+        if report is None:
+            return []
+        request = self.context.get("request")
+        return [
+            request.build_absolute_uri(i.image.url) if request else i.image.url
+            for i in report.images.all()
+        ]

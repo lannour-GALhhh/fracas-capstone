@@ -29,6 +29,7 @@ from .serializers import (
     FloodEventSerializer,
     FloodEventWriteSerializer,
     FloodReportReviewSerializer,
+    BlockedSenderSerializer,
     ReporterBlockSerializer,
     FloodReportSubmitSerializer,
     MyFloodActivitySerializer,
@@ -389,6 +390,7 @@ class FloodReportBlockView(_ReporterBlockView):
             days=form.validated_data.get("days"),
             reason=form.validated_data["reason"],
             by=request.user,
+            report=get_object_or_404(FloodEventReport, pk=pk),
         )
         return Response(
             {"until": block.blocked_until, "permanent": block.blocked_until is None, "reason": block.reason},
@@ -399,4 +401,26 @@ class FloodReportBlockView(_ReporterBlockView):
 class FloodReportUnblockView(_ReporterBlockView):
     def post(self, request, pk):
         blocking.lift(self.reporter(pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BlockedSenderListView(ListAPIView):
+    """Anonymised list of currently blocked senders: only their photos, never who they are."""
+
+    permission_classes = [IsOperator]
+    serializer_class = BlockedSenderSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return blocking.active_blocks()
+
+
+class BlockedSenderUnblockView(APIView):
+    """Lift a block by its id (the list never reveals the user)."""
+
+    permission_classes = [IsOperator]
+
+    def post(self, request, pk):
+        block = get_object_or_404(blocking.active_blocks(), pk=pk)
+        blocking.lift(block.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
