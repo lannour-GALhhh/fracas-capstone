@@ -15,6 +15,7 @@ import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHo
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
 import { useMyEvacuations } from '@/features/evacuation/hooks/useMyEvacuations'
+import { OfflineCard } from '@/features/offline/OfflineCard'
 import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useLocalizedRisk } from '@/features/gis/hooks/useLocalizedRisk'
@@ -192,6 +193,7 @@ export function StatusScreen() {
             />
 
             <View style={styles.bannerOverlay} pointerEvents="box-none">
+                <OfflineCard />
                 <AlertsOffCard />
                     {activeRadius.map((e) => (
                         <RadiusEvacuationBanner key={e.id} evacuation={e} coords={radiusCoords} />
