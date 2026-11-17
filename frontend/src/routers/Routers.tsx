@@ -27,6 +27,7 @@ const GisDataPage = lazy(() => import('@/features/admin/gis/GisDataPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'))
 const TestAuth = lazy(() => import('@/common/test/TestAuth'))
+const DownloadPage = lazy(() => import('@/features/download/DownloadPage'))
 const NotFound = lazy(() => import('@/common/pages/NotFound'))
 
 const Routers = () => {
@@ -35,6 +36,7 @@ const Routers = () => {
       <Routes>
         <Route path='/test-auth' element={<TestAuth />} />
         <Route path='/login' element={<Login />} />
+        <Route path='/download' element={<DownloadPage />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password/:uid/:token' element={<ResetPassword />} />
         <Route path='/account-activation/:token' element={<AccountActivation />} />
