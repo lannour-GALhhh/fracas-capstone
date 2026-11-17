@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { BackArrow } from '@/common/components/BackArrow'
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Button, Icon, Text } from '@/common/ui'
 
@@ -75,15 +76,7 @@ export function NotificationBell() {
                     {detail ? (
                         <>
                             <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-                                <Pressable
-                                    onPress={back}
-                                    hitSlop={8}
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Back to recent alerts"
-                                    style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}
-                                >
-                                    <Icon name="arrow-back" size={24} color={theme.colors.text} />
-                                </Pressable>
+                                <BackArrow onPress={back} label="Back to recent alerts" />
                                 <Text variant="title" style={styles.title}>
                                     Alert
                                 </Text>
@@ -94,13 +87,10 @@ export function NotificationBell() {
                     ) : (
                         <>
                             <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-                                <Text variant="title">Recent alerts</Text>
-                                <Button
-                                    label="Close"
-                                    variant="ghost"
-                                    onPress={back}
-                                    style={styles.close}
-                                />
+                                <BackArrow onPress={back} label="Close recent alerts" />
+                                <Text variant="title" style={styles.title}>
+                                    Recent alerts
+                                </Text>
                             </View>
 
                             <ScrollView contentContainerStyle={styles.body}>
@@ -150,10 +140,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.lg,
         paddingBottom: spacing.sm,
     },
-    backBtn: { paddingVertical: spacing.xs, marginLeft: -spacing.xs },
-    pressed: { opacity: 0.5 },
     title: { flex: 1 },
-    close: { minHeight: 40, paddingHorizontal: spacing.md },
     body: { padding: spacing.lg, gap: spacing.md },
     empty: { textAlign: 'center', paddingVertical: spacing.xl },
     footer: { padding: spacing.lg },

@@ -26,7 +26,7 @@ import type { RadiusEvacuation } from '@/features/evacuation/radius/types'
 interface Props {
     /** Risk-joined barangay boundaries; null until the first load resolves. */
     data: RiskFeatureCollection | null
-    /** Evacuation centers plotted as refuge dots (optional/empty is fine). */
+    /** Evacuation centers plotted as tent pins (optional/empty is fine). */
     centers: EvacuationCenterCollection | undefined
     /** Barangay id to outline as selected (mirrors the detail modal). */
     selectedId: number | null
@@ -62,7 +62,7 @@ const FOCUS_ZOOM = 14
 
 /** No barangay matches this id, so the "selected" outline hides when unset. */
 const NO_SELECTION = -1
-const REFUGE_COLOR = '#0f766e' // teal — a "safe place" hue outside the red ramp
+const REFUGE_COLOR = '#059669' // emerald — matches the web evacuation pin
 
 /**
  * The flood choropleth. Barangays are filled by their joined risk category
@@ -168,20 +168,14 @@ export function RiskMap({
                     </GeoJSONSource>
                 ) : null}
 
-                {centers && centers.features.length > 0 ? (
-                    <GeoJSONSource id="centers" data={centers}>
-                        <Layer
-                            id="center-dot"
-                            type="circle"
-                            paint={{
-                                'circle-radius': 5,
-                                'circle-color': REFUGE_COLOR,
-                                'circle-stroke-width': 2,
-                                'circle-stroke-color': '#ffffff',
-                            }}
-                        />
-                    </GeoJSONSource>
-                ) : null}
+                {centers?.features.map((f) => (
+                    <Marker key={f.properties.id} lngLat={f.geometry.coordinates as [number, number]} anchor="center">
+                        <View style={styles.evacPin}>
+                            <View style={styles.tentRoof} />
+                            <View style={styles.tentDoor} />
+                        </View>
+                    </Marker>
+                ))}
 
                 {showUser ? <UserLocation animated /> : null}
 
@@ -208,6 +202,40 @@ const styles = StyleSheet.create({
     fill: { flex: 1, borderRadius: 0 },
     map: { flex: 1 },
     userPin: { alignItems: 'center' },
+    // Web parity: emerald disc, white border, white tent glyph.
+    evacPin: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: REFUGE_COLOR,
+        borderWidth: 2,
+        borderColor: '#ffffff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 4,
+    },
+    tentRoof: {
+        width: 0,
+        height: 0,
+        borderLeftWidth: 7,
+        borderRightWidth: 7,
+        borderBottomWidth: 11,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: '#ffffff',
+    },
+    tentDoor: {
+        position: 'absolute',
+        bottom: 6,
+        width: 0,
+        height: 0,
+        borderLeftWidth: 2.5,
+        borderRightWidth: 2.5,
+        borderBottomWidth: 5,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: REFUGE_COLOR,
+    },
     userPinLabel: {
         paddingHorizontal: 8,
         paddingVertical: 3,

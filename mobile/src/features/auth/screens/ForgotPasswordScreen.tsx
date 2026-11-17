@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import { useMemo } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -44,39 +43,29 @@ export function ForgotPasswordScreen() {
                 <AuthHero heightRatio={0.22} />
 
                 <SafeAreaView edges={['bottom']} style={styles.sheet}>
-                    <View style={styles.header}>
-                        {f.step !== 'done' ? (
-                            <Pressable
-                                onPress={() => (f.back() ? undefined : toLogin())}
-                                hitSlop={8}
-                                accessibilityRole="button"
-                                accessibilityLabel="Back"
-                                style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-                            >
-                                <Ionicons name="arrow-back" size={22} color={C.text} />
-                            </Pressable>
-                        ) : null}
+                    <View style={[styles.header, f.step === 'done' && styles.headerCenter]}>
                         {STEP_INDEX[f.step] ? (
                             <Text style={styles.stepIndex}>Step {STEP_INDEX[f.step]} of 3</Text>
                         ) : null}
-                        <Text style={styles.title}>{STEP_TITLE[f.step]}</Text>
+                        <Text style={[styles.title, f.step === 'done' && styles.titleCenter]}>{STEP_TITLE[f.step]}</Text>
                     </View>
 
                     {f.step === 'phone' && (
-                        <PhoneStep pending={f.pending} error={f.error} onSubmit={f.sendCode} />
+                        <PhoneStep pending={f.pending} error={f.error} onCancel={toLogin} onSubmit={f.sendCode} />
                     )}
                     {f.step === 'code' && (
                         <CodeStep
                             phone={f.phone}
                             pending={f.pending}
                             error={f.error}
+                            onCancel={toLogin}
                             cooldown={f.cooldown}
                             onVerify={f.verify}
                             onResend={f.resend}
                         />
                     )}
                     {f.step === 'password' && (
-                        <PasswordStep pending={f.pending} error={f.error} onSubmit={f.setPassword} />
+                        <PasswordStep pending={f.pending} error={f.error} onCancel={toLogin} onSubmit={f.setPassword} />
                     )}
                     {f.step === 'done' && <DoneStep onLogin={toLogin} />}
                 </SafeAreaView>
@@ -101,8 +90,8 @@ const createStyles = (C: AuthPalette) =>
             paddingBottom: 16,
         },
         header: { gap: 4, marginBottom: 24 },
-        back: { alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 4 },
-        pressed: { opacity: 0.5 },
+        headerCenter: { alignItems: 'center' },
+        titleCenter: { textAlign: 'center' },
         stepIndex: { color: C.muted, fontSize: 13, fontWeight: '600' },
         title: { color: C.text, fontSize: 24, fontWeight: '700' },
     })

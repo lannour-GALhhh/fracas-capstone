@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { BackArrow } from '@/common/components/BackArrow'
 import { radius, spacing, useTheme } from '@/common/theme'
 import { Button, Icon, Input, Text, type IconName } from '@/common/ui'
 import { apiErrorMessage } from '@/common/utils/apiError'
@@ -90,8 +91,8 @@ export function NewReportModal({ visible, onClose, onSubmitted }: Props) {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-                    <Text variant="title">Report flooding</Text>
-                    <Button label="Cancel" variant="ghost" onPress={close} style={styles.small} />
+                    <BackArrow onPress={close} />
+                    <Text variant="title" style={styles.headerTitle}>Report flooding</Text>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -209,11 +210,11 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: spacing.sm,
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.sm,
     },
-    small: { minHeight: 40, paddingHorizontal: spacing.md },
+    headerTitle: { flex: 1 },
     body: { padding: spacing.lg, gap: spacing.xl },
     section: { gap: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },

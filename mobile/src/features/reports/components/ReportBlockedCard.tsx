@@ -8,13 +8,23 @@ import { useMyReportBlock } from '../hooks/useMyReportBlock'
 const formatDate = (iso: string): string =>
     new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
+const DAY_MS = 86_400_000
+
+/** "permanently", "for N more day(s)" when under 7 days remain, else "until <date>". */
+const describeDuration = (permanent: boolean, until: string | null): string => {
+    if (permanent || !until) return 'permanently'
+    const days = Math.max(1, Math.ceil((new Date(until).getTime() - Date.now()) / DAY_MS))
+    if (days < 7) return `for ${days} more day${days === 1 ? '' : 's'}`
+    return `until ${formatDate(until)}`
+}
+
 /** Small notice shown while an operator has blocked this resident from sending reports. */
 export function ReportBlockedCard() {
     const theme = useTheme()
     const { data } = useMyReportBlock()
     if (!data?.blocked) return null
 
-    const duration = data.permanent || !data.until ? 'until further notice' : `until ${formatDate(data.until)}`
+    const duration = describeDuration(data.permanent, data.until)
 
     return (
         <Card style={styles.card}>
@@ -23,7 +33,7 @@ export function ReportBlockedCard() {
                 <View style={styles.text}>
                     <Text variant="label">Reporting is blocked</Text>
                     <Text variant="caption" color="textMuted">
-                        {`You can't send flood reports ${duration}. Alerts and the rest of the app still work.`}
+                        {`You are blocked from sending flood reports ${duration}. Alerts and the rest of the app still work.`}
                     </Text>
                     {data.reason ? (
                         <Text variant="caption" color="textMuted">{`Reason: ${data.reason}`}</Text>

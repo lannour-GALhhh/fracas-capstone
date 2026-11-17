@@ -7,8 +7,10 @@ import { ErrorState } from '@/common/components/ErrorState'
 import { spacing, useTheme } from '@/common/theme'
 import { Icon, Spinner, Text } from '@/common/ui'
 
+import { ReportBlockedCard } from '../components/ReportBlockedCard'
 import { NewReportModal } from '../components/NewReportModal'
 import { ReportRow } from '../components/ReportRow'
+import { useMyReportBlock } from '../hooks/useMyReportBlock'
 import { useMyReports } from '../hooks/useMyReports'
 
 /** The resident's flood photo reports, with a button to submit a new one. */
@@ -17,6 +19,7 @@ export function ReportsScreen() {
     const { reports, isLoading, isError, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
         useMyReports()
     const [composing, setComposing] = useState(false)
+    const blocked = useMyReportBlock().data?.blocked === true
 
     return (
         <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top', 'bottom']}>
@@ -41,6 +44,7 @@ export function ReportsScreen() {
                     refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
                     onEndReachedThreshold={0.4}
                     onEndReached={() => hasNextPage && fetchNextPage()}
+                    ListHeaderComponent={blocked ? <ReportBlockedCard /> : null}
                     ListEmptyComponent={
                         <EmptyState
                             title="No reports yet"
@@ -53,12 +57,15 @@ export function ReportsScreen() {
 
             <Pressable
                 onPress={() => setComposing(true)}
+                disabled={blocked}
                 accessibilityRole="button"
-                accessibilityLabel="New report"
+                accessibilityLabel={blocked ? 'New report (blocked)' : 'New report'}
+                accessibilityState={{ disabled: blocked }}
                 style={({ pressed }) => [
                     styles.fab,
-                    { backgroundColor: theme.colors.primary },
-                    pressed && styles.pressed,
+                    { backgroundColor: blocked ? '#9ca3af' : theme.colors.primary },
+                    blocked && styles.disabled,
+                    pressed && !blocked && styles.pressed,
                 ]}
             >
                 <Icon name="camera" size={26} color="#fff" />
@@ -103,4 +110,5 @@ const styles = StyleSheet.create({
     },
     plus: { position: 'absolute', top: 14, right: 12 },
     pressed: { opacity: 0.8 },
+    disabled: { elevation: 0, shadowOpacity: 0, opacity: 0.7 },
 })

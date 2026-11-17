@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
@@ -62,4 +63,26 @@ export const useHomeSubscription = (): HomeSubscription => {
         isPending: subscribeMut.isPending || unsubscribeMut.isPending,
         isLoading: home.isLoading || subs.isLoading,
     }
+}
+
+/**
+ * Alerts for the home barangay are always on: once the home barangay resolves and
+ * the subscription list has loaded, subscribe to it if no row exists yet.
+ */
+export const useAutoSubscribeHome = (): void => {
+    const home = useHomeSubscription()
+    const qc = useQueryClient()
+    const attempted = useRef<number | null>(null)
+    const { barangayId, isSubscribed, isLoading, isPending } = home
+
+    useEffect(() => {
+        if (barangayId == null || isLoading || isPending || isSubscribed) return
+        if (attempted.current === barangayId) return
+        attempted.current = barangayId
+        subscribe(barangayId)
+            .then(() => qc.invalidateQueries({ queryKey: alertKeys.subscriptions }))
+            .catch(() => {
+                attempted.current = null
+            })
+    }, [barangayId, isLoading, isPending, isSubscribed, qc])
 }
