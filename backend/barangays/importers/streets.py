@@ -1,5 +1,6 @@
 """Detect named streets crossing high / very-high flood-susceptibility zones (OpenStreetMap via Overpass)."""
 
+import time
 from typing import Callable
 
 import requests
@@ -9,7 +10,15 @@ from django.db import transaction
 from barangays.constants import SUSCEPTIBILITY_VALUES, SusceptibilityLevel
 from barangays.models import BarangaySusceptibility, Street
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OVERPASS_URLS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
+OVERPASS_URL = OVERPASS_URLS[0]
+RETRY_STATUSES = (429, 502, 503, 504)
+ROUNDS = 2  # passes over the mirror list
+RETRY_BACKOFF_S = 5
 HIGH_RISK_LEVELS = (SusceptibilityLevel.HIGH, SusceptibilityLevel.VERY_HIGH)
 REQUEST_TIMEOUT_S = 180
 # Overpass requires an identifying User-Agent or it 406s.
@@ -20,16 +29,33 @@ class StreetDetectionError(ValueError):
     pass
 
 
+def _post_with_failover(query: str) -> requests.Response:
+    """POST to Overpass, rotating mirrors and retrying on transient overload (429/502/503/504, timeouts)."""
+    last = "no attempt made"
+    for round_ in range(ROUNDS):
+        for url in OVERPASS_URLS:
+            try:
+                response = requests.post(url, data={"data": query}, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT_S)
+            except (requests.ConnectionError, requests.Timeout) as exc:
+                last = f"{url}: {exc}"
+                continue
+            if response.status_code in RETRY_STATUSES:
+                last = f"{response.status_code} from {url}"
+                continue
+            try:
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                raise StreetDetectionError(f"Overpass request failed: {exc}") from exc
+            return response
+        if round_ < ROUNDS - 1:
+            time.sleep(RETRY_BACKOFF_S * (round_ + 1))
+    raise StreetDetectionError(f"Overpass request failed on all servers (last: {last}). Try again in a few minutes.")
+
+
 def fetch_named_ways(south: float, west: float, north: float, east: float) -> list[dict]:
     """Named highway ways in the bbox, each with its node geometry."""
     query = f'[out:json][timeout:{REQUEST_TIMEOUT_S}];way["highway"]["name"]({south},{west},{north},{east});out tags geom;'
-    try:
-        response = requests.post(
-            OVERPASS_URL, data={"data": query}, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT_S
-        )
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        raise StreetDetectionError(f"Overpass request failed: {exc}") from exc
+    response = _post_with_failover(query)
     try:
         payload = response.json()
     except ValueError as exc:
