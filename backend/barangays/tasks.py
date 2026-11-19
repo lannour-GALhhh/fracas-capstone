@@ -48,9 +48,9 @@ def process_gis_import(import_id: int) -> None:
         job.status, job.result = GisImport.Status.SUCCEEDED, result
     except EXPECTED_ERRORS as exc:
         job.status, job.message = GisImport.Status.FAILED, str(exc)
-    except Exception:
+    except Exception as exc:
         logger.exception("GIS import %s crashed", import_id)
-        job.status, job.message = GisImport.Status.FAILED, "Unexpected error while processing the file."
+        job.status, job.message = GisImport.Status.FAILED, f"Unexpected error while processing the file ({type(exc).__name__}: {exc})"[:500]
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 
