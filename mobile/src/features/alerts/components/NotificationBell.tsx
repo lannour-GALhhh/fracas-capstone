@@ -1,11 +1,10 @@
-import { router } from 'expo-router'
 import { useState } from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { BackArrow } from '@/common/components/BackArrow'
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Button, Icon, Text } from '@/common/ui'
+import { Button, Icon, Spinner, Text } from '@/common/ui'
 
 import { useNotifications } from '../hooks/useNotifications'
 import { useUnreadCount } from '../hooks/useUnreadCount'
@@ -13,14 +12,13 @@ import type { Notification } from '../types'
 import { NotificationDetail } from './NotificationDetail'
 import { NotificationRow } from './NotificationRow'
 
-const RECENT_LIMIT = 5
-
 /**
  * Bell affordance for a screen header: shows the unread badge and opens a sheet
- * of the most recent alerts. Reuses the feed query (no extra request) so the
- * badge and popup stay consistent with the Alerts tab.
+ * of the alerts you haven't opened yet (the ones with the dot). A button reveals
+ * the full history. Reuses the feed query (no extra request) so the badge and
+ * sheet stay consistent.
  *
- * The sheet is a two-layer stack — recent list, then one alert's detail — held
+ * The sheet is a two-layer stack — list, then one alert's detail — held
  * in a single `Modal` so a back press pops exactly one layer (detail → list →
  * closed) instead of dropping the resident back onto the screen underneath.
  */
@@ -28,24 +26,25 @@ export function NotificationBell() {
     const theme = useTheme()
     const insets = useSafeAreaInsets()
     const unread = useUnreadCount()
-    const { notifications } = useNotifications()
+    const { notifications, hasNextPage, fetchNextPage, isFetchingNextPage } = useNotifications()
 
     const [open, setOpen] = useState(false)
+    const [showAll, setShowAll] = useState(false)
     const [detail, setDetail] = useState<Notification | null>(null)
 
     const count = unread.data ?? 0
-    const recent = notifications.slice(0, RECENT_LIMIT)
+    const visible = showAll ? notifications : notifications.filter((n) => !n.is_read)
 
     /** Pop one layer of the sheet: detail → list → closed. */
     const back = () => {
         if (detail) setDetail(null)
-        else setOpen(false)
+        else close()
     }
 
-    const seeAll = () => {
+    const close = () => {
         setDetail(null)
+        setShowAll(false)
         setOpen(false)
-        router.navigate('/alerts')
     }
 
     return (
@@ -76,7 +75,7 @@ export function NotificationBell() {
                     {detail ? (
                         <>
                             <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-                                <BackArrow onPress={back} label="Back to recent alerts" />
+                                <BackArrow onPress={back} label="Back to alerts" />
                                 <Text variant="title" style={styles.title}>
                                     Alert
                                 </Text>
@@ -87,27 +86,40 @@ export function NotificationBell() {
                     ) : (
                         <>
                             <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-                                <BackArrow onPress={back} label="Close recent alerts" />
+                                <BackArrow onPress={back} label="Close alerts" />
                                 <Text variant="title" style={styles.title}>
-                                    Recent alerts
+                                    {showAll ? 'All alerts' : 'New alerts'}
                                 </Text>
                             </View>
 
-                            <ScrollView contentContainerStyle={styles.body}>
-                                {recent.length === 0 ? (
-                                    <Text variant="body" color="textMuted" style={styles.empty}>
-                                        No alerts yet. Advisories for your barangay will show up here.
-                                    </Text>
-                                ) : (
-                                    recent.map((n) => (
-                                        <NotificationRow key={n.id} notification={n} onPress={setDetail} />
-                                    ))
+                            <FlatList
+                                data={visible}
+                                keyExtractor={(n) => String(n.id)}
+                                contentContainerStyle={styles.body}
+                                renderItem={({ item }) => (
+                                    <NotificationRow notification={item} onPress={setDetail} />
                                 )}
-                            </ScrollView>
+                                onEndReachedThreshold={0.4}
+                                onEndReached={() => showAll && hasNextPage && fetchNextPage()}
+                                ListEmptyComponent={
+                                    <Text variant="body" color="textMuted" style={styles.empty}>
+                                        {showAll
+                                            ? 'No alerts yet. Advisories for your barangay will show up here.'
+                                            : "You're all caught up."}
+                                    </Text>
+                                }
+                                ListFooterComponent={isFetchingNextPage ? <Spinner /> : null}
+                            />
 
-                            <View style={styles.footer}>
-                                <Button label="See all alerts" variant="secondary" onPress={seeAll} />
-                            </View>
+                            {showAll ? null : (
+                                <View style={styles.footer}>
+                                    <Button
+                                        label="Show all alerts"
+                                        variant="secondary"
+                                        onPress={() => setShowAll(true)}
+                                    />
+                                </View>
+                            )}
                         </>
                     )}
                 </View>

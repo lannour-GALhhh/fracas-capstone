@@ -28,10 +28,6 @@ export const markNotificationRead = async (id: number): Promise<void> => {
     await apiClient.post(`/api/notifications/${id}/read/`)
 }
 
-export const markAllNotificationsRead = async (): Promise<void> => {
-    await apiClient.post('/api/notifications/read_all/')
-}
-
 // --- Delivery preferences ------------------------------------------------------
 
 export const getPreferences = async (): Promise<NotificationPreference> => {

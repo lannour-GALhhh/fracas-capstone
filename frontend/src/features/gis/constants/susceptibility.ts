@@ -22,6 +22,15 @@ export const SUSCEPTIBILITY_LABELS: Record<SusceptibilityLevel, string> = {
 }
 
 /** Green→red hazard ramp; deliberately separate from `RISK_COLORS` — different measurements. */
+/** Neutral gray ramp for side-panel use; the map keeps `SUSCEPTIBILITY_COLORS`. */
+export const SUSCEPTIBILITY_MONO_COLORS: Record<SusceptibilityLevel, string> = {
+    very_low: '#e5e7eb',
+    low: '#d1d5db',
+    moderate: '#9ca3af',
+    high: '#6b7280',
+    very_high: '#374151',
+}
+
 export const SUSCEPTIBILITY_COLORS: Record<SusceptibilityLevel, string> = {
     very_low: '#1a9850',
     low: '#91cf60',

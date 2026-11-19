@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { markAllNotificationsRead, markNotificationRead } from '../api/alertsApi'
+import { markNotificationRead } from '../api/alertsApi'
 import { alertKeys } from '../api/queryKeys'
 
 /** Invalidate the feed + unread badge after a read state change. */
@@ -16,14 +16,6 @@ export const useMarkRead = () => {
     const invalidate = useInvalidateFeed()
     return useMutation({
         mutationFn: (id: number) => markNotificationRead(id),
-        onSuccess: invalidate,
-    })
-}
-
-export const useMarkAllRead = () => {
-    const invalidate = useInvalidateFeed()
-    return useMutation({
-        mutationFn: markAllNotificationsRead,
         onSuccess: invalidate,
     })
 }

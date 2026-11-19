@@ -4,7 +4,7 @@ import { cn } from '@/common/utils/utils'
 import { Button } from '@/common/ui/button'
 import { Separator } from '@/common/ui/separator'
 import capitalize from '@/common/utils/capitalize'
-import { RISK_COLORS } from '../constants/risk'
+import { RISK_MONO_COLORS } from '../constants/risk'
 import type { CategoryGroup } from '../hooks/useRiskMap'
 
 interface RiskCardProps {
@@ -33,7 +33,7 @@ const RiskCard = ({ group, onSelect }: RiskCardProps) => {
         >
             <div
                 className='aspect-square w-2.5 rounded-full ring-1 ring-foreground/10'
-                style={{ backgroundColor: RISK_COLORS[category] }}
+                style={{ backgroundColor: RISK_MONO_COLORS[category] }}
             />
             <div className='flex flex-1 flex-col items-start gap-1'>
                 <h5 className='text-md font-semibold'>{capitalize(category)}</h5>

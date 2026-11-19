@@ -27,10 +27,6 @@ export function NotificationSettingsScreen() {
 
     return (
         <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['bottom']}>
-            <View style={styles.header}>
-                <Text variant="title">Notifications</Text>
-            </View>
-
             {prefs.isLoading ? (
                 <Spinner />
             ) : prefs.isError ? (

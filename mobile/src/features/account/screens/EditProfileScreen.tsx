@@ -12,6 +12,7 @@ import type { RegistrationAddress } from '@/features/registration/types'
 
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import { useUpdateProfile } from '../hooks/useAccountMutations'
+import { ConfirmChangesModal, type ChangeItem } from '../components/ConfirmChangesModal'
 import { profileSchema } from '../schemas'
 import type { CurrentUser, ProfileUpdate, UserAddress } from '../types'
 
@@ -47,15 +48,37 @@ function ProfileForm({ user }: { user: CurrentUser }) {
     const onAddressChange = (patch: RegistrationAddress) =>
         setAddress((prev) => ({ ...prev, ...patch }))
 
-    const onSubmit = handleSubmit(() => {
+    const [confirming, setConfirming] = useState(false)
+
+    const addressLine = (a: UserAddress) =>
+        [a.unit, a.barangay, a.city, a.province].filter(Boolean).join(', ')
+
+    const changes: ChangeItem[] = [
+        { label: 'First name', from: user.first_name, to: firstName.trim() },
+        { label: 'Last name', from: user.last_name, to: lastName.trim() },
+        { label: 'Email', from: user.email, to: email.trim() },
+        { label: 'Address', from: addressLine(user.address), to: addressLine(address) },
+        { label: 'ZIP code', from: user.address.zip_code, to: address.zip_code.trim() },
+    ].filter((c) => c.from !== c.to)
+    const hasChanges = changes.length > 0
+
+    const onSubmit = handleSubmit(() => setConfirming(true))
+
+    const doSave = () => {
         const payload: ProfileUpdate = {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             email: email.trim(),
             address: { ...address, zip_code: address.zip_code.trim() },
         }
-        update.mutate(payload, { onSuccess: () => goBack() })
-    })
+        update.mutate(payload, {
+            onSuccess: () => {
+                setConfirming(false)
+                goBack()
+            },
+            onError: () => setConfirming(false),
+        })
+    }
 
     return (
         <View style={styles.form}>
@@ -123,7 +146,25 @@ function ProfileForm({ user }: { user: CurrentUser }) {
                 </Text>
             ) : null}
 
-            <Button label="Save changes" onPress={onSubmit} loading={update.isPending} />
+            <Button
+                label="Save changes"
+                icon="save-outline"
+                size="lg"
+                onPress={onSubmit}
+                disabled={!hasChanges}
+                loading={update.isPending}
+            />
+
+            <ConfirmChangesModal
+                visible={confirming}
+                title="Save these changes?"
+                icon="person-circle-outline"
+                changes={changes}
+                confirmLabel="Confirm"
+                loading={update.isPending}
+                onCancel={() => setConfirming(false)}
+                onConfirm={doSave}
+            />
         </View>
     )
 }
@@ -134,9 +175,6 @@ export function EditProfileScreen() {
 
     return (
         <Screen edges={['bottom']}>
-            <Text variant="title" style={styles.title}>
-                Edit profile
-            </Text>
 
             {isLoading ? (
                 <Spinner />
@@ -154,7 +192,6 @@ export function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    title: { marginBottom: spacing.lg },
     form: { gap: spacing.lg },
     names: { flexDirection: 'row', gap: spacing.md },
     half: { flex: 1 },

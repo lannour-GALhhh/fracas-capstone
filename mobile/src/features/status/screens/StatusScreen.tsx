@@ -116,6 +116,7 @@ export function StatusScreen() {
     // Recenter the map on a card's barangay (fresh object each tap).
     const focusOn = (feature: RiskFeature | null) => {
         if (!feature) return
+        sheetRef.current?.collapse()
         const box = geometryBounds(feature.geometry)
         if (box) setFocus({ center: centroidOf(box) })
     }

@@ -1,9 +1,9 @@
 import { Redirect, Stack, type Href } from 'expo-router'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { BackArrow } from '@/common/components/BackArrow'
 import { spacing, useTheme } from '@/common/theme'
-import { Spinner } from '@/common/ui'
+import { Spinner, Text } from '@/common/ui'
 import { goBack } from '@/common/utils/navigation'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useHomeSubscription'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
@@ -39,8 +39,14 @@ function SignedInStack() {
     // one is opened from: there is no history when the app lands straight here
     // (push-notification tap, deep link), so without it `goBack` would have
     // nothing to pop and the button would do nothing.
-    const secondary = (fallback: Href) => ({
-        headerLeft: () => <BackArrow onPress={() => goBack(fallback)} style={styles.backLeft} />,
+    // An optional `title` sits directly beside the arrow.
+    const secondary = (fallback: Href, title?: string) => ({
+        headerLeft: () => (
+            <View style={styles.left}>
+                <BackArrow onPress={() => goBack(fallback)} />
+                {title ? <Text variant="title">{title}</Text> : null}
+            </View>
+        ),
     })
 
     return (
@@ -57,14 +63,14 @@ function SignedInStack() {
             {/* The bottom-tab group (GIS, Reports, Toolkit, Me) draws its own header. */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-            <Stack.Screen name="notification-settings" options={secondary('/account')} />
-            <Stack.Screen name="edit-profile" options={secondary('/account')} />
-            <Stack.Screen name="change-password" options={secondary('/account')} />
+            <Stack.Screen name="notification-settings" options={secondary('/account', 'Notifications')} />
+            <Stack.Screen name="edit-profile" options={secondary('/account', 'Edit profile')} />
+            <Stack.Screen name="change-password" options={secondary('/account', 'Change password')} />
             <Stack.Screen name="report/[id]" options={secondary('/reports')} />
         </Stack>
     )
 }
 
 const styles = StyleSheet.create({
-    backLeft: { marginLeft: spacing.md },
+    left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginLeft: spacing.md },
 })

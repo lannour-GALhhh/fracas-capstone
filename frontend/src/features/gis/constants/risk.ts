@@ -27,6 +27,17 @@ export const RISK_TEXT_COLORS: Record<RiskCategory, string> = {
     critical: '#991b1b',
 }
 
+/**
+ * Neutral gray ramp (light → dark) for side-panel chips/bars, where severity
+ * is conveyed by intensity rather than hue. The map keeps `RISK_COLORS`.
+ */
+export const RISK_MONO_COLORS: Record<RiskCategory, string> = {
+    low: '#e5e7eb',
+    medium: '#9ca3af',
+    high: '#6b7280',
+    critical: '#374151',
+}
+
 /** White → red intensity ramp; single source of truth for fill/legend/badges. */
 export const RISK_COLORS: Record<RiskCategory, string> = {
     low: '#fdeaea',
