@@ -79,11 +79,10 @@ class EmailTests(TestCase):
 
 
 class TaskFailureTests(TestCase):
-    def test_delay_logs_instead_of_raising(self):
+    def test_delay_does_not_raise_in_caller(self):
         user, token = make_pending()
         with patch("users.tasks.activation.send_activation_email", side_effect=BrevoError("no", True)):
-            with self.assertLogs("tasks", level="ERROR"):
-                send_activation_email_task.delay(user.pk, token)
+            send_activation_email_task.delay(user.pk, token)  # eager: a failure must not propagate
 
 
 class ActivationApiTests(TestCase):

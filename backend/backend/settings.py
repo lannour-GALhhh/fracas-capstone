@@ -281,6 +281,14 @@ elif MEDIA_STORAGE == "cloudinary":
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Celery: Redis broker; the `celery_worker` and `celery_beat` containers run the tasks and the
+# periodic schedule (backend/celery.py + schedules.CRON_SCHEDULE). Set ALWAYS_EAGER=True only
+# for tests/local runs without a worker.
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default=config("REDIS_URL", default="memory://"))
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=TESTING, cast=bool)
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
 # Shared secret the external cron service sends as X-Cron-Key. Empty = cron endpoints disabled.
 CRON_SECRET = config("CRON_SECRET", default="")
 
@@ -305,7 +313,7 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
-        "tasks": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "celery.metrics": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 

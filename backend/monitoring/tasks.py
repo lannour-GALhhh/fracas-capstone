@@ -3,13 +3,13 @@
 import logging
 from datetime import timedelta
 
-from backend.inline import task
+from celery import shared_task
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
 
-@task
+@shared_task
 def cleanup_old_data() -> dict:
     from evacuation.models import Evacuation, EvacuationStatus
     from rainfall_fetch.models import HourlyRainfall, Rainfall
@@ -45,3 +45,16 @@ def cleanup_old_data() -> dict:
         "risk_score_deleted": score_deleted,
         "evacuation_status_deleted": evac_status_deleted,
     }
+
+
+@shared_task
+def run_cron_job(name: str) -> str:
+    """Run a registered cron job synchronously, under the same lock as the HTTP trigger."""
+    from django.core.cache import cache
+
+    from monitoring.services import cron
+
+    if not cache.add(cron._lock_key(name), 1, cron.LOCK_TTL_SECONDS):
+        return cron.ALREADY_RUNNING
+    cron._run(name)  # releases the lock when done
+    return "finished"
