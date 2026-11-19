@@ -4,6 +4,10 @@ WORKDIR /frontend
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Vite inlines VITE_* at build time, so they must be passed as build args.
+ARG VITE_API_URL
+ARG VITE_APP_DOWNLOAD_URL
+ENV VITE_API_URL=$VITE_API_URL VITE_APP_DOWNLOAD_URL=$VITE_APP_DOWNLOAD_URL
 RUN npm run build
 
 # ---- dev stage (default): Vite dev server with HMR -----------------------

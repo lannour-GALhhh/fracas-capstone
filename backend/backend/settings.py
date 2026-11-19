@@ -312,14 +312,17 @@ LOGGING = {
 # Production security posture, enforced only when DEBUG is off.
 if not DEBUG:
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Secure cookies need HTTPS. Set SECURE_COOKIES=False only for an HTTP-only
+    # (IP, no TLS) deployment, otherwise login/CSRF cookies are never sent back.
+    _secure_cookies = config("SECURE_COOKIES", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = _secure_cookies
+    CSRF_COOKIE_SECURE = _secure_cookies
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
     SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
     # The JWT refresh cookie must only travel over HTTPS in production.
-    SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True
+    SIMPLE_JWT["AUTH_COOKIE_SECURE"] = _secure_cookies
 
 
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", cast=Csv())
