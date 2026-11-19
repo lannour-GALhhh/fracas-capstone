@@ -79,7 +79,13 @@ def detect_high_risk_streets(fetch: Callable[..., list[dict]] | None = None) -> 
     if not zones.exists():
         raise StreetDetectionError("No high or very high flood zones found — import the susceptibility layer first.")
 
-    extents = [z.geom_simplified.extent for z in zones.only("geom_simplified")]
+    # Source polygons can be self-intersecting; PostGIS/GEOS raise TopologyException on those, so repair
+    # them once up front and test against prepared in-memory geometries instead of querying per street.
+    prepared = []
+    for barangay_id, level, geom in zones.values_list("barangay_id", "level", "geom_simplified"):
+        valid = geom if geom.valid else geom.make_valid()
+        prepared.append((barangay_id, level, valid.prepared, valid.extent))
+    extents = [ext for *_, ext in prepared]
     south, west = min(e[1] for e in extents), min(e[0] for e in extents)
     north, east = max(e[3] for e in extents), max(e[2] for e in extents)
     elements = (fetch or fetch_named_ways)(south, west, north, east)
@@ -90,7 +96,10 @@ def detect_high_risk_streets(fetch: Callable[..., list[dict]] | None = None) -> 
         line = _line(element)
         if not name or line is None:
             continue
-        for barangay_id, level in zones.filter(geom_simplified__intersects=line).values_list("barangay_id", "level"):
+        lx0, ly0, lx1, ly1 = line.extent
+        for barangay_id, level, zone, (zx0, zy0, zx1, zy1) in prepared:
+            if lx1 < zx0 or lx0 > zx1 or ly1 < zy0 or ly0 > zy1 or not zone.intersects(line):
+                continue
             key = (barangay_id, name)
             if key not in found or SUSCEPTIBILITY_VALUES[level] > SUSCEPTIBILITY_VALUES[found[key]]:
                 found[key] = level
