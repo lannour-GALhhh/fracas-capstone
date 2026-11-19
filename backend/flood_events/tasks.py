@@ -3,7 +3,7 @@
 import logging
 from datetime import timedelta
 
-from backend.inline import task
+from celery import shared_task
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ PURGE_AFTER_HOURS = 6
 ARCHIVE_RETENTION_DAYS = 30
 
 
-@task
+@shared_task
 def purge_deleted_flood_events() -> dict:
     """Hard-delete flood events soft-deleted past the retention grace window."""
     from monitoring.models import RetentionPolicy
@@ -29,7 +29,7 @@ def purge_deleted_flood_events() -> dict:
     return {"purged": purged}
 
 
-@task
+@shared_task
 def purge_archived_flood_events() -> dict:
     """Hard-delete flood events archived longer than the retention window."""
     from .models import FloodEvent

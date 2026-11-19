@@ -1,5 +1,6 @@
 # Single-VM production stack:  docker compose -f docker-compose.prod.yml --env-file .env up -d --build
-# No bind mounts, no dev server, no Celery (tasks run inline; cron hits /api/cron/*).
+# No bind mounts, no dev server. Celery worker + beat run tasks and the periodic schedule
+# (backend/schedules.py); the /api/cron/* HTTP endpoints remain as a manual fallback.
 services:
   db:
     build:
@@ -31,6 +32,7 @@ services:
     restart: unless-stopped
     volumes:
       - media_volume:/backend/media
+      - gis_import_volume:/backend/gis_imports
     expose: ["8000"]
     depends_on:
       db: { condition: service_healthy }
@@ -41,6 +43,25 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+
+  celery_worker:
+    build: ./backend
+    env_file: .env
+    command: celery -A backend worker -l info --concurrency 2
+    restart: unless-stopped
+    volumes:
+      - media_volume:/backend/media
+      - gis_import_volume:/backend/gis_imports
+    depends_on:
+      backend: { condition: service_healthy }
+
+  celery_beat:
+    build: ./backend
+    env_file: .env
+    command: celery -A backend beat -l info --schedule /tmp/celerybeat-schedule
+    restart: unless-stopped
+    depends_on:
+      - celery_worker
 
   frontend:
     build:
@@ -67,3 +88,4 @@ services:
 volumes:
   postgres_data:
   media_volume:
+  gis_import_volume:

@@ -2,7 +2,7 @@
 
 import logging
 
-from backend.inline import task
+from celery import shared_task
 
 from .constants import Channel, DeliveryStatus
 from .models import Device, NotificationLog, User
@@ -18,7 +18,7 @@ def _finalize(user_id, channel, dedup_key, status, detail=""):
     ).update(status=status, detail=detail)
 
 
-@task
+@shared_task
 def send_sms_task(user_id, dedup_key, to, message):
     try:
         get_sms_provider().send(to, message)
@@ -28,24 +28,27 @@ def send_sms_task(user_id, dedup_key, to, message):
         _finalize(user_id, Channel.SMS, dedup_key, DeliveryStatus.FAILED, str(exc))
 
 
-@task
-def send_otp_sms_task(to, message):
-    """Deliver a one-time-code SMS. Failures are logged, not retried (no worker)."""
+@shared_task(bind=True, max_retries=3)
+def send_otp_sms_task(self, to, message):
+    """Deliver a one-time-code SMS off the request path, retrying transient gateway failures."""
     try:
         get_sms_provider().send(to, message)
     except SendError as exc:
-        logger.error("OTP SMS send failed: %s", exc)
+        logger.error("OTP SMS send failed (attempt %s): %s", self.request.retries + 1, exc)
+        if self.request.retries >= self.max_retries:
+            return
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries * 5)
 
 
-@task
-def send_activation_email_task(user_id, token):
+@shared_task(bind=True, max_retries=3)
+def send_activation_email_task(self, user_id, token):
     user = User.objects.filter(pk=user_id, is_active=True, is_activated=False).first()
     if not (user and user.email):
         return
     activation.send_activation_email(user, token)
 
 
-@task
+@shared_task
 def send_password_reset_email_task(user_id):
     user = User.objects.filter(pk=user_id, is_active=True, is_activated=True).first()
     if not (user and user.email):
@@ -53,7 +56,7 @@ def send_password_reset_email_task(user_id):
     password_reset.send_reset_email(user)
 
 
-@task
+@shared_task
 def send_push_task(user_id, dedup_key, token, title, body, data=None):
     try:
         get_push_provider().send(token, title, body, data)
