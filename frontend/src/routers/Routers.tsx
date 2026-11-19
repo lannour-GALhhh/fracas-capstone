@@ -20,9 +20,6 @@ const EvacuationPage = lazy(() => import('@/features/evacuation/EvacuationPage')
 const CentersPage = lazy(() => import('@/features/centers/CentersPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const AccountsPage = lazy(() => import('@/features/accounts/AccountsPage'))
-const ModelConfigPage = lazy(() => import('@/features/admin/model/ModelConfigPage'))
-const ModelValidationPage = lazy(() => import('@/features/admin/model/ModelValidationPage'))
-const BarangayTestPage = lazy(() => import('@/features/admin/model/BarangayTestPage'))
 const GisDataPage = lazy(() => import('@/features/admin/gis/GisDataPage'))
 const SystemPage = lazy(() => import('@/features/admin/system/SystemPage'))
 const SettingsPage = lazy(() => import('@/features/admin/settings/SettingsPage'))
@@ -52,15 +49,13 @@ const Routers = () => {
           <Route path='/accounts' element={<AdminRoute><AccountsPage /></AdminRoute>} />
           {/* Analytics is hidden for now: re-add the route + nav link to bring it back. */}
           <Route path='/admin' element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<Navigate to='model/config' replace />} />
+            <Route index element={<Navigate to='system' replace />} />
             <Route path='users' element={<Navigate to='/accounts' replace />} />
-            <Route path='model/config' element={<ModelConfigPage />} />
-            <Route path='model/validation' element={<ModelValidationPage />} />
-            <Route path='model/barangay-test' element={<BarangayTestPage />} />
             <Route path='evacuation' element={<Navigate to='/evacuation-centers' replace />} />
             <Route path='system' element={<SystemPage />} />
             <Route path='gis' element={<GisDataPage />} />
-            <Route path='settings' element={<SettingsPage />} />
+            <Route path='settings' element={<Navigate to='settings/general' replace />} />
+            <Route path='settings/:group' element={<SettingsPage />} />
           </Route>
         </Route>
         <Route path='*' element={<NotFound />} />

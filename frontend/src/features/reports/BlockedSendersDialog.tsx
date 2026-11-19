@@ -21,9 +21,6 @@ const BlockedSendersDialog = ({ open, onOpenChange }: { open: boolean; onOpenCha
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className='flex max-h-[85vh] flex-col gap-3 overflow-y-auto sm:max-w-2xl'>
                     <DialogTitle>Blocked accounts</DialogTitle>
-                    <DialogDescription>
-                        Senders currently blocked from reporting, shown by the photos they sent. No account details are shown.
-                    </DialogDescription>
 
                     {isError ? (
                         <ErrorState message='We couldn’t load the blocked accounts.' onRetry={() => refetch()} />

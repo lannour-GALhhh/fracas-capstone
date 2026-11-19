@@ -34,14 +34,14 @@ import {
 import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { useRainfallHistory } from '../hooks/useRainfallHistory'
-import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_MONO_COLORS } from '../constants/risk'
+import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
 import {
     RAINFALL_CHART_FLOOR_MM_HR,
     RAINFALL_TIER_LABELS,
     rainfallStrengthIndicator,
     rainfallTier,
 } from '../constants/rainfall'
-import { SUSCEPTIBILITY_MONO_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
+import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 import type { BarangayRisk, ZoneScore } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
@@ -94,7 +94,7 @@ const RainfallStat = ({
         <div className='flex items-baseline gap-1'>
             <span className='text-2xl font-semibold tabular-nums'>{value}</span>
             <span className='text-muted-foreground text-xs'>mm/hr</span>
-            {rising && <TrendingUp className='text-muted-foreground size-3.5' />}
+            {rising && <TrendingUp className='text-amber-500 size-3.5' />}
         </div>
     </div>
 )
@@ -110,7 +110,7 @@ const HazardHero = ({ data, action }: { data: BarangayRisk; action?: React.React
                 <div className='flex items-center gap-2'>
                     {data.is_degraded && (
                         <span
-                            className='text-muted-foreground flex items-center gap-1 text-xs font-medium'
+                            className='text-destructive flex items-center gap-1 text-xs font-medium'
                             title='Some inputs were stale; weights were redistributed.'
                         >
                             <AlertTriangle className='size-3.5 shrink-0' />
@@ -124,6 +124,7 @@ const HazardHero = ({ data, action }: { data: BarangayRisk; action?: React.React
             <div className='flex flex-col items-center gap-1.5 py-1.5 text-center'>
                 <span
                     className='text-3xl font-bold uppercase tracking-wide'
+                    style={{ color: category ? RISK_TEXT_COLORS[category] : undefined }}
                 >
                     {category ? CATEGORY_LABELS[category] : 'No data'}
                 </span>
@@ -201,14 +202,14 @@ const ZoneRow = ({ zone }: { zone: ZoneScore }) => (
             <span className='flex items-center gap-1.5'>
                 <span
                     className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
-                    style={{ backgroundColor: SUSCEPTIBILITY_MONO_COLORS[zone.level] }}
+                    style={{ backgroundColor: SUSCEPTIBILITY_COLORS[zone.level] }}
                 />
                 <span className='font-medium'>{SUSCEPTIBILITY_LABELS[zone.level]}</span>
                 <span className='text-muted-foreground'>{Math.round(zone.share * 100)}% of area</span>
             </span>
             <span
                 className='rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums'
-                style={{ backgroundColor: RISK_MONO_COLORS[zone.category], color: zone.category === 'low' ? '#111827' : '#fff' }}
+                style={{ backgroundColor: RISK_COLORS[zone.category], color: '#3f0a0a' }}
             >
                 {Math.round(zone.score)}
             </span>
@@ -216,7 +217,7 @@ const ZoneRow = ({ zone }: { zone: ZoneScore }) => (
         <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
             <div
                 className='h-full rounded-full'
-                style={{ width: `${zone.score}%`, backgroundColor: RISK_MONO_COLORS[zone.category] }}
+                style={{ width: `${zone.score}%`, backgroundColor: RISK_COLORS[zone.category] }}
             />
         </div>
     </div>
@@ -518,7 +519,7 @@ const Actions = ({ id, name }: { id: number; name: string }) => {
             {underEvacuation ? (
                 <Button
                     variant='outline'
-                    className={tileClass}
+                    className={`${tileClass} text-destructive`}
                     onClick={() => navigate('/evacuation')}
                 >
                     <EvacuationPingIcon className='size-4' />

@@ -2,7 +2,7 @@ import { Hourglass, TriangleAlert } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import ErrorState from '@/common/components/ErrorState'
 import { useBarangayHighRiskStreets } from '../hooks/useBarangayHighRiskStreets'
-import { SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
+import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS } from '../constants/susceptibility'
 
 interface HighRiskStreetsPanelProps {
     barangayId: number
@@ -25,14 +25,18 @@ const HighRiskStreetsPanel = ({ barangayId }: HighRiskStreetsPanelProps) => {
                 <div className='flex items-start justify-between gap-2'>
                     <div className='flex flex-col gap-0.5'>
                         <h2 className='flex items-center gap-1.5 text-sm font-semibold'>
-                            <TriangleAlert className='text-muted-foreground size-4 shrink-0' />
+                            <TriangleAlert className='text-destructive size-4 shrink-0' />
                             High-risk Streets
                         </h2>
                         <p className='text-muted-foreground text-xs'>Avoid if possible</p>
                     </div>
                     {level && (
                         <span
-                            className='bg-muted text-foreground shrink-0 rounded px-1.5 py-0.5 text-xs font-medium'
+                            className='shrink-0 rounded px-1.5 py-0.5 text-xs font-medium'
+                            style={{
+                                backgroundColor: `${SUSCEPTIBILITY_COLORS[level]}26`,
+                                color: SUSCEPTIBILITY_COLORS[level],
+                            }}
                         >
                             {SUSCEPTIBILITY_LABELS[level]}
                         </span>

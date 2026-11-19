@@ -5,6 +5,10 @@ import { useNavigate } from 'react-router-dom'
 import { MapMarker, MarkerContent, MarkerPopup } from '@/common/ui/map'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
+import { useEffect, useMemo } from 'react'
+import type { GeoJSONSource } from 'maplibre-gl'
+import { useMap } from '@/common/ui/map'
+import { circlePolygon } from '@/features/evacuation/utils/circle'
 import { useEvacuationCenters } from './usePoi'
 import type { EvacuationProperties } from './types'
 
@@ -87,6 +91,58 @@ const ReadOnlyDetails = ({ p }: { p: EvacuationProperties }) => {
 
 type EvacFeature = Feature<Point, EvacuationProperties>
 
+const RADIUS_SOURCE = 'evac-center-radius'
+const RADIUS_FILL = 'evac-center-radius-fill'
+const RADIUS_LINE = 'evac-center-radius-line'
+
+/** Draws each shown center's auto-evacuation radius as a green circle. */
+const CenterRadiusCircles = ({ centers }: { centers: EvacFeature[] }) => {
+    const { map, isLoaded } = useMap()
+
+    const circles = useMemo(
+        () => ({
+            type: 'FeatureCollection' as const,
+            features: centers
+                .filter((f) => f.properties.is_active && f.properties.radius_m > 0)
+                .map((f) => ({
+                    type: 'Feature' as const,
+                    properties: { id: f.properties.id },
+                    geometry: circlePolygon(f.geometry.coordinates[0], f.geometry.coordinates[1], f.properties.radius_m),
+                })),
+        }),
+        [centers],
+    )
+
+    useEffect(() => {
+        if (!map || !isLoaded) return
+        map.addSource(RADIUS_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+            id: RADIUS_FILL,
+            type: 'fill',
+            source: RADIUS_SOURCE,
+            paint: { 'fill-color': '#059669', 'fill-opacity': 0.15 },
+        })
+        map.addLayer({
+            id: RADIUS_LINE,
+            type: 'line',
+            source: RADIUS_SOURCE,
+            paint: { 'line-color': '#059669', 'line-width': 2, 'line-dasharray': [2, 2] },
+        })
+        return () => {
+            if (!map.style) return
+            for (const id of [RADIUS_LINE, RADIUS_FILL]) if (map.getLayer(id)) map.removeLayer(id)
+            if (map.getSource(RADIUS_SOURCE)) map.removeSource(RADIUS_SOURCE)
+        }
+    }, [map, isLoaded])
+
+    useEffect(() => {
+        if (!map || !isLoaded) return
+        ;(map.getSource(RADIUS_SOURCE) as GeoJSONSource | undefined)?.setData(circles)
+    }, [map, isLoaded, circles])
+
+    return null
+}
+
 /** Read-only evacuation-center markers; managed from the Evacuation Centers page, not the map. */
 const EvacuationLayer = ({ visible, focusedBarangayId }: Props) => {
     const { data } = useEvacuationCenters()
@@ -98,6 +154,7 @@ const EvacuationLayer = ({ visible, focusedBarangayId }: Props) => {
 
     return (
         <>
+            <CenterRadiusCircles centers={shown} />
             {shown.map((f) => {
                 const [lng, lat] = f.geometry.coordinates
                 const p = f.properties

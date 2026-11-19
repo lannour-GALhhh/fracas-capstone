@@ -103,8 +103,26 @@ interface Cell {
     geo: Projected | null
     want: number
     wantPuffs: number
-    /** Rings in lng/lat, one array per polygon ring. */
+    /** Rings in lng/lat (pre-thinned), one array per polygon ring. */
     rings: [number, number][][]
+    /** lng/lat bounds, for culling off-screen cells before any projection. */
+    bbox: [number, number, number, number]
+}
+
+/** Vertices closer than this (degrees, ~20 m) to the previous kept one are dropped up front. */
+const THIN_DEG = 0.0002
+
+/** Drop near-duplicate vertices once, so every later per-frame projection touches far fewer points. */
+const thinRing = (ring: [number, number][]): [number, number][] => {
+    const out: [number, number][] = []
+    let last: [number, number] | null = null
+    for (const pt of ring) {
+        if (!last || Math.abs(pt[0] - last[0]) + Math.abs(pt[1] - last[1]) >= THIN_DEG) {
+            out.push(pt)
+            last = pt
+        }
+    }
+    return out.length >= 3 ? out : ring
 }
 
 /** Shoelace area of a feature in deg² (lat-corrected); only used to rank barangays by size. */
@@ -133,6 +151,17 @@ const toCells = (data: RiskFeatureCollection): Cell[] => {
         if (tier === 'none') continue
         const g = f.geometry
         const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates
+        const rings = (polys.flat() as [number, number][][]).map(thinRing)
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+        for (const ring of rings) {
+            for (const [x, y] of ring) {
+                if (x < x0) x0 = x
+                if (x > x1) x1 = x
+                if (y < y0) y0 = y
+                if (y > y1) y1 = y
+            }
+        }
+        const bbox: [number, number, number, number] = [x0, y0, x1, y1]
         cells.push({
             style: RAIN_STYLES[tier],
             drops: [],
@@ -143,7 +172,8 @@ const toCells = (data: RiskFeatureCollection): Cell[] => {
             geo: null,
             want: 0,
             wantPuffs: 0,
-            rings: polys.flat() as [number, number][][],
+            rings,
+            bbox,
         })
     }
     return cells
@@ -189,7 +219,7 @@ const RainfallLayer = ({ data, visible }: Props) => {
         const mapCanvas = map.getCanvas()
         const container = map.getCanvasContainer()
         const canvas = document.createElement('canvas')
-        canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;width:100%;height:100%'
+        canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;width:100%;height:100%;transition:opacity .15s'
         container.appendChild(canvas)
         const ctx = canvas.getContext('2d')
         if (!ctx) return
@@ -208,10 +238,20 @@ const RainfallLayer = ({ data, visible }: Props) => {
         }
 
         let dirty = true
+        let moving = false
         let projectedFor: Cell[] | null = null
 
         /** Project + simplify one cell; null when off-screen or too small to see. */
         const project = (cell: Cell, w: number, h: number): Projected | null => {
+            // Cheap lng/lat cull (with a margin for the sky band) before touching any vertex.
+            const b = map.getBounds()
+            const padLat = (b.getNorth() - b.getSouth()) * 0.3
+            if (
+                cell.bbox[2] < b.getWest() ||
+                cell.bbox[0] > b.getEast() ||
+                cell.bbox[3] < b.getSouth() - padLat ||
+                cell.bbox[1] > b.getNorth() + padLat
+            ) return null
             const path = new Path2D()
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
             for (const ring of cell.rings) {
@@ -256,6 +296,9 @@ const RainfallLayer = ({ data, visible }: Props) => {
 
         const draw = (now: number) => {
             raf = requestAnimationFrame(draw)
+            // Hold still while the camera moves: re-projecting + re-clipping every
+            // barangay per frame is what makes dragging stutter. Redrawn on moveend.
+            if (moving) return
             const elapsed = now - last
             if (elapsed < FRAME_INTERVAL_MS) return
             const dt = reduceMotion ? 0 : Math.min(elapsed / 1000, 0.05)
@@ -379,11 +422,24 @@ const RainfallLayer = ({ data, visible }: Props) => {
         const markDirty = () => {
             dirty = true
         }
+        const onMoveStart = () => {
+            moving = true
+            canvas.style.opacity = '0'
+        }
+        const onMoveEnd = () => {
+            moving = false
+            dirty = true
+            canvas.style.opacity = '1'
+        }
         map.on('move', markDirty)
+        map.on('movestart', onMoveStart)
+        map.on('moveend', onMoveEnd)
         raf = requestAnimationFrame(draw)
 
         return () => {
             map.off('move', markDirty)
+            map.off('movestart', onMoveStart)
+            map.off('moveend', onMoveEnd)
             cancelAnimationFrame(raf)
             ro.disconnect()
             canvas.remove()

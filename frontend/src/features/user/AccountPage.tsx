@@ -27,34 +27,35 @@ const AccountPage = () => {
 	}
 
 	return (
-		<div className='flex p-2 h-full'>
-			<Card className='w-1/3 flex flex-col p-2 bg-olive-50'>
+		<div className='mx-auto flex w-full max-w-5xl flex-col gap-4 p-4'>
+			<Card className='p-6'>
 				<UserInformationCard
 					first_name={user.first_name || user.username}
 					last_name={user.last_name}
 					is_active={user.is_active}
+					role={user.role}
+					actions={
+						<>
+							<EditProfileDialog user={user} />
+							<ChangePasswordDialog />
+						</>
+					}
 				/>
 				<Separator />
-
 				<ProfileDetailsCard
 					email={user.email || '—'}
 					phone_number={user.phone_number || '—'}
 					address={user.address}
 				/>
-				<Separator />
-
-				<EditProfileDialog user={user} />
-				<ChangePasswordDialog />
 			</Card>
-			<div className='ml-2 flex flex-1 flex-col gap-2 overflow-y-auto'>
-				<Card className='p-4'>
-					<CardTitle>My Activity</CardTitle>
-					<Separator />
+
+			<div className='grid gap-4 lg:grid-cols-2'>
+				<Card className='p-6'>
+					<CardTitle>My activity</CardTitle>
 					<OperatorActivity />
 				</Card>
-				<Card className='p-4'>
-					<CardTitle>Account History</CardTitle>
-					<Separator />
+				<Card className='p-6'>
+					<CardTitle>Account history</CardTitle>
 					<AccountChangeLog />
 				</Card>
 			</div>

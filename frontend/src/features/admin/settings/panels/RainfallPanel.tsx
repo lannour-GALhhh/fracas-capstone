@@ -56,9 +56,7 @@ const RainfallForm = ({ initial }: { initial: RainfallSettings }) => {
 
 const RainfallPanel = () => (
     <div className='flex flex-col gap-4'>
-        <div className='max-w-2xl'>
-            <RainfallSourceSection />
-        </div>
+        <RainfallSourceSection />
         <SimulationToggle />
     </div>
 )

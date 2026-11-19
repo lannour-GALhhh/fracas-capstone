@@ -20,6 +20,10 @@ export const CenterSchema = z.object({
         (v) => /^\d+$/.test(v),
         'Capacity must be a whole number',
     ),
+    radius_m: RequiredString('Radius').refine(
+        (v) => /^\d+$/.test(v) && Number(v) >= 10 && Number(v) <= 5000,
+        'Radius must be a whole number from 10 to 5000 metres',
+    ),
     contacts: z
         .array(z.object({ label: z.string(), phone: z.string() }))
         // Fully blank rows are dropped on submit; at least one real number is required.

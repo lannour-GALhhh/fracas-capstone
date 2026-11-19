@@ -58,7 +58,7 @@ const ChangePasswordDialog = () => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTrigger render={<Button size="lg" variant="outline" />}>
+            <DialogTrigger render={<Button variant="outline" />}>
                 Change Password
             </DialogTrigger>
             <DialogContent>

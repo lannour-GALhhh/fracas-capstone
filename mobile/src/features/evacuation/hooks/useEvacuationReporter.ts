@@ -12,7 +12,7 @@ import { evacuationKeys } from './queryKeys'
 
 /**
  * Derive what to report from where the resident is right now:
- *   - within SAFE_RADIUS_M of a center -> safe (reached center)
+ *   - within the center's radius_m (default SAFE_RADIUS_M) of a center -> safe (reached center)
  *   - outside their evacuation barangay -> safe (left the danger zone)
  *   - otherwise                         -> moving (acknowledged, en route)
  *
@@ -29,7 +29,7 @@ const computeReport = (
 ): EvacuationReport => {
     const base = { evacuation_id: evac.evacuation_id, lat: coords.lat, lng: coords.lng }
 
-    if (nearest && nearest.distanceKm * 1000 <= SAFE_RADIUS_M) {
+    if (nearest && nearest.distanceKm * 1000 <= (nearest.center.properties.radius_m ?? SAFE_RADIUS_M)) {
         return { ...base, status: 'safe', resolved_via: 'center', center_id: nearest.center.properties.id }
     }
     const here = featureAt(coords, features)

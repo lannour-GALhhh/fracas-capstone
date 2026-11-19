@@ -16,9 +16,6 @@ const GisDataPage = () => {
     return (
         <div className='w-full'>
             <h1 className='text-2xl font-semibold'>GIS data</h1>
-            <p className='text-xs text-black/50'>
-                Upload as .zip. Import boundaries first, then the susceptibility layer, then detect the high-risk streets. Maps update when processing finishes.
-            </p>
 
             <div className='mt-4 grid gap-4 sm:grid-cols-2'>
                 <UploadCard

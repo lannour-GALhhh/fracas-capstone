@@ -74,7 +74,7 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTrigger render={<Button size="lg" />}>Edit Profile Information</DialogTrigger>
+            <DialogTrigger render={<Button />}>Edit profile</DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <form onSubmit={onSubmit} className="flex flex-col gap-4">
                     <DialogHeader>

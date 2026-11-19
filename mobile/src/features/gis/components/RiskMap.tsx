@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import type { NativeSyntheticEvent } from 'react-native'
 import {
@@ -20,7 +20,7 @@ import { fillColorExpression } from '../constants/risk'
 import { collectionBounds } from '../utils/bounds'
 import type { Coords } from '@/common/hooks/useCurrentLocation'
 import type { EvacuationCenterCollection, RiskFeatureCollection } from '../types'
-import { radiusCollection } from '@/features/evacuation/radius/geometry'
+import { centerRadiusCollection, radiusCollection } from '@/features/evacuation/radius/geometry'
 import type { RadiusEvacuation } from '@/features/evacuation/radius/types'
 
 interface Props {
@@ -89,6 +89,7 @@ export function RiskMap({
     const cameraRef = useRef<CameraRef>(null)
     const [loaded, setLoaded] = useState(false)
     const fittedRef = useRef(false)
+    const centerCircles = useMemo(() => centerRadiusCollection(centers), [centers])
 
     // Frame the whole city once, as soon as both the style and the boundaries
     // are ready (either can win the race: boundaries are persisted, the style
@@ -165,6 +166,13 @@ export function RiskMap({
                     <GeoJSONSource id="radius-evacuations" data={radiusCollection(radiusEvacuations)}>
                         <Layer id="radius-fill" type="fill" paint={{ 'fill-color': '#dc2626', 'fill-opacity': 0.25 }} />
                         <Layer id="radius-line" type="line" paint={{ 'line-color': '#dc2626', 'line-width': 2.5 }} />
+                    </GeoJSONSource>
+                ) : null}
+
+                {centerCircles.features.length > 0 ? (
+                    <GeoJSONSource id="center-radius" data={centerCircles}>
+                        <Layer id="center-radius-fill" type="fill" paint={{ 'fill-color': REFUGE_COLOR, 'fill-opacity': 0.15 }} />
+                        <Layer id="center-radius-line" type="line" paint={{ 'line-color': REFUGE_COLOR, 'line-width': 2, 'line-dasharray': [2, 2] }} />
                     </GeoJSONSource>
                 ) : null}
 
