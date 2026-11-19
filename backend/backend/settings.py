@@ -331,6 +331,10 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
     # The JWT refresh cookie must only travel over HTTPS in production.
     SIMPLE_JWT["AUTH_COOKIE_SECURE"] = _secure_cookies
+    # Frontend (vercel.app) and API live on different sites, so the refresh cookie must be
+    # SameSite=None to be sent on the cross-site refresh call. Browsers only accept None
+    # together with Secure, so fall back to Lax when cookies aren't secure (HTTP-only setups).
+    SIMPLE_JWT["AUTH_COOKIE_SAMESITE"] = "None" if _secure_cookies else "Lax"
 
 
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", cast=Csv())
