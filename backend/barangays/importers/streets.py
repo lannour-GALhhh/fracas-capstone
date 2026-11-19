@@ -30,7 +30,13 @@ def fetch_named_ways(south: float, west: float, north: float, east: float) -> li
         response.raise_for_status()
     except requests.RequestException as exc:
         raise StreetDetectionError(f"Overpass request failed: {exc}") from exc
-    return response.json().get("elements", [])
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise StreetDetectionError(f"Overpass returned a non-JSON response: {response.text[:200]!r}") from exc
+    if not payload.get("elements") and payload.get("remark"):
+        raise StreetDetectionError(f"Overpass error: {payload['remark']}")
+    return payload.get("elements", [])
 
 
 def _line(element: dict) -> LineString | None:
