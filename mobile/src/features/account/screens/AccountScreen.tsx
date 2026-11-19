@@ -42,6 +42,11 @@ export function AccountScreen() {
                 icon="notifications-outline"
                 onPress={() => router.navigate('/notification-settings')}
             />
+            <LinkCard
+                title="App guide (replay onboarding)"
+                icon="book-outline"
+                onPress={() => router.navigate('/onboarding')}
+            />
 
             <View style={styles.session}>
                 <ThemeToggleRow />

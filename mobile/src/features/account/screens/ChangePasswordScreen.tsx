@@ -7,6 +7,7 @@ import { Button, Field, Screen, Text } from '@/common/ui'
 import { apiErrorMessage } from '@/common/utils/apiError'
 import { goBack } from '@/common/utils/navigation'
 
+import { ConfirmChangesModal } from '../components/ConfirmChangesModal'
 import { useChangePassword } from '../hooks/useAccountMutations'
 import { passwordChangeSchema } from '../schemas'
 
@@ -21,11 +22,18 @@ export function ChangePasswordScreen() {
     const set = (key: keyof typeof form) => (value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }))
 
-    const onSubmit = handleSubmit((data) => {
+    const [confirming, setConfirming] = useState(false)
+    const hasChanges = Boolean(form.current_password || form.new_password || form.confirm)
+
+    const onSubmit = handleSubmit(() => setConfirming(true))
+
+    const doChange = () => {
         change.mutate(
-            { current_password: data.current_password, new_password: data.new_password },
+            { current_password: form.current_password, new_password: form.new_password },
             {
+                onError: () => setConfirming(false),
                 onSuccess: () => {
+                    setConfirming(false)
                     setForm(EMPTY)
                     Alert.alert('Password updated', 'Your password has been changed.', [
                         { text: 'OK', onPress: () => goBack() },
@@ -33,13 +41,10 @@ export function ChangePasswordScreen() {
                 },
             },
         )
-    })
+    }
 
     return (
         <Screen edges={['bottom']}>
-            <Text variant="title" style={styles.title}>
-                Change password
-            </Text>
 
             <View style={styles.form}>
                 <Field
@@ -76,13 +81,30 @@ export function ChangePasswordScreen() {
                     </Text>
                 ) : null}
 
-                <Button label="Update password" onPress={onSubmit} loading={change.isPending} />
+                <Button
+                    label="Update password"
+                    icon="lock-closed-outline"
+                    size="lg"
+                    onPress={onSubmit}
+                    disabled={!hasChanges}
+                    loading={change.isPending}
+                />
+
+                <ConfirmChangesModal
+                    visible={confirming}
+                    title="Change your password?"
+                    message="You'll use the new password the next time you sign in."
+                    icon="lock-closed"
+                    confirmLabel="Confirm"
+                    loading={change.isPending}
+                    onCancel={() => setConfirming(false)}
+                    onConfirm={doChange}
+                />
             </View>
         </Screen>
     )
 }
 
 const styles = StyleSheet.create({
-    title: { marginBottom: spacing.lg },
     form: { gap: spacing.lg },
 })

@@ -37,3 +37,13 @@ export interface ReportDraft {
     location: { lat: number; lng: number } | null
     barangayId: number | null
 }
+
+/** GET /api/flood-reports/my-block/ — whether the resident is banned from reporting. */
+export interface ReportBlockStatus {
+    blocked: boolean
+    /** True when there is no end date. */
+    permanent: boolean
+    /** ISO end of a timed ban, else null. */
+    until: string | null
+    reason: string
+}

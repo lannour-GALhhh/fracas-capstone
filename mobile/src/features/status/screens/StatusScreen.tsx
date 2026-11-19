@@ -10,10 +10,12 @@ import { useWatchedLocation } from '@/common/hooks/useWatchedLocation'
 import { RadiusEvacuationBanner } from '@/features/evacuation/radius/RadiusEvacuationBanner'
 import { useRadiusEvacuations } from '@/features/evacuation/radius/useRadiusEvacuations'
 import { useRadiusTracker } from '@/features/evacuation/radius/useRadiusTracker'
+import { AlertsOffCard } from '@/features/alerts/components/AlertsOffCard'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
 import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBanner'
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
 import { useMyEvacuations } from '@/features/evacuation/hooks/useMyEvacuations'
+import { OfflineCard } from '@/features/offline/OfflineCard'
 import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useLocalizedRisk } from '@/features/gis/hooks/useLocalizedRisk'
@@ -114,6 +116,7 @@ export function StatusScreen() {
     // Recenter the map on a card's barangay (fresh object each tap).
     const focusOn = (feature: RiskFeature | null) => {
         if (!feature) return
+        sheetRef.current?.collapse()
         const box = geometryBounds(feature.geometry)
         if (box) setFocus({ center: centroidOf(box) })
     }
@@ -190,8 +193,9 @@ export function StatusScreen() {
                 radiusEvacuations={activeRadius}
             />
 
-            {homeEvac || activeRadius.length > 0 ? (
-                <View style={styles.bannerOverlay} pointerEvents="box-none">
+            <View style={styles.bannerOverlay} pointerEvents="box-none">
+                <OfflineCard />
+                <AlertsOffCard />
                     {activeRadius.map((e) => (
                         <RadiusEvacuationBanner key={e.id} evacuation={e} coords={radiusCoords} />
                     ))}
@@ -205,8 +209,7 @@ export function StatusScreen() {
                         outsideZones={outsideZones}
                     />
                     ) : null}
-                </View>
-            ) : null}
+            </View>
 
             <BottomSheet
                 ref={sheetRef}

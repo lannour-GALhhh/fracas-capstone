@@ -91,6 +91,16 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${data.access}`
             return apiClient(originalRequest as AxiosRequestConfig)
         } catch (refreshError) {
+            // Only a definitive rejection (or no stored token) ends the session. A
+            // network failure / timeout / 5xx just means we're offline or the server
+            // is down: keep the tokens and let this request fail so the user stays in.
+            const status = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined
+            const transient =
+                axios.isAxiosError(refreshError) && (!status || status >= 500)
+            if (transient) {
+                processQueue(refreshError, null)
+                return Promise.reject(error)
+            }
             tokenService.clearAccess()
             await tokenService.clearRefresh()
             processQueue(refreshError, null)

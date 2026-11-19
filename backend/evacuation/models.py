@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.gis.db import models
 
 
@@ -19,6 +20,13 @@ class EvacuationCenter(models.Model):
     # Free text so the unit stays flexible ("beds", "families", "persons"...).
     capacity_unit = models.CharField(
         max_length=30, blank=True, help_text="What `capacity` counts, e.g. 'beds'."
+    )
+    # Geofence: a resident whose phone enters this radius (metres) around the
+    # center is automatically marked as evacuated (safe) during an evacuation.
+    radius_m = models.PositiveIntegerField(
+        default=200,
+        validators=[MinValueValidator(10), MaxValueValidator(5000)],
+        help_text="Auto-evacuation radius in metres.",
     )
     is_active = models.BooleanField(default=True, db_index=True)
     # Set when archived (the operator "delete"); hard-purged after a grace period.

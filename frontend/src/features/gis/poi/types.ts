@@ -26,6 +26,8 @@ export interface EvacuationProperties {
     name: string
     capacity: number | null
     capacity_unit: string
+    /** Auto-evacuation geofence radius in metres. */
+    radius_m: number
     /** First contact's number — kept for older clients; prefer `contacts`. */
     contact: string
     contacts: EvacuationContact[]
@@ -46,6 +48,7 @@ export interface EvacuationInput {
     longitude: number
     capacity: number | null
     capacity_unit: string
+    radius_m: number
     contacts: EvacuationContact[]
     is_active: boolean
 }

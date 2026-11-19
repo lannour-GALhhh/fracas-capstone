@@ -15,9 +15,6 @@ const SystemPage = () => {
         <div className='w-full'>
             <div>
                 <h1 className='text-2xl font-semibold'>System</h1>
-                <p className='text-xs text-black/50'>
-                    Pipeline health and operations. This page refreshes automatically.
-                </p>
             </div>
 
             {isLoading && (

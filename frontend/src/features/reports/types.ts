@@ -42,3 +42,12 @@ export interface BlockInput {
     days?: number
     reason?: string
 }
+
+/** An active block as served anonymously: photos and expiry only, no sender identity. */
+export interface BlockedSender {
+    id: number
+    until: string | null
+    permanent: boolean
+    blocked_at: string
+    images: string[]
+}

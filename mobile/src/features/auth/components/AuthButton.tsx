@@ -8,20 +8,32 @@ interface Props {
     onPress: () => void
     loading?: boolean
     disabled?: boolean
+    variant?: 'primary' | 'secondary'
 }
 
 /** Big pill primary CTA — the submit button style shared across the auth flow. */
-export function AuthButton({ label, onPress, loading = false, disabled = false }: Props) {
+export function AuthButton({
+    label,
+    onPress,
+    loading = false,
+    disabled = false,
+    variant = 'primary',
+}: Props) {
     const C = useAuthColors()
     const styles = useMemo(() => createStyles(C), [C])
     const isDisabled = disabled || loading
+    const secondary = variant === 'secondary'
     return (
         <Pressable
             onPress={onPress}
             disabled={isDisabled}
-            style={({ pressed }) => [styles.submit, (pressed || isDisabled) && styles.dim]}
+            style={({ pressed }) => [
+                styles.submit,
+                secondary && styles.secondary,
+                (pressed || isDisabled) && styles.dim,
+            ]}
         >
-            <Text style={styles.text}>{label}</Text>
+            <Text style={[styles.text, secondary && styles.secondaryText]}>{label}</Text>
         </Pressable>
     )
 }
@@ -52,6 +64,14 @@ const createStyles = (C: AuthPalette) =>
             shadowOffset: { width: 0, height: 6 },
             elevation: 3,
         },
+        secondary: {
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderColor: C.primary,
+            shadowOpacity: 0,
+            elevation: 0,
+        },
+        secondaryText: { color: C.primary },
         dim: { opacity: 0.65 },
         text: { color: C.onPrimary, fontSize: 18, fontWeight: '700' },
         link: { color: C.primary, fontSize: 15, fontWeight: '700', textAlign: 'center' },

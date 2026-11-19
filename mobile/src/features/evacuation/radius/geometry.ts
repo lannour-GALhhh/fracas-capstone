@@ -3,6 +3,8 @@ import type { Feature, FeatureCollection, Polygon } from 'geojson'
 
 import type { LngLat } from '@/features/gis/utils/geo'
 
+import type { EvacuationCenterCollection } from '@/features/gis/types'
+
 import type { RadiusEvacuation } from './types'
 
 /** Metres past the edge before a resident counts as having left (GPS jitter guard). */
@@ -22,7 +24,7 @@ export const hasLeft = (point: LngLat, evac: RadiusEvacuation): boolean =>
 
 /** Circle polygons for every evacuation, ready for a map fill/line layer. */
 export const radiusCollection = (
-    evacs: RadiusEvacuation[],
+    evacs: Pick<RadiusEvacuation, 'id' | 'radius_m' | 'center'>[],
     steps = 64,
 ): FeatureCollection<Polygon, { id: number }> => ({
     type: 'FeatureCollection',
@@ -41,3 +43,18 @@ export const radiusCollection = (
         }
     }),
 })
+
+/** Default geofence radius (m) for centers that don't carry one (older/offline data). */
+const DEFAULT_CENTER_RADIUS_M = 200
+
+/** Circle polygons for each active center's auto-evacuation radius. */
+export const centerRadiusCollection = (
+    centers: EvacuationCenterCollection | undefined,
+): FeatureCollection<Polygon, { id: number }> =>
+    radiusCollection(
+        (centers?.features ?? []).map((f) => ({
+            id: f.properties.id,
+            radius_m: f.properties.radius_m ?? DEFAULT_CENTER_RADIUS_M,
+            center: { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] },
+        })),
+    )

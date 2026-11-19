@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, StyleSheet, type TextStyle, type ViewStyle } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, View, type TextStyle, type ViewStyle } from 'react-native'
 
 import { radius, spacing, useTheme } from '@/common/theme'
 
+import { Icon, type IconName } from './Icon'
 import { Text } from './Text'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -12,6 +13,10 @@ interface Props {
     variant?: Variant
     loading?: boolean
     disabled?: boolean
+    /** Leading glyph shown beside the label. */
+    icon?: IconName
+    /** `lg` is a taller call-to-action button. */
+    size?: 'md' | 'lg'
     style?: ViewStyle
     labelStyle?: TextStyle
 }
@@ -23,6 +28,8 @@ export function Button({
     variant = 'primary',
     loading = false,
     disabled = false,
+    icon,
+    size = 'md',
     style,
     labelStyle,
 }: Props) {
@@ -43,6 +50,7 @@ export function Button({
             disabled={isDisabled}
             style={({ pressed }) => [
                 styles.base,
+                size === 'lg' && styles.lg,
                 { backgroundColor: bg[variant] },
                 variant === 'ghost' && { borderWidth: 1, borderColor: theme.colors.border },
                 (pressed || isDisabled) && styles.dim,
@@ -52,9 +60,12 @@ export function Button({
             {loading ? (
                 <ActivityIndicator color={theme.colors[fg === 'onPrimary' ? 'onPrimary' : 'text']} />
             ) : (
-                <Text variant="label" color={fg} style={labelStyle}>
-                    {label}
-                </Text>
+                <View style={styles.content}>
+                    {icon ? <Icon name={icon} size={size === 'lg' ? 20 : 18} color={theme.colors[fg]} /> : null}
+                    <Text variant="label" color={fg} style={labelStyle}>
+                        {label}
+                    </Text>
+                </View>
             )}
         </Pressable>
     )
@@ -68,5 +79,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    lg: { minHeight: 56 },
+    content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     dim: { opacity: 0.6 },
 })

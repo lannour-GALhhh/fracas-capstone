@@ -119,7 +119,7 @@ export function LoginScreen() {
                             ]}
                         >
                             <Text style={styles.submitText}>
-                                {submitting ? 'Logging in...' : 'Log In to Fracas'}
+                                {submitting ? 'Logging in...' : 'Log In'}
                             </Text>
                         </Pressable>
                     </View>

@@ -142,6 +142,8 @@ export interface EvacuationCenterProperties {
     capacity: number | null
     /** What capacity counts ("beds", "families"…); absent in older/offline data. */
     capacity_unit?: string
+    /** Auto-evacuation geofence radius (m); absent in older/offline data. */
+    radius_m?: number
     contact: string
     barangay: number | null
     barangay_name: string | null

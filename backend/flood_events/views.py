@@ -29,6 +29,7 @@ from .serializers import (
     FloodEventSerializer,
     FloodEventWriteSerializer,
     FloodReportReviewSerializer,
+    BlockedSenderSerializer,
     ReporterBlockSerializer,
     FloodReportSubmitSerializer,
     MyFloodActivitySerializer,
@@ -104,6 +105,23 @@ class FloodEventChangesView(ListAPIView):
         return FloodEventChange.objects.filter(
             flood_event_id=self.kwargs["pk"]
         ).select_related("editor")
+
+
+class MyReportBlockView(APIView):
+    """The signed-in resident's own report-submission ban status (always 200)."""
+
+    def get(self, request):
+        block = blocking.active_block(request.user)
+        if block is None:
+            return Response({"blocked": False, "permanent": False, "until": None, "reason": ""})
+        return Response(
+            {
+                "blocked": True,
+                "permanent": block.blocked_until is None,
+                "until": block.blocked_until,
+                "reason": block.reason,
+            }
+        )
 
 
 class MyFloodActivityView(ListAPIView):
@@ -372,6 +390,7 @@ class FloodReportBlockView(_ReporterBlockView):
             days=form.validated_data.get("days"),
             reason=form.validated_data["reason"],
             by=request.user,
+            report=get_object_or_404(FloodEventReport, pk=pk),
         )
         return Response(
             {"until": block.blocked_until, "permanent": block.blocked_until is None, "reason": block.reason},
@@ -382,4 +401,26 @@ class FloodReportBlockView(_ReporterBlockView):
 class FloodReportUnblockView(_ReporterBlockView):
     def post(self, request, pk):
         blocking.lift(self.reporter(pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BlockedSenderListView(ListAPIView):
+    """Anonymised list of currently blocked senders: only their photos, never who they are."""
+
+    permission_classes = [IsOperator]
+    serializer_class = BlockedSenderSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return blocking.active_blocks()
+
+
+class BlockedSenderUnblockView(APIView):
+    """Lift a block by its id (the list never reveals the user)."""
+
+    permission_classes = [IsOperator]
+
+    def post(self, request, pk):
+        block = get_object_or_404(blocking.active_blocks(), pk=pk)
+        blocking.lift(block.user)
         return Response(status=status.HTTP_204_NO_CONTENT)

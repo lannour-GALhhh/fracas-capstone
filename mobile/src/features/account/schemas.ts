@@ -3,14 +3,14 @@ import { z } from 'zod'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
- * Editable profile fields (flat view for validation). Email and ZIP are
+ * Editable profile fields (flat view for validation). Names, email and ZIP are
  * optional — many residents register phone-first without either — but must be
  * well-formed when present. Mirrors the web console's `ProfileSchema`, minus the
  * phone field (read-only in the resident app).
  */
 export const profileSchema = z.object({
-    first_name: z.string().trim().min(1, 'First name is required'),
-    last_name: z.string().trim().min(1, 'Last name is required'),
+    first_name: z.string(),
+    last_name: z.string(),
     email: z.string().refine((v) => v === '' || EMAIL_RE.test(v), 'Enter a valid email'),
     zip_code: z.string().refine((v) => v === '' || /^\d{4}$/.test(v), 'Enter a 4-digit ZIP'),
 })

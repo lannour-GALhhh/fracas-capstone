@@ -1,12 +1,15 @@
 import { Redirect, Stack, type Href } from 'expo-router'
-import { Pressable, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
-import { radius, spacing, useTheme } from '@/common/theme'
-import { Icon, Spinner, Text } from '@/common/ui'
+import { BackArrow } from '@/common/components/BackArrow'
+import { spacing, useTheme } from '@/common/theme'
+import { Spinner, Text } from '@/common/ui'
 import { goBack } from '@/common/utils/navigation'
+import { useAutoSubscribeHome } from '@/features/alerts/hooks/useHomeSubscription'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
 import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
+import { useFirstRunOnboarding } from '@/features/onboarding/useFirstRunOnboarding'
 
 /** Signed-in shell. Redirects to login when there is no session. */
 export default function AppLayout() {
@@ -18,31 +21,6 @@ export default function AppLayout() {
     return <SignedInStack />
 }
 
-/**
- * Header back affordance for secondary screens. Mirrors the ghost "Cancel"
- * button on the Report flooding sheet — bordered, top right — with an arrow.
- */
-function HeaderBackButton({ fallback, left = false }: { fallback: Href; left?: boolean }) {
-    const theme = useTheme()
-    return (
-        <Pressable
-            onPress={() => goBack(fallback)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            style={({ pressed }) => [
-                styles.backBtn,
-                left && styles.backLeft,
-                { borderColor: theme.colors.border },
-                pressed && styles.pressed,
-            ]}
-        >
-            <Icon name="arrow-back" size={18} color={theme.colors.text} />
-            <Text variant="label">Back</Text>
-        </Pressable>
-    )
-}
-
 /** The authenticated chrome. Split out so its data hooks only run with a session. */
 function SignedInStack() {
     const theme = useTheme()
@@ -51,16 +29,24 @@ function SignedInStack() {
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
 
+    // Alerts for the home barangay are on by default.
+    useAutoSubscribeHome()
+
+    // First launch on this device: walk the resident through the tour.
+    useFirstRunOnboarding()
+
     // Secondary screens get a back button. The `fallback` names the screen each
     // one is opened from: there is no history when the app lands straight here
     // (push-notification tap, deep link), so without it `goBack` would have
     // nothing to pop and the button would do nothing.
-    const secondary = (fallback: Href) => ({
-        headerRight: () => <HeaderBackButton fallback={fallback} />,
-    })
-    // Report detail keeps the original top-left pill.
-    const secondaryLeft = (fallback: Href) => ({
-        headerLeft: () => <HeaderBackButton fallback={fallback} left />,
+    // An optional `title` sits directly beside the arrow.
+    const secondary = (fallback: Href, title?: string) => ({
+        headerLeft: () => (
+            <View style={styles.left}>
+                <BackArrow onPress={() => goBack(fallback)} />
+                {title ? <Text variant="title">{title}</Text> : null}
+            </View>
+        ),
     })
 
     return (
@@ -76,25 +62,15 @@ function SignedInStack() {
         >
             {/* The bottom-tab group (GIS, Reports, Toolkit, Me) draws its own header. */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="notification-settings" options={secondary('/account')} />
-            <Stack.Screen name="edit-profile" options={secondary('/account')} />
-            <Stack.Screen name="change-password" options={secondary('/account')} />
-            <Stack.Screen name="report/[id]" options={secondaryLeft('/reports')} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="notification-settings" options={secondary('/account', 'Notifications')} />
+            <Stack.Screen name="edit-profile" options={secondary('/account', 'Edit profile')} />
+            <Stack.Screen name="change-password" options={secondary('/account', 'Change password')} />
+            <Stack.Screen name="report/[id]" options={secondary('/reports')} />
         </Stack>
     )
 }
 
 const styles = StyleSheet.create({
-    backBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-        minHeight: 40,
-        marginRight: spacing.lg,
-        paddingHorizontal: spacing.md,
-        borderWidth: 1,
-        borderRadius: radius.md,
-    },
-    backLeft: { marginRight: 0, marginLeft: spacing.lg },
-    pressed: { opacity: 0.6 },
+    left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginLeft: spacing.md },
 })

@@ -81,8 +81,6 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-            {/* Alerts live in the header bell; the route stays for its "See all alerts" link. */}
-            <Tabs.Screen name="alerts" options={{ href: null, title: 'Notifications' }} />
             <Tabs.Screen
                 name="toolkit"
                 options={{

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import type { DateRange } from 'react-day-picker'
-import { CalendarIcon, ImageOff, MapPin } from 'lucide-react'
+import { Ban, CalendarIcon, ImageOff, MapPin } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import { Card } from '@/common/ui/card'
 import { Calendar } from '@/common/ui/calendar'
@@ -10,6 +10,7 @@ import { Skeleton } from '@/common/ui/skeleton'
 import ErrorState from '@/common/components/ErrorState'
 import { cn } from '@/common/utils/utils'
 import { useFloodReportQueue } from './hooks'
+import BlockedSendersDialog from './BlockedSendersDialog'
 import ReviewDialog from './ReviewDialog'
 import { GRID_SIZES, STATUS_META, STATUS_ORDER, type GridSize } from './constants'
 import type { FloodReport, ReportStatus } from './types'
@@ -75,6 +76,7 @@ const ReportsPage = () => {
     const [range, setRange] = useState<DateRange | undefined>()
     const [size, setSize] = useState<GridSize>('medium')
     const [page, setPage] = useState(1)
+    const [blockedOpen, setBlockedOpen] = useState(false)
     const [selected, setSelected] = useState<FloodReport | null>(null)
 
     const { data, isLoading, isError, refetch } = useFloodReportQueue({
@@ -163,7 +165,12 @@ const ReportsPage = () => {
                     </Button>
                 )}
 
-                <div className='ml-auto flex items-center gap-1' role='group' aria-label='Grid size'>
+                <Button size='sm' variant='outline' className='ml-auto cursor-pointer' onClick={() => setBlockedOpen(true)}>
+                    <Ban className='size-4' />
+                    Blocked accounts
+                </Button>
+
+                <div className='flex items-center gap-1' role='group' aria-label='Grid size'>
                     {GRID_SIZES.map((g) => (
                         <Button
                             key={g.value}
@@ -211,6 +218,7 @@ const ReportsPage = () => {
                 </div>
             )}
 
+            <BlockedSendersDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
             {selected && <ReviewDialog key={selected.id} report={selected} onClose={() => setSelected(null)} />}
         </div>
     )

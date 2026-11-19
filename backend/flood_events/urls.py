@@ -2,6 +2,8 @@ from django.urls import path
 
 from .views import (
     AutoDetectConfigView,
+    BlockedSenderListView,
+    BlockedSenderUnblockView,
     FloodEventArchiveView,
     FloodEventChangesView,
     FloodEventConfirmView,
@@ -15,10 +17,18 @@ from .views import (
     FloodReportReviewView,
     FloodReportUnblockView,
     MyFloodActivityView,
+    MyReportBlockView,
 )
 
 urlpatterns = [
     path("flood-reports/", FloodReportListCreateView.as_view(), name="flood-report-list"),
+    path("flood-reports/my-block/", MyReportBlockView.as_view(), name="flood-report-my-block"),
+    path("flood-reports/blocked/", BlockedSenderListView.as_view(), name="flood-report-blocked"),
+    path(
+        "flood-reports/blocked/<int:pk>/unblock/",
+        BlockedSenderUnblockView.as_view(),
+        name="flood-report-blocked-unblock",
+    ),
     path("flood-reports/<int:pk>/review/", FloodReportReviewView.as_view(), name="flood-report-review"),
     path("flood-reports/<int:pk>/block/", FloodReportBlockView.as_view(), name="flood-report-block"),
     path("flood-reports/<int:pk>/unblock/", FloodReportUnblockView.as_view(), name="flood-report-unblock"),

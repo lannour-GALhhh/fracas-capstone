@@ -1,6 +1,6 @@
 import apiClient from '@/core/apiClient'
 
-import type { ReportDraft, ReportPage } from '../types'
+import type { ReportBlockStatus, ReportDraft, ReportPage } from '../types'
 
 export const getMyReports = async (page: number): Promise<ReportPage> => {
     const { data } = await apiClient.get<ReportPage>('/api/flood-reports/', { params: { page } })
@@ -26,4 +26,10 @@ export const submitReport = async (draft: ReportDraft): Promise<void> => {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 60000,
     })
+}
+
+/** The resident's own report-submission ban status. */
+export const getMyReportBlock = async (): Promise<ReportBlockStatus> => {
+    const { data } = await apiClient.get<ReportBlockStatus>('/api/flood-reports/my-block/')
+    return data
 }

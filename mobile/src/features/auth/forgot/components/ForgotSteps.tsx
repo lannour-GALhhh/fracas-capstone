@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { passwordSchema, phoneSchema } from '@/features/registration/schemas'
@@ -10,6 +10,7 @@ import { AuthField } from '../../components/AuthField'
 import { useAuthColors, type AuthPalette } from '../../theme/colors'
 
 interface StepProps {
+    onCancel: () => void
     pending: boolean
     error: string | null
 }
@@ -22,6 +23,7 @@ function useStepStyles() {
 export function PhoneStep({
     pending,
     error,
+    onCancel,
     onSubmit,
 }: StepProps & { onSubmit: (phone: string) => void }) {
     const { styles } = useStepStyles()
@@ -52,6 +54,7 @@ export function PhoneStep({
                 loading={pending}
                 disabled={!form.isValid}
             />
+            <AuthButton label="Cancel" variant="secondary" onPress={onCancel} disabled={pending} />
         </View>
     )
 }
@@ -60,6 +63,7 @@ export function CodeStep({
     phone,
     pending,
     error,
+    onCancel,
     cooldown,
     onVerify,
     onResend,
@@ -96,6 +100,7 @@ export function CodeStep({
                 loading={pending}
                 disabled={!valid}
             />
+            <AuthButton label="Cancel" variant="secondary" onPress={onCancel} disabled={pending} />
             <AuthLinkButton
                 label={cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
                 onPress={onResend}
@@ -108,6 +113,7 @@ export function CodeStep({
 export function PasswordStep({
     pending,
     error,
+    onCancel,
     onSubmit,
 }: StepProps & { onSubmit: (password: string) => void }) {
     const { C, styles } = useStepStyles()
@@ -151,16 +157,23 @@ export function PasswordStep({
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <AuthButton label="Reset Password" onPress={submit} loading={pending} />
+            <AuthButton label="Cancel" variant="secondary" onPress={onCancel} disabled={pending} />
         </View>
     )
 }
 
 export function DoneStep({ onLogin }: { onLogin: () => void }) {
     const { C, styles } = useStepStyles()
+    const { width } = useWindowDimensions()
     return (
         <View style={[styles.container, styles.center]}>
-            <Ionicons name="checkmark-circle" size={72} color={C.primary} />
-            <Text style={styles.intro}>
+            <Ionicons
+                name="checkmark-circle"
+                size={width / 2}
+                color={C.primary}
+                style={styles.doneIcon}
+            />
+            <Text style={[styles.intro, styles.introCenter]}>
                 Your password has been updated. Log in with your new password.
             </Text>
             <AuthButton label="Back to Log In" onPress={onLogin} />
@@ -173,5 +186,7 @@ const createStyles = (C: AuthPalette) =>
         container: { gap: 18 },
         center: { alignItems: 'stretch' },
         intro: { color: C.muted, fontSize: 15, lineHeight: 21 },
+        doneIcon: { alignSelf: 'center' },
+        introCenter: { textAlign: 'center' },
         error: { color: C.danger, fontSize: 14, textAlign: 'center' },
     })

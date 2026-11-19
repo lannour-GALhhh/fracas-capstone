@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { LogOut, Settings } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useCurrentUser } from '@/features/user/hooks/useCurrentUser'
+import AccountAvatar from '@/features/accounts/components/AccountAvatar'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import type { CurrentUser } from '@/features/user/types'
 import type { Role } from '@/common/types/Role'
@@ -21,20 +22,13 @@ const Title = ({title}: {title: string}) => {
     )
 }
 
-/** A circular initial badge shared by the trigger chip and the menu header. */
-const Initial = ({ name, className }: { name: string; className?: string }) => (
-    <div
-        className={`bg-blue-600 flex aspect-square items-center justify-center rounded-full ${className ?? ''}`}
-    >
-        <span className='font-bold uppercase text-white'>{name[0]}</span>
-    </div>
-)
-
 /** Avatar chip that opens a menu: quick user info, account settings, logout. */
 const UserMenu = ({ name, user }: { name: string; user?: CurrentUser }) => {
     const [open, setOpen] = useState(false)
     const navigate = useNavigate()
     const { logout } = useAuth()
+    // Same source as the Accounts page avatar: first name, falling back to the username.
+    const avatarName = user?.first_name.trim() || user?.username || name
 
     const goToAccount = () => {
         setOpen(false)
@@ -60,12 +54,12 @@ const UserMenu = ({ name, user }: { name: string; user?: CurrentUser }) => {
                     />
                 }
             >
-                <Initial name={name} className='w-6 text-xs' />
+                <AccountAvatar name={avatarName} className='size-6 text-xs' />
                 <span className='text-sm font-medium'>{name}</span>
             </PopoverTrigger>
             <PopoverContent align='end' className='w-64 gap-0 p-0'>
                 <div className='flex items-center gap-3 p-3'>
-                    <Initial name={name} className='w-10 text-base' />
+                    <AccountAvatar name={avatarName} className='size-10 text-base' />
                     <div className='min-w-0'>
                         <p className='truncate text-sm font-semibold'>{name}</p>
                         {user?.email && (

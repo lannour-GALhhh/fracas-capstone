@@ -17,12 +17,12 @@ from .services import budget
 logger = logging.getLogger(__name__)
 
 # Batched multi-location calls avoid Open-Meteo's per-request burst rate limit.
-# Open-Meteo accepts up to 100 coordinates per call; batching all barangays into
-# as few chunks as possible keeps the request burst (and 429 risk) low.
-CHUNK_SIZE = 50
+# Open-Meteo accepts up to 100 coordinates per call; we use small chunks so a slow
+# response only costs one small chunk. Calls are counted per location, so chunk size does not change the daily budget.
+CHUNK_SIZE = 10
 CHUNK_DELAY = 3  # seconds between chunk requests, to avoid bursting the rate limit
 CALL_DELAY = 1  # seconds between the hourly and minutely calls within a chunk
-REQUEST_TIMEOUT = 20
+REQUEST_TIMEOUT = 45
 FETCH_INTERVAL_MIN = 30  # Open-Meteo is hit once per this many minutes (hourly + 15-minutely in one request)
 FETCH_JITTER_MIN = 5
 RETRY_BACKOFF = 5

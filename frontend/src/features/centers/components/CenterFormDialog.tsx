@@ -34,6 +34,7 @@ const emptyForm = {
     longitude: '',
     capacity: '',
     capacityUnit: '',
+    radius_m: '200',
     contacts: [{ label: '', phone: '' }] as EvacuationContact[],
     isActive: true,
 }
@@ -50,6 +51,7 @@ const toForm = (center?: EvacFeature): FormState => {
         longitude: String(lng),
         capacity: p.capacity != null ? String(p.capacity) : '',
         capacityUnit: p.capacity_unit ?? '',
+        radius_m: String(p.radius_m ?? 200),
         contacts: p.contacts.length
             ? p.contacts.map(({ label, phone }) => ({ label, phone }))
             : emptyForm.contacts,
@@ -83,6 +85,7 @@ const CenterFormDialog = ({
         latitude: form.latitude,
         longitude: form.longitude,
         capacity: form.capacity,
+        radius_m: form.radius_m,
         contacts: form.contacts,
     })
 
@@ -116,6 +119,7 @@ const CenterFormDialog = ({
             longitude: Number(form.longitude),
             capacity: form.capacity.trim() === '' ? null : Number(form.capacity),
             capacity_unit: form.capacityUnit.trim(),
+            radius_m: Number(form.radius_m),
             contacts: form.contacts
                 .map((c) => ({ label: c.label.trim(), phone: c.phone.trim() }))
                 .filter((c) => c.phone !== ''),
@@ -197,6 +201,24 @@ const CenterFormDialog = ({
                                     <option value='families' />
                                     <option value='persons' />
                                 </datalist>
+                            </Field>
+
+                            <Field>
+                                <FieldLabel htmlFor='ec-radius'>Auto-evacuation radius (m)</FieldLabel>
+                                <Input
+                                    id='ec-radius'
+                                    type='number'
+                                    min='10'
+                                    max='5000'
+                                    step='1'
+                                    onKeyDown={(e) => {
+                                        if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault()
+                                    }}
+                                    value={form.radius_m}
+                                    onChange={setStr('radius_m')}
+                                    onBlur={onBlur('radius_m')}
+                                />
+                                <FieldError errors={fieldError('radius_m')} />
                             </Field>
 
                             <div>
