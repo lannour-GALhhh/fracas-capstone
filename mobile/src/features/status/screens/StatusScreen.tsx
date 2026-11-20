@@ -16,18 +16,18 @@ import { EvacuationBanner } from '@/features/evacuation/components/EvacuationBan
 import { useEvacuationReporter } from '@/features/evacuation/hooks/useEvacuationReporter'
 import { useMyEvacuations } from '@/features/evacuation/hooks/useMyEvacuations'
 import { OfflineCard } from '@/features/offline/OfflineCard'
+import { MapControls } from '@/features/gis/components/MapControls'
+import { type LocationMode, MapLocationSwitch } from '@/features/gis/components/MapLocationSwitch'
 import { type MapFocus, RiskMap } from '@/features/gis/components/RiskMap'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useLocalizedRisk } from '@/features/gis/hooks/useLocalizedRisk'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
 import { centroidOf, geometryBounds } from '@/features/gis/utils/bounds'
 import { findBarangayAt, nearestCenter } from '@/features/gis/utils/geo'
-import type { RiskFeature } from '@/features/gis/types'
 
 import { BarangayDetailModal } from '../components/BarangayDetailModal'
+import { BarangayDetailPanel } from '../components/BarangayDetailSections'
 import { EvacuationCard } from '../components/EvacuationCard'
-import { HazardCard } from '../components/HazardCard'
-import { StatusHero } from '../components/StatusHero'
 import { StatusSummaryRow } from '../components/StatusSummaryRow'
 import { useHomeBarangay } from '../hooks/useHomeBarangay'
 
@@ -47,7 +47,7 @@ export function StatusScreen() {
     // so entering/leaving the radius is detected as it happens.
     const radiusEvacs = useRadiusEvacuations()
     const activeRadius = radiusEvacs.data ?? []
-    const watched = useWatchedLocation(locStatus === 'granted' && activeRadius.length > 0)
+    const watched = useWatchedLocation(locStatus === 'granted')
     const radiusCoords = watched ?? coords
     useRadiusTracker(activeRadius, radiusCoords)
 
@@ -56,6 +56,8 @@ export function StatusScreen() {
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [focus, setFocus] = useState<MapFocus | null>(null)
+    const [mode, setMode] = useState<LocationMode>('current')
+    const [guideOn, setGuideOn] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
     const sheetRef = useRef<BottomSheet>(null)
 
@@ -100,10 +102,8 @@ export function StatusScreen() {
         riskMap.features,
     )
 
-    // Hide the Home card when the resident is already standing in their home
-    // barangay — the two cards would be identical.
-    const homeIsCurrent =
-        current != null && home.feature != null && current.properties.id === home.feature.properties.id
+    // The sheet shows whichever barangay the location switch is on.
+    const shown = mode === 'home' ? home.feature : current
 
     // Default framing: the resident's location once we have a fix (falls back to
     // the whole-city view built into RiskMap). A card's "center map here" button
@@ -113,20 +113,41 @@ export function StatusScreen() {
         [coords],
     )
 
-    // Recenter the map on a card's barangay (fresh object each tap).
-    const focusOn = (feature: RiskFeature | null) => {
-        if (!feature) return
-        sheetRef.current?.collapse()
-        const box = geometryBounds(feature.geometry)
+    // Focus the map on the live position (fresh object so repeat taps re-fly).
+    const centerOnMe = () => {
+        if (!radiusCoords) return
+        setMode('current')
+        setFocus({ center: [radiusCoords.lng, radiusCoords.lat] })
+    }
+
+    // Home address focus: the saved home barangay (no exact home coordinates are stored).
+    const focusHome = () => {
+        const box = home.feature ? geometryBounds(home.feature.geometry) : null
         if (box) setFocus({ center: centroidOf(box) })
     }
 
-    // "View Hazard Detail" opens the barangay breakdown modal on top; collapse
-    // the sheet first so it doesn't fight the modal for the same space.
-    const openBreakdown = (id: number) => {
-        sheetRef.current?.collapse()
-        setSelectedId(id)
+    const changeMode = (next: LocationMode) => {
+        setMode(next)
+        if (next === 'home') focusHome()
+        else centerOnMe()
     }
+
+    // The guide always points at the center nearest the live position.
+    const guideNearest = useMemo(
+        () => (radiusCoords ? nearestCenter(radiusCoords, centers.data?.features) : null),
+        [radiusCoords, centers.data],
+    )
+    const guideTarget = useMemo(
+        () =>
+            guideOn && guideNearest
+                ? {
+                      lng: guideNearest.center.geometry.coordinates[0],
+                      lat: guideNearest.center.geometry.coordinates[1],
+                      distanceKm: guideNearest.distanceKm,
+                  }
+                : null,
+        [guideOn, guideNearest],
+    )
 
     const currentEmpty =
         locStatus === 'denied'
@@ -186,14 +207,20 @@ export function StatusScreen() {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 showUser={locStatus === 'granted'}
-                userCoords={coords}
+                userCoords={radiusCoords}
                 interactive
                 fill
                 focus={focus ?? userFocus}
                 radiusEvacuations={activeRadius}
+                guideTarget={guideTarget}
             />
 
             <View style={styles.bannerOverlay} pointerEvents="box-none">
+                <MapLocationSwitch
+                    value={mode}
+                    onChange={changeMode}
+                    disabled={{ current: !radiusCoords, home: !home.feature }}
+                />
                 <OfflineCard />
                 <AlertsOffCard />
                     {activeRadius.map((e) => (
@@ -210,6 +237,14 @@ export function StatusScreen() {
                     />
                     ) : null}
             </View>
+
+            <MapControls
+                onCenterMe={centerOnMe}
+                centerDisabled={!radiusCoords}
+                guideOn={guideOn}
+                onToggleGuide={() => setGuideOn((v) => !v)}
+                guideDisabled={!guideNearest}
+            />
 
             <BottomSheet
                 ref={sheetRef}
@@ -230,36 +265,17 @@ export function StatusScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <StatusSummaryRow
-                        feature={current}
-                        localized={localized.data}
-                        emptyMessage={currentEmpty}
-                        computedAt={riskMap.computedAt}
-                        nearest={nearest}
+                        feature={shown}
+                        localized={mode === 'current' ? localized.data : null}
+                        emptyMessage={mode === 'home' ? homeEmpty : currentEmpty}
                         onExpand={() => sheetRef.current?.expand()}
                     />
 
-                    <StatusHero feature={current} localized={localized.data} emptyMessage={currentEmpty} />
-
-                    <HazardCard
-                        label="Current location"
-                        feature={current}
-                        emptyMessage={currentEmpty}
-                        onPress={openBreakdown}
-                        onFocus={current ? () => focusOn(current) : undefined}
-                    />
-                    {locStatus === 'denied' ? (
+                    {locStatus === 'denied' && mode === 'current' ? (
                         <Button label="Enable location" variant="secondary" onPress={() => void request()} />
                     ) : null}
 
-                    {!homeIsCurrent ? (
-                        <HazardCard
-                            label="Home"
-                            feature={home.feature}
-                            emptyMessage={homeEmpty}
-                            onPress={openBreakdown}
-                            onFocus={home.feature ? () => focusOn(home.feature) : undefined}
-                        />
-                    ) : null}
+                    <BarangayDetailPanel barangayId={shown?.properties.id ?? null} />
 
                     <EvacuationCard nearest={nearest} emptyMessage={nearestEmpty} />
                 </BottomSheetScrollView>

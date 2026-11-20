@@ -22,6 +22,14 @@ export const CATEGORY_DESCRIPTIONS: Record<RiskCategory, string> = {
     critical: 'Risk of flooding is critical. Evacuate immediately if directed by local authorities.',
 }
 
+/** Text-contrast counterpart to `RISK_COLORS` (which is tuned for fills); mirrors the web panel. */
+export const RISK_TEXT_COLORS: Record<RiskCategory, string> = {
+    low: '#f87171',
+    medium: '#ef4444',
+    high: '#dc2626',
+    critical: '#991b1b',
+}
+
 /** The risk ramp is the single source of truth for card badges + the map fill. */
 export { RISK_COLORS, NO_DATA_COLOR }
 
