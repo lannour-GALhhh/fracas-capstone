@@ -63,6 +63,22 @@ DEFAULT_ACCUMULATION_CURVE = [
 # 48 mm/24h) reads MEDIUM at worst rather than HIGH. 0 disables the gate.
 SATURATION_GATE_MM_HR = 6.0
 
+# --- Forecast horizon ---------------------------------------------------------------------
+# Every forecast hour contributes, not just the peak. The base window is hours 1-4; a later
+# stage only opens when the hour at the previous checkpoint itself looks like a flood, so a
+# far-off storm is read only when the near hours already show one coming.
+HOURLY_BASE_HORIZON = 4
+HOURLY_MAX_HORIZON = 12
+# (checkpoint hour, horizon unlocked when that hour is flood-like): hour 4 flood-like -> read to
+# hour 9; hour 9 flood-like as well -> read to hour 12.
+HORIZON_STAGES = ((4, 9), (9, 12))
+# An hour "looks like a flood" at or above this intensity (mm/hr) — the 'medium' band start.
+FLOOD_HOUR_MM_HR = 7.5
+# Forecast rain adds to the saturation load discounted by lead time: weight = exp(-k / tau).
+FORECAST_LOAD_DECAY_HOURS = 10.0
+# Peak-intensity term: full weight through the base window, then fading per extra hour.
+FAR_PEAK_DECAY_PER_HOUR = 0.85
+
 # Lower bound (inclusive) of each category on the 0-100 composite scale.
 DEFAULT_THRESHOLDS = {
     RiskCategory.MEDIUM: 25.0,

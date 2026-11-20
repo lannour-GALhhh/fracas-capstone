@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -22,7 +22,8 @@ class HindcastError(Exception):
 
 def fetch_archive(latitude: float, longitude: float, when) -> dict:
     start = (when - timedelta(days=1)).date().isoformat()
-    end = when.date().isoformat()
+    # Read 12 h past the event too (the forecast horizon), but never ask the archive for the future.
+    end = min((when + timedelta(days=1)).date(), datetime.now(MANILA).date()).isoformat()
     params = {
         "latitude": latitude,
         "longitude": longitude,
@@ -53,7 +54,7 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
     # Archive data is hourly: the same hourly inputs the live pipeline stores.
     return SimpleNamespace(
         hourly_current=at(index),
-        **{f"hourly_forecast_{k}hr": at(index + k) for k in range(1, 5)},
+        **{f"hourly_forecast_{k}hr": at(index + k) for k in range(1, 13)},
         accumulated_6hr=round(sum(at(i) for i in range(index - 5, index + 1)), 2),
         accumulated_24hr=round(sum(at(i) for i in range(index - 23, index + 1)), 2),
     )
@@ -81,6 +82,7 @@ def hindcast_score(barangay, when, susceptibility_by_barangay, *, fetcher=None, 
     context = SimpleNamespace(
         susceptibility_for=lambda b: susceptibility_by_barangay.get(b.id),
         zones_for=zones_for,
+        forecast_horizon=getattr(getattr(engine, "config", None), "forecast_horizon_enabled", False),
     )
     # A caller scoring many hours passes one engine instead of re-reading the config each time.
     engine = engine or RiskEngine.from_active_config()

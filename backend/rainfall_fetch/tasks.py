@@ -108,11 +108,11 @@ def _hour_total(data, hour):
 
 def hourly_inputs(data, hour):
     """The hourly values the risk engine uses (mm in the hour == mm/hr): the last completed hour
-    and the next four, from Open-Meteo's `hourly` series. A missing hour counts as 0."""
+    and the next twelve, from Open-Meteo's `hourly` series. A missing hour counts as 0."""
     amount = lambda h: _hour_total(data, h) or 0
     return {
         'hourly_current': amount(hour),
-        **{f'hourly_forecast_{k}hr': amount(hour + timedelta(hours=k)) for k in range(1, 5)},
+        **{f'hourly_forecast_{k}hr': amount(hour + timedelta(hours=k)) for k in range(1, 13)},
     }
 
 

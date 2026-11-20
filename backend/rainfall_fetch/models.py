@@ -99,6 +99,15 @@ class Rainfall(models.Model):
     hourly_forecast_2hr = models.FloatField(default=0)
     hourly_forecast_3hr = models.FloatField(default=0)
     hourly_forecast_4hr = models.FloatField(default=0)
+    # Hours 5-12 ahead: read by the risk factor only when the near hours already look like a flood.
+    hourly_forecast_5hr = models.FloatField(default=0)
+    hourly_forecast_6hr = models.FloatField(default=0)
+    hourly_forecast_7hr = models.FloatField(default=0)
+    hourly_forecast_8hr = models.FloatField(default=0)
+    hourly_forecast_9hr = models.FloatField(default=0)
+    hourly_forecast_10hr = models.FloatField(default=0)
+    hourly_forecast_11hr = models.FloatField(default=0)
+    hourly_forecast_12hr = models.FloatField(default=0)
 
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
     accumulated_6hr = models.FloatField(default=0)

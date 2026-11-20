@@ -1,7 +1,7 @@
 """What-if rainfall: score hypothetical hourly rain for many barangays through the real engine.
 
 Stateless, like series_test: nothing is stored and the active RiskConfig is never modified.
-Each barangay's hourly series is scored hour by hour (with the next 4 hours as the forecast,
+Each barangay's hourly series is scored hour by hour (with the next 12 hours as the forecast,
 as the live pipeline has), so the map can scrub through a storm as it builds and passes.
 """
 
@@ -25,7 +25,7 @@ def _rainfall_at(rain: list[float], i: int) -> SimpleNamespace:
 
     return SimpleNamespace(
         hourly_current=at(i),
-        **{f"hourly_forecast_{k}hr": at(i + k) for k in range(1, 5)},
+        **{f"hourly_forecast_{k}hr": at(i + k) for k in range(1, 13)},
         accumulated_6hr=round(sum(at(j) for j in range(i - 5, i + 1)), 2),
         accumulated_24hr=round(sum(at(j) for j in range(i - 23, i + 1)), 2),
     )
@@ -41,6 +41,7 @@ def simulate(barangays, rain_by_id: dict[int, list[float]]) -> list[dict]:
         zones_for=lambda b: (susceptibility.get(b.id) or {}).get("zones", []),
         rainfall_curve=getattr(config, "rainfall_curve", None),
         accumulation_curve=getattr(config, "accumulation_curve", None),
+        forecast_horizon=getattr(config, "forecast_horizon_enabled", False),
     )
 
     results = []

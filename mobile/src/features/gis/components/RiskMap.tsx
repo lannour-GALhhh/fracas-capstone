@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import type { NativeSyntheticEvent } from 'react-native'
+import type { Feature, LineString } from 'geojson'
+import type { LayoutChangeEvent, NativeSyntheticEvent } from 'react-native'
 import {
     Camera,
     GeoJSONSource,
@@ -9,6 +10,8 @@ import {
     Marker,
     UserLocation,
     type CameraRef,
+    type MapRef,
+    type ViewStateChangeEvent,
     type PressEventWithFeatures,
 } from '@maplibre/maplibre-react-native'
 
@@ -18,6 +21,8 @@ import { Icon, Text } from '@/common/ui'
 import { MAP_CENTER, MAP_PADDING, MAP_ZOOM, mapStyleFor } from '../constants/mapStyle'
 import { fillColorExpression } from '../constants/risk'
 import { collectionBounds } from '../utils/bounds'
+import { type Bounds, type Size, placeGuide } from '../utils/guide'
+import { NearestCenterGuide } from './NearestCenterGuide'
 import type { Coords } from '@/common/hooks/useCurrentLocation'
 import type { EvacuationCenterCollection, RiskFeatureCollection } from '../types'
 import { centerRadiusCollection, radiusCollection } from '@/features/evacuation/radius/geometry'
@@ -49,6 +54,14 @@ interface Props {
     focus?: MapFocus | null
     /** Active point + radius evacuations, drawn as red circles. */
     radiusEvacuations?: RadiusEvacuation[]
+    /** Nearest evacuation center to guide the resident to; null hides the guide. */
+    guideTarget?: GuideTarget | null
+}
+
+export interface GuideTarget {
+    lng: number
+    lat: number
+    distanceKm: number
 }
 
 /** A camera target: where to center and how far to zoom in. */
@@ -83,10 +96,14 @@ export function RiskMap({
     fill = false,
     focus = null,
     radiusEvacuations = [],
+    guideTarget = null,
 }: Props) {
     const theme = useTheme()
     const { scheme } = theme
     const cameraRef = useRef<CameraRef>(null)
+    const mapRef = useRef<MapRef>(null)
+    const [bounds, setBounds] = useState<Bounds | null>(null)
+    const [size, setSize] = useState<Size | null>(null)
     const [loaded, setLoaded] = useState(false)
     const fittedRef = useRef(false)
     const centerCircles = useMemo(() => centerRadiusCollection(centers), [centers])
@@ -115,17 +132,61 @@ export function RiskMap({
         cameraRef.current?.flyTo({ center: focus.center, zoom: focus.zoom ?? FOCUS_ZOOM, duration: 600 })
     }, [loaded, focus])
 
+    const trackBounds = useCallback((e: NativeSyntheticEvent<ViewStateChangeEvent>) => {
+        setBounds(e.nativeEvent.bounds as Bounds)
+    }, [])
+
+    const handleLoaded = () => {
+        setLoaded(true)
+        void mapRef.current?.getBounds().then((b) => setBounds(b as Bounds))
+    }
+
+    const onLayout = (e: LayoutChangeEvent) => {
+        const { width, height } = e.nativeEvent.layout
+        setSize({ width, height })
+    }
+
+    // Usable area for the guide arrow: clear of the top controls/banners, the
+    // collapsed bottom sheet and the right-hand button column.
+    const placement = useMemo(() => {
+        if (!guideTarget || !bounds || !size) return null
+        const rect = { left: 16, top: 130, right: size.width - 72, bottom: size.height * 0.8 - 16 }
+        if (rect.right <= rect.left || rect.bottom <= rect.top) return null
+        return placeGuide(bounds, size, showUser ? userCoords : null, guideTarget, rect)
+    }, [guideTarget, bounds, size, showUser, userCoords])
+
+    const guideLine = useMemo(
+        () =>
+            guideTarget && showUser && userCoords
+                ? ({
+                      type: 'Feature' as const,
+                      properties: {},
+                      geometry: {
+                          type: 'LineString' as const,
+                          coordinates: [
+                              [userCoords.lng, userCoords.lat],
+                              [guideTarget.lng, guideTarget.lat],
+                          ],
+                      },
+                  } satisfies Feature<LineString>)
+                : null,
+        [guideTarget, showUser, userCoords],
+    )
+
     const handlePress = (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
         const id = event.nativeEvent.features?.[0]?.properties?.id
         onSelect(typeof id === 'number' ? id : null)
     }
 
     return (
-        <View style={[styles.container, fill ? styles.fill : styles.preview]}>
+        <View style={[styles.container, fill ? styles.fill : styles.preview]} onLayout={onLayout}>
             <Map
+                ref={mapRef}
                 style={styles.map}
+                onRegionIsChanging={trackBounds}
+                onRegionDidChange={trackBounds}
                 mapStyle={mapStyleFor(scheme)}
-                onDidFinishLoadingMap={() => setLoaded(true)}
+                onDidFinishLoadingMap={handleLoaded}
                 dragPan={interactive}
                 touchZoom={interactive}
                 doubleTapZoom={interactive}
@@ -176,6 +237,17 @@ export function RiskMap({
                     </GeoJSONSource>
                 ) : null}
 
+                {guideLine && placement?.inView ? (
+                    <GeoJSONSource id="guide-line" data={guideLine}>
+                        <Layer
+                            id="guide-line-dash"
+                            type="line"
+                            layout={{ 'line-cap': 'butt' }}
+                            paint={{ 'line-color': REFUGE_COLOR, 'line-width': 3, 'line-dasharray': [2, 2] }}
+                        />
+                    </GeoJSONSource>
+                ) : null}
+
                 {centers?.features.map((f) => (
                     <Marker key={f.properties.id} lngLat={f.geometry.coordinates as [number, number]} anchor="center">
                         <View style={styles.evacPin}>
@@ -200,6 +272,10 @@ export function RiskMap({
                     </Marker>
                 ) : null}
             </Map>
+
+            {guideTarget && placement ? (
+                <NearestCenterGuide placement={placement} distanceKm={guideTarget.distanceKm} />
+            ) : null}
         </View>
     )
 }

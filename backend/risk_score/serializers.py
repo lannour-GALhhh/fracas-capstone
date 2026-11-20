@@ -22,6 +22,7 @@ class RiskConfigSerializer(serializers.ModelSerializer):
             "rainfall_curve",
             "accumulation_curve",
             "zone_aggregation",
+            "forecast_horizon_enabled",
             "created_at",
         ]
         read_only_fields = ["id", "is_active", "created_at"]
@@ -34,6 +35,7 @@ class RiskConfigSerializer(serializers.ModelSerializer):
         "rainfall_curve",
         "accumulation_curve",
         "zone_aggregation",
+        "forecast_horizon_enabled",
     )
 
     def validate(self, attrs):
