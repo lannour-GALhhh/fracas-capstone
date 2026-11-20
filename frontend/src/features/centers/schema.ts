@@ -26,10 +26,6 @@ export const CenterSchema = z.object({
     ),
     contacts: z
         .array(z.object({ label: z.string(), phone: z.string() }))
-        // Fully blank rows are dropped on submit; at least one real number is required.
-        .refine((rows) => rows.some((r) => r.phone.trim() !== ''), {
-            message: 'Add at least one contact phone number',
-        })
         .refine((rows) => rows.every((r) => r.phone.trim() !== '' || r.label.trim() === ''), {
             message: 'Every contact with a name needs a phone number',
         }),

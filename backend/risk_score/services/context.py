@@ -20,6 +20,7 @@ class ScoringContext:
     # Admin-tunable rainfall scaling from the active RiskConfig (None -> defaults).
     rainfall_curve: list | None = None
     accumulation_curve: list | None = None
+    forecast_horizon: bool = False
 
     def rainfall_for(self, barangay: Barangay) -> Rainfall | None:
         return self.rainfall_by_barangay.get(barangay.id)
@@ -54,4 +55,5 @@ class ScoringContext:
             susceptibility_by_barangay=dominant_susceptibility_by_barangay(),
             rainfall_curve=getattr(config, "rainfall_curve", None),
             accumulation_curve=getattr(config, "accumulation_curve", None),
+            forecast_horizon=getattr(config, "forecast_horizon_enabled", False),
         )

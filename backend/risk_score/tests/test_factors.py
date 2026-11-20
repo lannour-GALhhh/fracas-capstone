@@ -34,9 +34,9 @@ def rainfall(current=0.0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, acc24=0.0, acc6=0.0):
     )
 
 
-def context(susceptibility_by_barangay=None):
+def context(susceptibility_by_barangay=None, forecast_horizon=False):
     by_barangay = susceptibility_by_barangay or {}
-    return SimpleNamespace(susceptibility_for=lambda b: by_barangay.get(b.id))
+    return SimpleNamespace(susceptibility_for=lambda b: by_barangay.get(b.id), forecast_horizon=forecast_horizon)
 
 
 class RainfallFactorTests(SimpleTestCase):
@@ -89,3 +89,51 @@ class SusceptibilityFactorTests(SimpleTestCase):
         result = SusceptibilityFactor().evaluate(FactorInput(barangay, None, context()))
         self.assertFalse(result.available)
         self.assertEqual(result.value, 0.0)
+
+
+def with_far(base, **hours):
+    """Add hourly_forecast_5hr..12hr (e.g. h9=20.0) to a rainfall double."""
+    for name, value in hours.items():
+        setattr(base, f"hourly_forecast_{name[1:]}hr", value)
+    return base
+
+
+class ForecastHorizonTests(SimpleTestCase):
+    def value(self, r):
+        return RainfallFactor().evaluate(FactorInput(None, r, context(forecast_horizon=True)))
+
+    def test_off_by_default_ignores_far_hours_and_forecast_load(self):
+        r = with_far(rainfall(f4=10.0, f1=5.0), h7=30.0)
+        off = RainfallFactor().evaluate(FactorInput(None, r, context()))
+        self.assertEqual(off.detail["horizon_hours"], 4)
+        self.assertEqual(off.detail["forecast_load_mm"], 0.0)
+        self.assertGreater(self.value(r).value, off.value)
+
+    def test_far_hours_ignored_when_4th_hour_is_calm(self):
+        r = with_far(rainfall(f4=2.0), h6=30.0)
+        result = self.value(r)
+        self.assertEqual(result.detail["horizon_hours"], 4)
+        self.assertEqual(result.detail["peak_intensity_mm_hr"], 2.0)
+
+    def test_flood_like_4th_hour_reads_to_hour_9(self):
+        r = with_far(rainfall(f4=10.0), h7=30.0)
+        result = self.value(r)
+        self.assertEqual(result.detail["horizon_hours"], 9)
+        self.assertGreater(result.value, self.value(rainfall(f4=10.0)).value)
+
+    def test_hours_10_to_12_need_both_4th_and_9th_flood_like(self):
+        calm_9th = with_far(rainfall(f4=10.0), h9=1.0, h11=40.0)
+        self.assertEqual(self.value(calm_9th).detail["horizon_hours"], 9)
+        both = with_far(rainfall(f4=10.0), h9=10.0, h11=40.0)
+        self.assertEqual(self.value(both).detail["horizon_hours"], 12)
+
+    def test_every_forecast_hour_adds_to_the_load(self):
+        steady = self.value(rainfall(f1=5.0, f2=5.0, f3=5.0, f4=5.0))
+        single = self.value(rainfall(f1=5.0))
+        self.assertGreater(steady.detail["forecast_load_mm"], single.detail["forecast_load_mm"])
+        self.assertGreater(steady.value, single.value)
+
+    def test_later_hours_count_less_than_sooner_ones(self):
+        soon = self.value(rainfall(f1=8.0))
+        later = self.value(rainfall(f4=8.0))
+        self.assertGreater(soon.detail["forecast_load_mm"], later.detail["forecast_load_mm"])

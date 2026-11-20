@@ -139,7 +139,9 @@ class HourlyInputsTests(SimpleTestCase):
         self.assertEqual(
             hourly_inputs(data, hour),
             {"hourly_current": 0.2, "hourly_forecast_1hr": 0.1, "hourly_forecast_2hr": 0.3,
-             "hourly_forecast_3hr": 0, "hourly_forecast_4hr": 1.5},
+             "hourly_forecast_3hr": 0, "hourly_forecast_4hr": 1.5,
+             # Hours 5-12 aren't in this response, so they read as 0.
+             **{f"hourly_forecast_{k}hr": 0 for k in range(5, 13)}},
         )
         self.assertEqual(hourly_inputs({"hourly": {"time": [], "precipitation": []}}, hour)["hourly_current"], 0)
 

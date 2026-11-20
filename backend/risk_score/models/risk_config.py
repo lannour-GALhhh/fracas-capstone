@@ -81,6 +81,11 @@ class RiskConfig(models.Model):
         default=DEFAULT_ZONE_AGGREGATION,
     )
 
+    # Read forecast hours 5-12 (staged by flood-like checkpoints) and add forecast rain to the
+    # saturation load. Off by default: the hindcast showed no extra detections and ~2x the
+    # false flags, so the live model keeps the original 4-hour peak logic.
+    forecast_horizon_enabled = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
