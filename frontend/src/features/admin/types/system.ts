@@ -45,3 +45,13 @@ export interface AutoDetectConfig {
     threshold_category: 'medium' | 'high' | 'critical'
     updated_at: string
 }
+
+/** How a barangay's per-zone hazards collapse to one score. */
+export type ZoneAggregation = 'mean' | 'max' | 'area_weighted'
+
+/** Active scoring config (GET /api/admin/risk-configs/active/); only the zone switch is edited here. */
+export interface RiskConfigSummary {
+    id: number
+    name: string
+    zone_aggregation: ZoneAggregation
+}

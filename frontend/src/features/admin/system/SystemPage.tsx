@@ -6,6 +6,7 @@ import CadenceList from './components/CadenceList'
 import HealthOverview from './components/HealthOverview'
 import OpsActions from './components/OpsActions'
 import PipelineStages from './components/PipelineStages'
+import ZoneAggregationCard from './components/ZoneAggregationCard'
 
 /** Admin console: operational health, manual pipeline triggers, schedule, auto-detect config. */
 const SystemPage = () => {
@@ -38,6 +39,7 @@ const SystemPage = () => {
                     <PipelineStages status={data} />
                     <OpsActions />
                     <CadenceList cadence={data.cadence} />
+                    <ZoneAggregationCard />
                     <div className='sm:col-span-2'>
                         <AutoDetectCard />
                     </div>

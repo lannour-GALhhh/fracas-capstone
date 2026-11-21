@@ -150,3 +150,28 @@ class RiskConfigActivateTests(APITestCase):
         new.refresh_from_db()
         self.assertFalse(old.is_active)
         self.assertTrue(new.is_active)
+
+
+class RiskConfigActiveTests(APITestCase):
+    def setUp(self):
+        self.client.force_authenticate(make_admin())
+
+    def test_returns_the_active_config_and_aggregation_can_be_switched(self):
+        RiskConfig.objects.all().delete()
+        active = make_config("live", is_active=True)
+
+        resp = self.client.get(reverse("risk-config-active"))
+        self.assertEqual(resp.data["id"], active.pk)
+
+        resp = self.client.patch(
+            reverse("risk-config-detail", args=[active.pk]), {"zone_aggregation": "area_weighted"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200, resp.data)
+        active.refresh_from_db()
+        self.assertEqual(active.zone_aggregation, "area_weighted")
+
+    def test_persists_defaults_when_nothing_is_active(self):
+        RiskConfig.objects.all().delete()
+        resp = self.client.get(reverse("risk-config-active"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(RiskConfig.objects.filter(pk=resp.data["id"], is_active=True).exists())
