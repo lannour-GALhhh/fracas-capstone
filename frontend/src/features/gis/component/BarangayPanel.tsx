@@ -1,4 +1,3 @@
-import { currentRainfallAt } from '../utils/currentRainfall'
 import {
     AlertTriangle,
     BarChart3,
@@ -31,7 +30,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from '@/common/ui/chart'
-import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
+import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, XAxis, YAxis, type DotItemDotProps } from 'recharts'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { useRainfallHistory } from '../hooks/useRainfallHistory'
 import { CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, RISK_COLORS, RISK_TEXT_COLORS } from '../constants/risk'
@@ -52,6 +51,8 @@ import RainfallIcon from './RainfallIcon'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
+    hourly: { label: 'Hourly', color: 'var(--chart-1)' },
+    quarter: { label: '15-Minutely', color: 'var(--chart-2)' },
 } satisfies ChartConfig
 
 /** Format a nullable number, dropping noise digits. */
@@ -84,10 +85,12 @@ const RainfallStat = ({
     label,
     value,
     rising,
+    chance,
 }: {
     label: string
     value: string
     rising?: boolean
+    chance?: number | null
 }) => (
     <div className='flex flex-1 flex-col gap-1'>
         <span className='text-muted-foreground text-xs'>{label}</span>
@@ -96,6 +99,7 @@ const RainfallStat = ({
             <span className='text-muted-foreground text-xs'>mm/hr</span>
             {rising && <TrendingUp className='text-amber-500 size-3.5' />}
         </div>
+        {chance != null && <span className='text-muted-foreground text-xs'>{Math.round(chance)}% chance of rain</span>}
     </div>
 )
 
@@ -146,26 +150,25 @@ const HazardHero = ({ data, action }: { data: BarangayRisk; action?: React.React
 }
 
 const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.ReactNode }) => {
-    const forecasts = [
-        data.rainfall_forecast_15min,
-        data.rainfall_forecast_30min,
-        data.rainfall_forecast_45min,
-        data.rainfall_forecast_60min,
-        data.rainfall_forecast_75min,
-        data.rainfall_forecast_90min,
-        data.rainfall_forecast_105min,
-        data.rainfall_forecast_120min,
-        data.rainfall_forecast_135min,
-        data.rainfall_forecast_150min,
-        data.rainfall_forecast_165min,
-        data.rainfall_forecast_180min,
-        data.rainfall_forecast_195min,
-        data.rainfall_forecast_210min,
-        data.rainfall_forecast_225min,
-        data.rainfall_forecast_240min,
-    ].filter((v): v is number => v != null)
-    const peak = forecasts.length ? Math.max(...forecasts) : null
-    const current = currentRainfallAt(data)
+    // Hourly values (true mm/hr): the last completed hour, and the highest of the next four.
+    const probabilities = data.precipitation_probability
+    const hourlyForecasts = [
+        data.hourly_forecast_1hr,
+        data.hourly_forecast_2hr,
+        data.hourly_forecast_3hr,
+        data.hourly_forecast_4hr,
+    ]
+    const current = data.hourly_current
+    let peak: number | null = null
+    let peakIndex = -1
+    hourlyForecasts.forEach((v, i) => {
+        if (v != null && (peak == null || v > peak)) {
+            peak = v
+            peakIndex = i + 1
+        }
+    })
+    const currentChance = probabilities?.[0]
+    const peakChance = peakIndex > 0 ? probabilities?.[peakIndex] : undefined
     const rising = peak != null && current != null && peak > current
     const strength = rainfallTier(current)
 
@@ -179,9 +182,9 @@ const Conditions = ({ data, action }: { data: BarangayRisk; action?: React.React
                 {action}
             </div>
             <div className='flex items-stretch'>
-                <RainfallStat label='Current' value={fmt(current)} />
+                <RainfallStat label='Current' value={fmt(current)} chance={currentChance} />
                 <div className='bg-border mx-3 w-px' />
-                <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} />
+                <RainfallStat label='Peak forecast · 4 hr' value={fmt(peak)} rising={rising} chance={peakChance} />
             </div>
 
             <div className='flex items-center gap-2 border-t pt-2'>
@@ -252,36 +255,68 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     const stepStart = Math.floor(recordedAt.getTime() / QUARTER_MS) * QUARTER_MS
     const atOffset = (minutes: number) => formatServerTime(new Date(stepStart + minutes * 60_000))
 
-    const chartData = [
-        { name: atOffset(0), rainfall: data.current_rainfall },
-        { name: atOffset(15), rainfall: data.rainfall_forecast_15min },
-        { name: atOffset(30), rainfall: data.rainfall_forecast_30min },
-        { name: atOffset(45), rainfall: data.rainfall_forecast_45min },
-        { name: atOffset(60), rainfall: data.rainfall_forecast_60min },
-        { name: atOffset(75), rainfall: data.rainfall_forecast_75min },
-        { name: atOffset(90), rainfall: data.rainfall_forecast_90min },
-        { name: atOffset(105), rainfall: data.rainfall_forecast_105min },
-        { name: atOffset(120), rainfall: data.rainfall_forecast_120min },
-        { name: atOffset(135), rainfall: data.rainfall_forecast_135min },
-        { name: atOffset(150), rainfall: data.rainfall_forecast_150min },
-        { name: atOffset(165), rainfall: data.rainfall_forecast_165min },
-        { name: atOffset(180), rainfall: data.rainfall_forecast_180min },
-        { name: atOffset(195), rainfall: data.rainfall_forecast_195min },
-        { name: atOffset(210), rainfall: data.rainfall_forecast_210min },
-        { name: atOffset(225), rainfall: data.rainfall_forecast_225min },
-        { name: atOffset(240), rainfall: data.rainfall_forecast_240min },
-    ].filter((d) => d.rainfall != null)
+    const quarterSeries = [
+        data.current_rainfall,
+        data.rainfall_forecast_15min,
+        data.rainfall_forecast_30min,
+        data.rainfall_forecast_45min,
+        data.rainfall_forecast_60min,
+        data.rainfall_forecast_75min,
+        data.rainfall_forecast_90min,
+        data.rainfall_forecast_105min,
+        data.rainfall_forecast_120min,
+        data.rainfall_forecast_135min,
+        data.rainfall_forecast_150min,
+        data.rainfall_forecast_165min,
+        data.rainfall_forecast_180min,
+        data.rainfall_forecast_195min,
+        data.rainfall_forecast_210min,
+        data.rainfall_forecast_225min,
+        data.rainfall_forecast_240min,
+    ]
+    // Hourly values are labelled at the top of the hour: the last completed hour, then +1…+4 h.
+    const hourlySeries = [
+        data.hourly_current,
+        data.hourly_forecast_1hr,
+        data.hourly_forecast_2hr,
+        data.hourly_forecast_3hr,
+        data.hourly_forecast_4hr,
+    ]
+    const HOUR_MS = 60 * 60_000
+    const hourStart = Math.floor(recordedAt.getTime() / HOUR_MS) * HOUR_MS
+
+    // Both series share one time axis; a row carries whichever values fall on its timestamp.
+    const rows = new Map<number, { ts: number; name: string; quarter?: number; hourly?: number; chance?: number }>()
+    const rowAt = (ts: number) => {
+        let row = rows.get(ts)
+        if (!row) rows.set(ts, (row = { ts, name: formatServerTime(new Date(ts)) }))
+        return row
+    }
+    quarterSeries.forEach((v, i) => {
+        if (v != null) rowAt(stepStart + i * QUARTER_MS).quarter = v
+    })
+    hourlySeries.forEach((v, i) => {
+        if (v != null) rowAt(hourStart + i * HOUR_MS).hourly = v
+    })
+    // Chance of rain is hourly-only at the source. Open-Meteo labels an hour by its end, so a row
+    // (hourly or 15-minute) takes the value of the hour that ends at or just after it.
+    const probabilities = data.precipitation_probability
+    const chartData = [...rows.values()].sort((a, b) => a.ts - b.ts)
+    chartData.forEach((row) => {
+        const chance = probabilities?.[Math.ceil((row.ts - hourStart) / HOUR_MS)]
+        if (chance != null) row.chance = chance
+    })
 
     const nowLabel = data.current_rainfall != null ? atOffset(0) : undefined
 
     // The single highest tier reached by this forecast — see rainfallStrengthIndicator.
-    const maxRainfall = chartData.reduce((max, d) => Math.max(max, d.rainfall ?? 0), 0)
+    const maxRainfall = chartData.reduce((max, d) => Math.max(max, d.quarter ?? 0, d.hourly ?? 0), 0)
     const indicator = rainfallStrengthIndicator(maxRainfall)
 
     const RainfallDot = ({ cx, cy, payload }: DotItemDotProps) => {
         if (cx == null || cy == null) return null
         const isNow = payload?.name === nowLabel
-        return <circle cx={cx} cy={cy} r={isNow ? 3.5 : 2.7} fill={isNow ? 'var(--color-foreground)' : 'var(--color-rainfall)'} />
+        return <circle cx={cx} cy={cy} r={isNow ? 3.5 : 2.7} fill={isNow ? 'var(--color-foreground)' : 'var(--color-quarter)'} />
     }
 
     return (
@@ -293,7 +328,7 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
             {chartData.length > 1 ? (
                 <CardContent className='px-0'>
                     <ChartContainer config={chartConfig}>
-                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 56 }}>
+                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 8 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey='name'
@@ -330,22 +365,54 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                                 cursor={false}
                                 content={
                                     <ChartTooltipContent
-                                        formatter={(value, name) => (
+                                        formatter={(value, name, item) => (
                                             <div className='flex w-full items-center justify-between gap-3'>
-                                                <span className='text-muted-foreground capitalize'>{name}</span>
+                                                <span className='flex items-center gap-1.5'>
+                                                    <span
+                                                        className='size-2 rounded-full'
+                                                        style={{ background: `var(--color-${name})` }}
+                                                    />
+                                                    <span className='text-muted-foreground'>
+                                                        {chartConfig[name as 'hourly' | 'quarter']?.label ?? name}
+                                                    </span>
+                                                </span>
                                                 <span className='font-mono font-medium tabular-nums'>
-                                                    {value} mm
+                                                    {value} {name === 'hourly' ? 'mm/hr' : 'mm'}
+                                                    {item?.payload?.chance != null && (
+                                                        <span className='text-muted-foreground ml-1.5 font-normal'>
+                                                            · {Math.round(item.payload.chance)}%
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
                                         )}
                                     />
                                 }
                             />
+                            <Legend
+                                layout='vertical'
+                                align='right'
+                                verticalAlign='middle'
+                                iconType='circle'
+                                iconSize={8}
+                                wrapperStyle={{ fontSize: 11, paddingLeft: 8 }}
+                                formatter={(value: string) => chartConfig[value as 'hourly' | 'quarter']?.label ?? value}
+                            />
                             <Line
-                                dataKey='rainfall'
-                                type='natural'
-                                stroke='var(--color-rainfall)'
+                                dataKey='hourly'
+                                type='monotone'
+                                stroke='var(--color-hourly)'
                                 strokeWidth={2}
+                                connectNulls
+                                dot={{ r: 3.5, fill: 'var(--color-hourly)', strokeWidth: 0 }}
+                                activeDot={{ r: 5.4 }}
+                            />
+                            <Line
+                                dataKey='quarter'
+                                type='natural'
+                                stroke='var(--color-quarter)'
+                                strokeWidth={2}
+                                connectNulls
                                 dot={RainfallDot}
                                 activeDot={{ r: 5.4 }}
                             />

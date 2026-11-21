@@ -70,6 +70,14 @@ export interface BarangayRisk {
     rainfall_forecast_210min: number | null
     rainfall_forecast_225min: number | null
     rainfall_forecast_240min: number | null
+    /** Last completed clock hour, mm/hr; hourly_forecast_Nhr is the hour N after it. */
+    hourly_current?: number | null
+    hourly_forecast_1hr?: number | null
+    hourly_forecast_2hr?: number | null
+    hourly_forecast_3hr?: number | null
+    hourly_forecast_4hr?: number | null
+    /** Chance of rain (%) for hourly_current's hour and the five after it; entries may be null. */
+    precipitation_probability?: (number | null)[] | null
     accumulated_24hr: number | null
     accumulated_7day: number | null
     rainfall_rate_change: number | null

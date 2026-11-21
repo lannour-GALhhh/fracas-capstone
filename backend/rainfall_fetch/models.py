@@ -109,6 +109,10 @@ class Rainfall(models.Model):
     hourly_forecast_11hr = models.FloatField(default=0)
     hourly_forecast_12hr = models.FloatField(default=0)
 
+    # Chance of rain (%) for `hourly_current`'s hour and the five after it, from Open-Meteo.
+    # Display only (cards/tooltips); None entries mean the source had no value.
+    precipitation_probability = models.JSONField(null=True, blank=True)
+
     # Accumulated rainfall (mm) over trailing windows ending at recorded_at.
     accumulated_6hr = models.FloatField(default=0)
     accumulated_12hr = models.FloatField(default=0)

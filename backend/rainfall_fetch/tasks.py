@@ -52,7 +52,8 @@ def minutely_url(latitudes: str, longitudes: str, model_param: str = "") -> str:
     return (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}&longitude={longitudes}"
-        f"&current=precipitation&hourly=precipitation&minutely_15=precipitation&forecast_days=2{model_param}"
+        f"&current=precipitation&hourly=precipitation,precipitation_probability"
+        f"&minutely_15=precipitation&forecast_days=2{model_param}"
     )
 
 
@@ -114,6 +115,25 @@ def hourly_inputs(data, hour):
         'hourly_current': amount(hour),
         **{f'hourly_forecast_{k}hr': amount(hour + timedelta(hours=k)) for k in range(1, 13)},
     }
+
+
+# Hours covered by the display-only probability list: the last completed hour (`hour`) plus the
+# five after it, enough to label every 15-minute step in the 4 h forecast.
+PROBABILITY_HOURS = 6
+
+
+def probability_inputs(data, hour):
+    """{'precipitation_probability': [%, ...]} for `hour` and the next five, from Open-Meteo's
+    `hourly.precipitation_probability` (display only; never read by the risk engine). A hour the
+    response lacks, or a model without the variable, is None."""
+    series = data.get('hourly', {}).get('precipitation_probability') or []
+    times = data.get('hourly', {}).get('time', [])
+
+    def at(h):
+        label = h.strftime("%Y-%m-%dT%H:%M")
+        return series[times.index(label)] if label in times and times.index(label) < len(series) else None
+
+    return {'precipitation_probability': [at(hour + timedelta(hours=k)) for k in range(PROBABILITY_HOURS)]}
 
 
 def _quarter_index(data):
@@ -223,7 +243,7 @@ def fetch_rainfall_information():
             for group, data in zip(chunk, batch):
                 for barangay in group["members"]:
                     try:
-                        parsed = {**parse_rainfall_data(data, barangay.name), **hourly_inputs(data, hour)}
+                        parsed = {**parse_rainfall_data(data, barangay.name), **hourly_inputs(data, hour), **probability_inputs(data, hour)}
                         parsed_by_barangay[barangay] = (parsed, _hour_total(data, hour))
                     except Exception as e:
                         logger.error(f"Failed to parse rainfall information for: {barangay.name}: {e}")

@@ -57,32 +57,32 @@ const ScoreRow = ({ data }: { data: BarangayRisk }) => (
 )
 
 const Conditions = ({ data }: { data: BarangayRisk }) => {
-    const forecasts = [
-        data.rainfall_forecast_15min,
-        data.rainfall_forecast_30min,
-        data.rainfall_forecast_45min,
-        data.rainfall_forecast_60min,
-        data.rainfall_forecast_75min,
-        data.rainfall_forecast_90min,
-        data.rainfall_forecast_105min,
-        data.rainfall_forecast_120min,
-        data.rainfall_forecast_135min,
-        data.rainfall_forecast_150min,
-        data.rainfall_forecast_165min,
-        data.rainfall_forecast_180min,
-        data.rainfall_forecast_195min,
-        data.rainfall_forecast_210min,
-        data.rainfall_forecast_225min,
-        data.rainfall_forecast_240min,
-    ].filter((v): v is number => v != null)
-    const peak = forecasts.length ? Math.max(...forecasts) : null
-    const tier = rainfallTier(data.current_rainfall)
+    // Hourly values (true mm/hr): the last completed hour, and the highest of the next four.
+    const hourlyForecasts = [
+        data.hourly_forecast_1hr,
+        data.hourly_forecast_2hr,
+        data.hourly_forecast_3hr,
+        data.hourly_forecast_4hr,
+    ]
+    const current = data.hourly_current ?? null
+    let peak: number | null = null
+    let peakIndex = -1
+    hourlyForecasts.forEach((v, i) => {
+        if (v != null && (peak == null || v > peak)) {
+            peak = v
+            peakIndex = i + 1
+        }
+    })
+    const chances = data.precipitation_probability
+    const currentChance = chances?.[0]
+    const peakChance = peakIndex > 0 ? chances?.[peakIndex] : undefined
+    const tier = rainfallTier(current)
 
     return (
         <View style={styles.conditions}>
             <View style={styles.tiles}>
-                <StatTile label="Current rainfall" value={fmt(data.current_rainfall)} unit="mm/hr" />
-                <StatTile label="Peak forecast (4 hr)" value={fmt(peak)} unit="mm/hr" />
+                <StatTile label="Current rainfall" value={fmt(current)} unit="mm/hr" chance={currentChance} />
+                <StatTile label="Peak forecast (4 hr)" value={fmt(peak)} unit="mm/hr" chance={peakChance} />
                 <StatTile label="Accumulated (24 hr)" value={fmt(data.accumulated_24hr)} unit="mm" />
                 <StatTile label="Accumulated (7 day)" value={fmt(data.accumulated_7day)} unit="mm" />
             </View>
@@ -106,7 +106,17 @@ const RainfallStrength = ({ tier }: { tier: ReturnType<typeof rainfallTier> }) =
     )
 }
 
-const StatTile = ({ label, value, unit }: { label: string; value: string; unit: string }) => (
+const StatTile = ({
+    label,
+    value,
+    unit,
+    chance,
+}: {
+    label: string
+    value: string
+    unit: string
+    chance?: number | null
+}) => (
     <Card style={styles.tile}>
         <Text variant="caption" color="textMuted" style={styles.tileLabel}>
             {label}
@@ -117,6 +127,11 @@ const StatTile = ({ label, value, unit }: { label: string; value: string; unit: 
                 {unit}
             </Text>
         </View>
+        {chance != null && (
+            <Text variant="caption" color="textMuted">
+                {Math.round(chance)}% chance of rain
+            </Text>
+        )}
     </Card>
 )
 
