@@ -129,6 +129,17 @@ class FetchPerBarangayTests(TestCase):
 
 
 class HourlyInputsTests(SimpleTestCase):
+    def test_probability_is_read_from_the_hourly_series_with_gaps_as_none(self):
+        from rainfall_fetch.tasks import minutely_url, probability_inputs
+
+        hour = _this_hour()
+        stamp = lambda k: (hour + timedelta(hours=k)).strftime("%Y-%m-%dT%H:%M")
+        data = {"hourly": {"time": [stamp(k) for k in range(0, 4)], "precipitation_probability": [10, 55, None, 90]}}
+
+        self.assertEqual(probability_inputs(data, hour), {"precipitation_probability": [10, 55, None, 90, None, None]})
+        self.assertEqual(probability_inputs({"hourly": {"time": []}}, hour), {"precipitation_probability": [None] * 6})
+        self.assertIn("precipitation_probability", minutely_url("1", "2"))
+
     def test_hourly_inputs_come_from_the_hourly_series_not_the_15_minute_steps(self):
         from rainfall_fetch.tasks import hourly_inputs
 

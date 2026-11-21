@@ -39,7 +39,7 @@ export function MapLocationSwitch({ value, onChange, disabled = {} }: Props) {
                             off && styles.off,
                         ]}
                     >
-                        <Icon name={icon} size={18} color={active ? theme.colors.onPrimary : '#000000'} />
+                        <Icon name={icon} size={20} color={active ? theme.colors.onPrimary : '#000000'} />
                         {active ? (
                             <Text style={[styles.label, { color: theme.colors.onPrimary }]}>{label}</Text>
                         ) : null}
@@ -68,12 +68,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.xs,
-        height: 34,
-        minWidth: 34,
+        height: 36,
+        minWidth: 36,
         paddingHorizontal: spacing.sm + 2,
         borderRadius: radius.pill,
         justifyContent: 'center',
     },
     off: { opacity: 0.4 },
-    label: { fontSize: 12, fontWeight: '700' },
+    label: { fontSize: 14, fontWeight: '700' },
 })
