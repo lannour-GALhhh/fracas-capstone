@@ -9,6 +9,7 @@ export const adminKeys = {
     userChanges: (id: number, page: number) => ['admin', 'users', id, 'changes', page] as const,
     systemStatus: () => ['admin', 'system', 'status'] as const,
     autoDetect: () => ['admin', 'system', 'auto-detect'] as const,
+    riskConfig: () => ['admin', 'system', 'risk-config'] as const,
     gisActive: () => ['admin', 'gis-imports', 'active'] as const,
     gisImports: () => ['admin', 'gis-imports'] as const,
     rainfallGrid: () => ['admin', 'settings', 'rainfall', 'grid'] as const,

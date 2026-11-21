@@ -1,5 +1,5 @@
 import apiClient from '@/app/apiClient'
-import type { AutoDetectConfig, SystemStatus } from '../types/system'
+import type { AutoDetectConfig, RiskConfigSummary, SystemStatus, ZoneAggregation } from '../types/system'
 
 export const getSystemStatus = async (): Promise<SystemStatus> => {
     const { data } = await apiClient.get<SystemStatus>('/api/admin/system/status/')
@@ -28,5 +28,20 @@ export const updateAutoDetectConfig = async (
         '/api/flood-events/auto-detect-config/',
         payload,
     )
+    return data
+}
+
+export const getActiveRiskConfig = async (): Promise<RiskConfigSummary> => {
+    const { data } = await apiClient.get<RiskConfigSummary>('/api/admin/risk-configs/active/')
+    return data
+}
+
+export const updateZoneAggregation = async (
+    id: number,
+    zone_aggregation: ZoneAggregation,
+): Promise<RiskConfigSummary> => {
+    const { data } = await apiClient.patch<RiskConfigSummary>(`/api/admin/risk-configs/${id}/`, {
+        zone_aggregation,
+    })
     return data
 }

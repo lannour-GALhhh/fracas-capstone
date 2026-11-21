@@ -51,8 +51,8 @@ import RainfallIcon from './RainfallIcon'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
-    hourly: { label: 'Hourly', color: 'var(--chart-1)' },
-    quarter: { label: '15-Minutely', color: 'var(--chart-2)' },
+    hourly: { label: 'Hourly', color: 'var(--chart-2)' },
+    quarter: { label: '15-Minutely', color: 'var(--chart-1)' },
 } satisfies ChartConfig
 
 /** Format a nullable number, dropping noise digits. */

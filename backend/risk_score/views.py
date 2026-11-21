@@ -108,6 +108,16 @@ class RiskConfigViewSet(ModelViewSet):
     permission_classes = [IsAdmin]
     http_method_names = ["get", "post", "patch", "head", "options"]
 
+    @action(detail=False, methods=["get"])
+    def active(self, request):
+        """The config scoring currently uses. If none is stored yet (the engine runs on built-in
+        defaults), persist those defaults as the active config so it can be edited."""
+        config = RiskConfig.objects.filter(is_active=True).first()
+        if config is None:
+            config = RiskConfig.get_active()
+            config.save()
+        return Response(self.get_serializer(config).data)
+
     @action(detail=True, methods=["post"])
     def activate(self, request, pk=None):
         from audit.services import log_change
