@@ -167,3 +167,30 @@ export interface BarangayRiskProperties extends BarangayBaseProperties {
 export type BarangayGeometry = Polygon | MultiPolygon
 export type BarangayFeatureCollection = FeatureCollection<BarangayGeometry, BarangayBaseProperties>
 export type RiskFeatureCollection = FeatureCollection<BarangayGeometry, BarangayRiskProperties>
+
+/** PAGASA rainfall-warning band of a forecast hour. */
+export type ForecastBand = 'none' | 'yellow' | 'orange' | 'red'
+
+export interface ForecastHour {
+    /** Start of the hour (ISO, UTC). */
+    start: string
+    /** Hours from now (up to 11 PM tomorrow, local). Hours 1-4 are covered by the risk score. */
+    lead_hours: number
+    mm_hr: number
+    probability: number | null
+    band: ForecastBand
+}
+
+/** GET /api/rainfall/forecast/ — display-only 24 h outlook, never a hazard score. */
+export interface RainfallForecast {
+    barangay: number
+    name: string
+    generated_at: string
+    warning_hours: number
+    hours: ForecastHour[]
+    summary: {
+        first_heavy: ForecastHour | null
+        peak: ForecastHour | null
+        total_mm: number
+    }
+}

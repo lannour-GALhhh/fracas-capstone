@@ -4,6 +4,7 @@ import type {
     BarangayRisk,
     HazardZoneCollection,
     HighRiskStreet,
+    RainfallForecast,
     RainfallHistoryPoint,
     RiskSnapshot,
     ZoneRiskSnapshot,
@@ -79,5 +80,11 @@ export const getRainfallHistory = async (
     const { data } = await apiClient.get<RainfallHistoryPoint[]>('/api/rainfall/history/', {
         params: { barangay: id, days, granularity },
     })
+    return data
+}
+
+/** 24 h rainfall outlook for one barangay, fetched on demand (the server caches per grid cell). */
+export const getRainfallForecast = async (id: number): Promise<RainfallForecast> => {
+    const { data } = await apiClient.get<RainfallForecast>('/api/rainfall/forecast/', { params: { barangay: id } })
     return data
 }

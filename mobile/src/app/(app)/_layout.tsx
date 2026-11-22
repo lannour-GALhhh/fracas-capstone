@@ -67,6 +67,7 @@ function SignedInStack() {
             <Stack.Screen name="edit-profile" options={secondary('/account', 'Edit profile')} />
             <Stack.Screen name="change-password" options={secondary('/account', 'Change password')} />
             <Stack.Screen name="report/[id]" options={secondary('/reports')} />
+            <Stack.Screen name="forecast/[id]" options={secondary('/status')} />
         </Stack>
     )
 }
