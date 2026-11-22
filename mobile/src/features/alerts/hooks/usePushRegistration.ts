@@ -3,7 +3,7 @@ import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { useEffect } from 'react'
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 
 import { registerDevice, unregisterDevice } from '../api/alertsApi'
 
@@ -22,12 +22,31 @@ Notifications.setNotificationHandler({
     }),
 })
 
+/**
+ * Android channel settings are immutable once created, so the emergency profile lives under a new id
+ * (the old `alerts` channel is deleted). Must match `EMERGENCY_CHANNEL_ID` in backend/users/senders/push.py.
+ */
+const EMERGENCY_CHANNEL_ID = 'alerts_emergency'
+
 const ensureAndroidChannel = async () => {
     if (Platform.OS !== 'android') return
-    await Notifications.setNotificationChannelAsync('alerts', {
-        name: 'Flood alerts',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
+    await Notifications.deleteNotificationChannelAsync('alerts').catch(() => undefined)
+    await Notifications.setNotificationChannelAsync(EMERGENCY_CHANNEL_ID, {
+        name: 'Emergency flood alerts',
+        description: 'Loud, persistent alerts when flooding is critical in your barangay.',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'emergency_alarm.mp3', // bundled via the expo-notifications plugin `sounds` (app.json)
+        audioAttributes: {
+            usage: Notifications.AndroidAudioUsage.ALARM, // plays at alarm volume
+            contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+        // Long, repeated pulses instead of a single buzz.
+        vibrationPattern: [0, 800, 400, 800, 400, 800, 400, 800],
+        enableVibrate: true,
+        enableLights: true,
+        lightColor: '#FF0000',
+        bypassDnd: true, // only effective if the user grants "Do Not Disturb access"
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     })
 }
 
@@ -69,4 +88,25 @@ export const usePushRegistration = (enabled: boolean): void => {
         if (!enabled) return
         void registerForPush()
     }, [enabled])
+}
+
+/**
+ * Silence the alarm once the user engages: Android stops a notification's sound when that notification is
+ * cancelled, so clearing the tray on app open (or on tapping the notification) ends the alert.
+ */
+export const useDismissAlertsOnOpen = (): void => {
+    useEffect(() => {
+        if (isExpoGo) return
+        const clear = () => void Notifications.dismissAllNotificationsAsync().catch(() => undefined)
+
+        clear() // cold start
+        const appState = AppState.addEventListener('change', (state) => {
+            if (state === 'active') clear()
+        })
+        const tapped = Notifications.addNotificationResponseReceivedListener(clear)
+        return () => {
+            appState.remove()
+            tapped.remove()
+        }
+    }, [])
 }

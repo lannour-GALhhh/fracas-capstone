@@ -7,7 +7,7 @@ import { Spinner, Text } from '@/common/ui'
 import { goBack } from '@/common/utils/navigation'
 import { useAutoSubscribeHome } from '@/features/alerts/hooks/useHomeSubscription'
 import { usePreferences } from '@/features/alerts/hooks/usePreferences'
-import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
+import { useDismissAlertsOnOpen, usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useFirstRunOnboarding } from '@/features/onboarding/useFirstRunOnboarding'
 
@@ -28,6 +28,7 @@ function SignedInStack() {
 
     // Register for push whenever the resident has the channel enabled.
     usePushRegistration(Boolean(prefs.data?.push_enabled))
+    useDismissAlertsOnOpen()
 
     // Alerts for the home barangay are on by default.
     useAutoSubscribeHome()

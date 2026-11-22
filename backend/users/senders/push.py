@@ -6,6 +6,9 @@ from .base import InvalidTokenError, SendError
 
 logger = logging.getLogger(__name__)
 
+# Must match the channel created in mobile/src/features/alerts/hooks/usePushRegistration.ts.
+EMERGENCY_CHANNEL_ID = "alerts_emergency"
+
 
 class ConsolePushProvider:
     """Dev default — logs instead of sending."""
@@ -40,7 +43,14 @@ class FcmProvider:
             data={k: str(v) for k, v in (data or {}).items()},
             android=messaging.AndroidConfig(
                 priority="high",
-                notification=messaging.AndroidNotification(channel_id="alerts"),
+                notification=messaging.AndroidNotification(
+                    channel_id=EMERGENCY_CHANNEL_ID,
+                    priority="max",
+                    visibility="public",
+                    # Sound comes from the channel (emergency_alarm.mp3); no per-message override.
+                    default_vibrate_timings=False,
+                    sticky=True,  # stays until dismissed
+                ),
             ),
             apns=messaging.APNSConfig(
                 headers={"apns-priority": "10"},
