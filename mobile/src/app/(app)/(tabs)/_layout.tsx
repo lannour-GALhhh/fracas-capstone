@@ -54,7 +54,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="status"
                 options={{
-                    title: 'GIS',
+                    title: 'Map',
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="status" focused={focused} color={color as string} size={size} />
                     ),
@@ -73,7 +73,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="reports"
                 options={{
-                    title: 'Reports',
+                    title: 'Report',
                     // No header content left, so drop the empty bar; the screen insets itself.
                     headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (
@@ -84,7 +84,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="toolkit"
                 options={{
-                    title: 'Toolkit',
+                    title: 'Help',
                     // No header content left, so drop the empty bar; the screen insets itself.
                     headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (

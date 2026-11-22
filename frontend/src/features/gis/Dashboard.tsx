@@ -85,7 +85,6 @@ const Dashboard = () => {
     )
     const viewportWidth = useViewportWidth()
     const cardsVisible = selectedId == null && !simulating
-    const legendVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
     const barangayPanelVisible = selectedId != null && !panelHidden
     const panelWidth = barangayPanelVisible ? Math.round(viewportWidth * 0.25) : 0
@@ -100,16 +99,14 @@ const Dashboard = () => {
 
     return (
         <>
-            {legendVisible && (
-                <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
-                    <Legend view={zoneColorMode} />
-                    <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
-                        <LayersControl layers={layers} onToggle={toggleLayer} />
-                        <span className='bg-border mx-0.5 h-5 w-px' />
-                        <MapViewToggle value={zoneColorMode} onChange={setZoneColorMode} />
-                    </div>
+            <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
+                <Legend view={zoneColorMode} />
+                <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+                    <LayersControl layers={layers} onToggle={toggleLayer} />
+                    <span className='bg-border mx-0.5 h-5 w-px' />
+                    <MapViewToggle value={zoneColorMode} onChange={setZoneColorMode} />
                 </div>
-            )}
+            </div>
 
             {cardsVisible && (
                 <div className='absolute top-20 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
