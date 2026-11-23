@@ -16,6 +16,7 @@ import { Button } from '@/common/ui/button'
 import { useZodForm } from '@/common/hooks/useZodForm'
 import { useCreateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
 import { CreateUserSchema } from '@/features/admin/schemas'
+import BarangayAccessField from './BarangayAccessField'
 import PlaceSelect from '@/features/user/components/PlaceSelect'
 import { useCities, useProvinces, usePsgcBarangays } from '@/features/user/hooks/usePsgc'
 import { emptyAddress, type Address } from '@/features/user/types'
@@ -32,6 +33,9 @@ const emptyForm = {
 const CreateUserDialog = () => {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState(emptyForm)
+    const [restricted, setRestricted] = useState(false)
+    const [scopeIds, setScopeIds] = useState<number[]>([])
+    const [scopeError, setScopeError] = useState<string>()
     const create = useCreateAdminUser()
 
     const { fieldError, onBlur, handleSubmit, reset } = useZodForm(CreateUserSchema, {
@@ -53,6 +57,9 @@ const CreateUserDialog = () => {
     const onOpenChange = (next: boolean) => {
         if (next) {
             setForm({ ...emptyForm, address: emptyAddress() })
+            setRestricted(false)
+            setScopeIds([])
+            setScopeError(undefined)
             reset()
             create.reset()
         }
@@ -66,6 +73,10 @@ const CreateUserDialog = () => {
         setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }))
 
     const onSubmit = handleSubmit((data) => {
+        if (restricted && scopeIds.length === 0) {
+            setScopeError('Select at least one barangay, or choose All barangays.')
+            return
+        }
         create.mutate(
             {
                 first_name: data.first_name,
@@ -74,6 +85,7 @@ const CreateUserDialog = () => {
                 phone_number: data.phone_number,
                 address: form.address,
                 is_operator: true,
+                barangays: restricted ? scopeIds : [],
             },
             { onSuccess: () => setOpen(false) },
         )
@@ -143,6 +155,17 @@ const CreateUserDialog = () => {
                             />
                             <FieldError errors={fieldError('phone_number')} />
                         </Field>
+
+                        <BarangayAccessField
+                            restricted={restricted}
+                            ids={scopeIds}
+                            error={scopeError}
+                            onChange={(r, ids) => {
+                                setRestricted(r)
+                                setScopeIds(ids)
+                                setScopeError(undefined)
+                            }}
+                        />
 
                         <div className='flex flex-col gap-4 border-t pt-4'>
                             <p className='text-sm font-medium'>Location</p>

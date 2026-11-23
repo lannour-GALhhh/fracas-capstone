@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
-from users.permissions import IsOperator
+from users.permissions import IsOperator, assert_barangay_access
 
 from .models import MapPoiChange
 from .serializers import MapPoiChangeSerializer
@@ -40,6 +40,17 @@ class PoiViewSet(viewsets.ModelViewSet):
             return self.read_serializer_class
         return self.write_serializer_class
 
+    # --- barangay scope ------------------------------------------------------
+    def get_object(self):
+        """Writes on a POI are limited to the operator's assigned barangays."""
+        obj = super().get_object()
+        if self.request.method not in SAFE_METHODS:
+            assert_barangay_access(self.request.user, obj.barangay_id)
+        return obj
+
+    def check_write_scope(self, data) -> None:
+        """Hook: refuse a create/update that lands outside the operator's barangays."""
+
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:
             return [IsAuthenticated()]
@@ -58,7 +69,12 @@ class PoiViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        self.check_write_scope(serializer.validated_data)
         self._log(serializer.save(), "created")
+
+    def perform_update(self, serializer):
+        self.check_write_scope(serializer.validated_data)
+        serializer.save()
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()

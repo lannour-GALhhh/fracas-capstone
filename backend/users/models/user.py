@@ -28,6 +28,23 @@ class User(AbstractUser):
         ),
     )
 
+    barangays = models.ManyToManyField(
+        "barangays.Barangay",
+        blank=True,
+        related_name="assigned_operators",
+        help_text=(
+            "Barangays this console account may take actions in. Empty = all "
+            "barangays. Ignored for admins, who are never restricted."
+        ),
+    )
+
+    def barangay_scope(self) -> set[int] | None:
+        """Barangay ids this account may act on, or None when unrestricted."""
+        if self.is_staff or self.is_superuser:
+            return None
+        ids = set(self.barangays.values_list("id", flat=True))
+        return ids or None
+
     @property
     def role(self) -> str:
         """Web-console role, derived from Django's auth flags."""

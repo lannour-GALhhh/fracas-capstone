@@ -7,8 +7,10 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from django.contrib.gis.geos import Point
+
 from poi.views import PoiViewSet, is_operator_user
-from users.permissions import IsOperator
+from users.permissions import IsOperator, assert_barangay_access
 
 from .models import EvacuationCenter, EvacuationCenterImage
 from .radius_serializers import PointHistorySerializer, point_history
@@ -27,6 +29,15 @@ class EvacuationCenterViewSet(PoiViewSet):
     write_serializer_class = EvacuationCenterWriteSerializer
     poi_type = "evacuation"
     tracked_fields = ["name", "capacity", "capacity_unit", "radius_m", "is_active"]
+
+    def check_write_scope(self, data):
+        barangay = data.get("barangay")
+        if barangay is None and data.get("latitude") is not None and data.get("longitude") is not None:
+            point = Point(data["longitude"], data["latitude"], srid=4326)
+            barangay = Barangay.objects.filter(boundary__contains=point).first()
+        elif barangay is None and self.action in ("update", "partial_update"):
+            return  # barangay and location untouched; get_object already checked it
+        assert_barangay_access(self.request.user, barangay.id if barangay else None)
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -311,6 +322,7 @@ class PingEvacuationView(APIView):
         serializer = PingEvacuationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         barangay = get_object_or_404(Barangay, pk=serializer.validated_data["barangay_id"])
+        assert_barangay_access(request.user, barangay.id)
 
         zones = zone_service.resolve(barangay, serializer.validated_data.get("zones"))
         if zones is None:
@@ -360,6 +372,7 @@ class StandDownView(APIView):
             Evacuation.objects.select_related("barangay"),
             pk=pk, status=Evacuation.Status.ACTIVE,
         )
+        assert_barangay_access(request.user, evac.barangay_id)
         lifecycle.stand_down(evac, actor=request.user)
         snapshot.refresh()
         return Response({"evacuation_id": evac.id, "status": evac.status})
