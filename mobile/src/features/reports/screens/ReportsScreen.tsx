@@ -24,7 +24,7 @@ export function ReportsScreen() {
     return (
         <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.bg }]} edges={['top', 'bottom']}>
             <View style={styles.header}>
-                <Text variant="title">Reports</Text>
+                <Text variant="title">Report</Text>
             </View>
 
             {isLoading ? (

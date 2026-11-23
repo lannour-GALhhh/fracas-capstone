@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from poi.views import is_operator_user
-from users.permissions import IsAdmin, IsOperator
+from users.permissions import IsAdmin, IsOperator, assert_barangay_access
 
 from .models import AutoDetectConfig, FloodEvent, FloodEventChange, FloodEventReport, ReportStatus
 from .serializers import (
@@ -81,12 +81,27 @@ class FloodEventListView(_OperatorWriteMixin, ListCreateAPIView):
     def get_serializer_class(self):
         return FloodEventSerializer if self.request.method in SAFE_METHODS else FloodEventWriteSerializer
 
+    def perform_create(self, serializer):
+        assert_barangay_access(self.request.user, serializer.validated_data["barangay"].id)
+        serializer.save()
+
 
 class FloodEventDetailView(_OperatorWriteMixin, RetrieveUpdateDestroyAPIView):
     queryset = _live_qs().prefetch_related("timeline")
 
     def get_serializer_class(self):
         return FloodEventDetailSerializer if self.request.method in SAFE_METHODS else FloodEventWriteSerializer
+
+    def get_object(self):
+        obj = super().get_object()
+        if self.request.method not in SAFE_METHODS:
+            assert_barangay_access(self.request.user, obj.barangay_id)
+        return obj
+
+    def perform_update(self, serializer):
+        if barangay := serializer.validated_data.get("barangay"):
+            assert_barangay_access(self.request.user, barangay.id)
+        serializer.save()
 
     def perform_destroy(self, instance):
         # Soft delete: hide now, hard-purge later (undo window).
@@ -146,7 +161,9 @@ class _EventActionView(APIView):
         qs = FloodEvent.objects if self.include_deleted else FloodEvent.objects.filter(
             deleted_at__isnull=True
         )
-        return get_object_or_404(qs, pk=pk)
+        event = get_object_or_404(qs, pk=pk)
+        assert_barangay_access(self.request.user, event.barangay_id)
+        return event
 
     def detail_response(self, event):
         event = FloodEvent.objects.select_related("barangay").prefetch_related("timeline").get(pk=event.pk)
@@ -248,6 +265,7 @@ class FloodEventReportsView(_OperatorWriteMixin, ListCreateAPIView):
 
     def perform_create(self, serializer):
         event = get_object_or_404(FloodEvent, pk=self.kwargs["pk"])
+        assert_barangay_access(self.request.user, event.barangay_id)
         report = serializer.save(
             flood_event=event, barangay=event.barangay, reporter=self.request.user
         )
@@ -340,9 +358,12 @@ class FloodReportReviewView(APIView):
 
     def post(self, request, pk):
         report = get_object_or_404(_REPORT_QS, pk=pk)
+        assert_barangay_access(request.user, report.barangay_id)
         form = FloodReportReviewSerializer(data=request.data)
         form.is_valid(raise_exception=True)
         data = form.validated_data
+        if data.get("flood_event") is not None:
+            assert_barangay_access(request.user, data["flood_event"].barangay_id)
         if "flood_event" in data:
             report.flood_event = data["flood_event"]
         if data["status"] == ReportStatus.VERIFIED and report.flood_event is None:
@@ -370,6 +391,7 @@ class _ReporterBlockView(APIView):
 
     def reporter(self, pk):
         report = get_object_or_404(FloodEventReport.objects.select_related("reporter"), pk=pk)
+        assert_barangay_access(self.request.user, report.barangay_id)
         user = report.reporter
         if user is None:
             raise ValidationError({"detail": "This report has no sender to block."})

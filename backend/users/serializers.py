@@ -2,6 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from djoser.serializers import SetPasswordSerializer
 from rest_framework import serializers
 
+from barangays.models import Barangay
 from .models import AccountChange, Device, Notification, NotificationPreference, Subscription, User
 from .services import account_changes, activation
 
@@ -24,6 +25,10 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     role = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    # Barangays the account may act in; empty list = all barangays.
+    barangays = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Barangay.objects.all(), required=False
+    )
 
     class Meta:
         model = User
@@ -39,6 +44,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "status",
             "is_operator",
             "is_staff",
+            "barangays",
             "role",
             "date_joined",
             "last_login",
@@ -72,6 +78,9 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     address = serializers.JSONField(required=False)
+    barangays = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Barangay.objects.all(), required=False
+    )
 
     class Meta:
         model = User
@@ -85,6 +94,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             "address",
             "is_operator",
             "is_staff",
+            "barangays",
             "role",
             "status",
         ]
@@ -112,7 +122,10 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["address"] = normalize_address(validated_data.get("address"))
+        barangays = validated_data.pop("barangays", [])
         user, self.activation_token = activation.create_pending_user(**validated_data)
+        if barangays and not user.is_staff:
+            user.barangays.set(barangays)
         return user
 
 
@@ -157,8 +170,9 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "address",
             "is_active",
             "role",
+            "barangays",
         ]
-        read_only_fields = ["id", "username", "is_active", "role"]
+        read_only_fields = ["id", "username", "is_active", "role", "barangays"]
 
     def to_representation(self, instance):
         """Always return the full address shape so the client can rely on the keys."""

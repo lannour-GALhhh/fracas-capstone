@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -11,6 +11,7 @@ from rest_framework.test import APITestCase
 
 from barangays.models import Barangay
 from rainfall_fetch.models import BarangayRainfallGrid, HourlyRainfall, Rainfall, RainfallSettings
+from rainfall_fetch.services.outlook import band_for, parse_hours, summarise
 from rainfall_fetch.tasks import (
     _accumulations, _hour_total, _query_groups, fetch_rainfall_information, parse_rainfall_data,
 )
@@ -461,3 +462,81 @@ class RainfallGridViewTests(APITestCase):
         remap.assert_called_once_with(remap=True)
         self.assertEqual(response.json()["failed"], [])
         self.assertTrue(ConfigChangeLog.objects.filter(action="remapped grid").exists())
+
+
+class OutlookTests(SimpleTestCase):
+    NOW = datetime(2026, 7, 1, 10, 20, tzinfo=dt_timezone.utc)
+
+    def _payload(self, amounts):
+        """Hourly series from 07-01T00:00; labels are hour *ends*, so label 12:00 = hour 11-12."""
+        times = [f"2026-07-01T{h:02d}:00" for h in range(24)] + [f"2026-07-02T{h:02d}:00" for h in range(24)]
+        series = [amounts.get(t, 0) for t in times]
+        return {"hourly": {"time": times, "precipitation": series, "precipitation_probability": [60] * 48}}
+
+    def test_bands(self):
+        self.assertEqual([band_for(x) for x in (0, 7.4, 7.5, 15, 29.9, 30)],
+                         ["none", "none", "yellow", "orange", "orange", "red"])
+
+    def test_next_24_hours_start_after_now_and_use_end_labels(self):
+        hours = parse_hours(self._payload({"2026-07-01T12:00": 9.0}), self.NOW)
+        self.assertEqual(hours[0]["start"], "2026-07-01T11:00:00+00:00")
+        self.assertEqual(hours[0]["lead_hours"], 1)
+        hit = next(h for h in hours if h["mm_hr"])
+        self.assertEqual((hit["start"], hit["lead_hours"], hit["band"], hit["probability"]),
+                         ("2026-07-01T11:00:00+00:00", 1, "yellow", 60))
+
+    def test_window_ends_at_11pm_local_tomorrow(self):
+        # NOW is 18:20 on Jul 1 in Manila (UTC+8): the last hour is Jul 2 23:00 Manila = 15:00 UTC.
+        hours = parse_hours(self._payload({}), self.NOW)
+        self.assertEqual(hours[-1]["start"], "2026-07-02T15:00:00+00:00")
+        self.assertEqual(len(hours), 29)
+
+    def test_missing_hours_are_skipped_not_zero_filled(self):
+        data = {"hourly": {"time": ["2026-07-01T12:00"], "precipitation": [1.0]}}
+        hours = parse_hours(data, self.NOW)
+        self.assertEqual(len(hours), 1)
+        self.assertIsNone(hours[0]["probability"])
+
+    def test_summary_flags_heavy_rain_only_beyond_the_warning_window(self):
+        # +2h (covered by the risk score) and +18h heavy; only +18h is the heads-up.
+        hours = parse_hours(self._payload({"2026-07-01T13:00": 20, "2026-07-02T05:00": 16}), self.NOW)
+        summary = summarise(hours)
+        self.assertEqual(summary["first_heavy"]["lead_hours"], 18)
+        self.assertEqual(summary["peak"]["mm_hr"], 20)
+        self.assertEqual(summary["total_mm"], 36)
+
+    def test_calm_summary(self):
+        summary = summarise(parse_hours(self._payload({}), self.NOW))
+        self.assertIsNone(summary["first_heavy"])
+        self.assertIsNone(summary["peak"])
+
+
+class RainfallForecastApiTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.client.force_authenticate(get_user_model().objects.create_user("resident", password="pw"))
+        self.barangay = make_barangay()
+
+    def _get(self, **params):
+        return self.client.get(reverse("rainfall-forecast"), params)
+
+    def test_requires_valid_barangay(self):
+        self.assertEqual(self._get().status_code, 400)
+        self.assertEqual(self._get(barangay="abc").status_code, 400)
+        self.assertEqual(self._get(barangay=999999).status_code, 404)
+
+    @patch("rainfall_fetch.tasks.requests.get")
+    def test_fetches_once_then_serves_from_cache(self, mock_get):
+        mock_get.return_value.raise_for_status.return_value = None
+        mock_get.return_value.json.return_value = {"hourly": {"time": [], "precipitation": []}}
+        first = self._get(barangay=self.barangay.id)
+        self._get(barangay=self.barangay.id)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(mock_get.call_count, 1)
+        self.assertIn("summary", first.json())
+
+    @patch("rainfall_fetch.tasks.time.sleep")
+    @patch("rainfall_fetch.tasks.requests.get", side_effect=Exception("down"))
+    def test_source_failure_is_503_not_a_fake_calm(self, _get, _sleep):
+        self.assertEqual(self._get(barangay=self.barangay.id).status_code, 503)

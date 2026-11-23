@@ -3,6 +3,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from risk_score.services import fuzzy
+
 from risk_score.constants import (
     COMBINATION_MODES,
     COMBINATION_WEIGHTED_SUM,
@@ -123,10 +125,12 @@ class RiskConfig(models.Model):
 
     # --- behaviour ------------------------------------------------------
     def categorize(self, score: float) -> RiskCategory:
-        for category in _SEVERITY_ORDER:
-            if score >= self.thresholds[category.value]:
-                return category
-        return RiskCategory.LOW
+        """Fuzzy classification: highest-membership category (see services/fuzzy.py)."""
+        return fuzzy.classify(score, self.thresholds)[0]
+
+    def memberships(self, score: float) -> dict:
+        """Degree (0-1) of `score` in each category; sums to 1."""
+        return fuzzy.memberships(score, self.thresholds)
 
     @classmethod
     def get_active(cls) -> "RiskConfig":

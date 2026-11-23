@@ -39,7 +39,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
         id: 'status',
         icon: 'map-outline',
         title: 'Read the flood map',
-        body: 'The GIS tab colours every barangay by flood risk, from white (low) to deep red (critical).',
+        body: 'The Map tab colours every barangay by flood risk, from white (low) to deep red (critical).',
         bullets: [
             'Tap your barangay to see its current level',
             'No rain means no flood risk, so the map stays low in dry weather',
@@ -63,7 +63,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
         icon: 'camera-outline',
         title: 'Report what you see',
         body: 'Spotted flooding? Send a report with a photo so operators can respond faster.',
-        bullets: ['Open the Reports tab to submit one', 'Open any report to follow its status'],
+        bullets: ['Open the Report tab to submit one', 'Open any report to follow its status'],
     },
     {
         id: 'toolkit',

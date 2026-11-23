@@ -48,6 +48,7 @@ import ErrorState from '@/common/components/ErrorState'
 import SidePanel from './SidePanel'
 import RainfallAccumulation from './RainfallAccumulation'
 import RainfallIcon from './RainfallIcon'
+import RainfallOutlook from './RainfallOutlook'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
@@ -565,6 +566,8 @@ const RainfallDetailsTrigger = ({ data }: { data: BarangayRisk }) => (
                     <RainfallHistory barangayId={data.id} />
                 </div>
             </div>
+            {/* Mounted with the dialog, so the 24 h outlook is only fetched once the forecast is opened. */}
+            <RainfallOutlook barangayId={data.id} />
         </DialogContent>
     </Dialog>
 )

@@ -7,8 +7,11 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from barangays.models import Barangay
+
 from .models import Rainfall
 from .serializers import RainfallSerializer
+from .services.outlook import ForecastUnavailable, forecast_for
 
 MAX_HISTORY_DAYS = 30
 
@@ -66,3 +69,17 @@ class RainfallViewset(viewsets.ReadOnlyModelViewSet):
             }
             for row in rows
         ])
+
+    @action(detail=False, methods=["get"])
+    def forecast(self, request):
+        """Display-only 24 h rainfall outlook for `?barangay=<id>`, fetched on demand (cached per grid cell)."""
+        barangay_id = request.query_params.get("barangay")
+        if not barangay_id or not barangay_id.isdigit():
+            return Response({"detail": "barangay query param is required."}, status=400)
+        barangay = Barangay.objects.filter(pk=barangay_id).first()
+        if barangay is None:
+            return Response({"detail": "Unknown barangay."}, status=404)
+        try:
+            return Response(forecast_for(barangay))
+        except ForecastUnavailable:
+            return Response({"detail": "Rainfall forecast is temporarily unavailable."}, status=503)

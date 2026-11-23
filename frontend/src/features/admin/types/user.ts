@@ -19,6 +19,8 @@ export interface AdminUser {
     status: UserStatus
     is_operator: boolean
     is_staff: boolean
+    /** Barangays the account may act in; empty = all. */
+    barangays: number[]
     role: Role
     date_joined: string
     last_login: string | null
@@ -42,13 +44,14 @@ export interface CreateUserPayload {
     address?: Address
     is_operator?: boolean
     is_staff?: boolean
+    barangays?: number[]
 }
 
 /** PATCH /api/admin/users/:id/ payload — profile edits and/or role/status flags. */
 export type UpdateUserPayload = Partial<
     Pick<
         AdminUser,
-        'email' | 'first_name' | 'last_name' | 'phone_number' | 'is_active' | 'is_operator' | 'is_staff'
+        'email' | 'first_name' | 'last_name' | 'phone_number' | 'is_active' | 'is_operator' | 'is_staff' | 'barangays'
     >
 >
 

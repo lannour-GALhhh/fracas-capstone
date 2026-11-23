@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router/tabs'
-import { StyleSheet, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
 
 import { useTheme } from '@/common/theme'
 import { Icon, Text, type IconName } from '@/common/ui'
+import { useAvatar } from '@/features/account/avatar/useAvatar'
 import { NotificationBell } from '@/features/alerts/components/NotificationBell'
 
 const TAB_ICONS: Record<'status' | 'reports' | 'toolkit' | 'account', [IconName, IconName]> = {
@@ -23,6 +24,21 @@ function TabIcon({
     color: string
     size: number
 }) {
+    const { avatar } = useAvatar()
+    if (name === 'account' && avatar) {
+        return (
+            <Image
+                source={avatar.source}
+                style={{
+                    width: size + 4,
+                    height: size + 4,
+                    borderRadius: (size + 4) / 2,
+                    borderWidth: 2,
+                    borderColor: focused ? color : 'transparent',
+                }}
+            />
+        )
+    }
     const [active, inactive] = TAB_ICONS[name]
     return <Icon name={focused ? active : inactive} size={size} color={color} />
 }
@@ -54,7 +70,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="status"
                 options={{
-                    title: 'GIS',
+                    title: 'Map',
                     tabBarIcon: ({ focused, color, size }) => (
                         <TabIcon name="status" focused={focused} color={color as string} size={size} />
                     ),
@@ -73,7 +89,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="reports"
                 options={{
-                    title: 'Reports',
+                    title: 'Report',
                     // No header content left, so drop the empty bar; the screen insets itself.
                     headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (
@@ -84,7 +100,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="toolkit"
                 options={{
-                    title: 'Toolkit',
+                    title: 'Help',
                     // No header content left, so drop the empty bar; the screen insets itself.
                     headerShown: false,
                     tabBarIcon: ({ focused, color, size }) => (

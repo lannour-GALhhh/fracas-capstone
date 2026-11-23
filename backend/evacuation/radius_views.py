@@ -6,7 +6,7 @@ from rest_framework.generics import ListAPIView, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import IsOperator
+from users.permissions import IsOperator, assert_barangay_access
 from poi.views import is_operator_user
 
 from .models import RadiusEvacuation, RadiusEvacuationStatus
@@ -46,6 +46,11 @@ class RadiusEvacuationsView(APIView):
         s = DeclareRadiusSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
+        # Every barangay the circle touches must be within the operator's scope.
+        _, area = radius_service.build_circle(d["lat"], d["lng"], d["radius_m"])
+        assert_barangay_access(
+            request.user, *[b["id"] for b in radius_service.affected_barangays(area)]
+        )
         evac = radius_service.declare(
             lat=d["lat"], lng=d["lng"], radius_m=d["radius_m"],
             name=d.get("name", ""), actor=request.user,
@@ -63,6 +68,7 @@ class RadiusStandDownView(APIView):
         evac = get_object_or_404(
             RadiusEvacuation, pk=pk, status=RadiusEvacuation.Status.ACTIVE
         )
+        assert_barangay_access(request.user, *[b["id"] for b in evac.barangays])
         radius_service.stand_down(evac, actor=request.user)
         return Response({"evacuation_id": evac.id, "status": evac.status})
 

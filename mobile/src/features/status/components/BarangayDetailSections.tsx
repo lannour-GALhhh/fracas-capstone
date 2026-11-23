@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native'
+import { router, type Href } from 'expo-router'
+import { Pressable, StyleSheet, View } from 'react-native'
 
 import { spacing, useTheme } from '@/common/theme'
 import { Card, Collapsible, Icon, Spinner, Text } from '@/common/ui'
@@ -15,10 +16,19 @@ import { ErrorState } from '@/common/components/ErrorState'
 const fmt = (v: number | null | undefined): string => (v == null ? '—' : `${Math.round(v * 10) / 10}`)
 
 /** Conditions, zone breakdown, centers and timestamps for an already-loaded barangay. */
-export function BarangayDetailSections({ data, barangayId }: { data: BarangayRisk; barangayId: number | null }) {
+export function BarangayDetailSections({
+    data,
+    barangayId,
+    onBeforeNavigate,
+}: {
+    data: BarangayRisk
+    barangayId: number | null
+    /** Called just before leaving for another screen (e.g. to close a surrounding modal). */
+    onBeforeNavigate?: () => void
+}) {
     return (
         <>
-            <Conditions data={data} />
+            <Conditions data={data} barangayId={barangayId} onBeforeNavigate={onBeforeNavigate} />
             <ZoneBreakdown data={data} />
             <EvacuationCenters barangayId={barangayId} />
             <Footer data={data} />
@@ -56,7 +66,15 @@ const ScoreRow = ({ data }: { data: BarangayRisk }) => (
     </Card>
 )
 
-const Conditions = ({ data }: { data: BarangayRisk }) => {
+const Conditions = ({
+    data,
+    barangayId,
+    onBeforeNavigate,
+}: {
+    data: BarangayRisk
+    barangayId: number | null
+    onBeforeNavigate?: () => void
+}) => {
     // Hourly values (true mm/hr): the last completed hour, and the highest of the next four.
     const hourlyForecasts = [
         data.hourly_forecast_1hr,
@@ -86,23 +104,50 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
                 <StatTile label="Accumulated (24 hr)" value={fmt(data.accumulated_24hr)} unit="mm" />
                 <StatTile label="Accumulated (7 day)" value={fmt(data.accumulated_7day)} unit="mm" />
             </View>
-            <RainfallStrength tier={tier} />
+            <RainfallStrength
+                tier={tier}
+                onPress={
+                    barangayId == null
+                        ? undefined
+                        : () => {
+                              onBeforeNavigate?.()
+                              router.push(`/forecast/${barangayId}` as Href)
+                          }
+                }
+            />
         </View>
     )
 }
 
-const RainfallStrength = ({ tier }: { tier: ReturnType<typeof rainfallTier> }) => {
+/** Tapping the card opens the rain outlook; the (i) in the corner hints that it can be tapped. */
+const RainfallStrength = ({ tier, onPress }: { tier: ReturnType<typeof rainfallTier>; onPress?: () => void }) => {
     const theme = useTheme()
-    return (
+    const card = (
         <Card style={styles.strength}>
             <Icon name={RAINFALL_TIER_ICONS[tier]} size={22} color={theme.colors.primary} />
-            <View>
+            <View style={styles.strengthText}>
                 <Text variant="caption" color="textMuted">
                     Rainfall strength
                 </Text>
                 <Text variant="subtitle">{RAINFALL_TIER_LABELS[tier]}</Text>
+                {onPress ? (
+                    <Text variant="caption" color="primary">
+                        See rain outlook
+                    </Text>
+                ) : null}
             </View>
+            {onPress ? (
+                <View style={styles.info} pointerEvents="none">
+                    <Icon name="information-circle-outline" size={22} color={theme.colors.primary} />
+                </View>
+            ) : null}
         </Card>
+    )
+    if (!onPress) return card
+    return (
+        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Rainfall strength. Open rain outlook">
+            {card}
+        </Pressable>
     )
 }
 
@@ -243,6 +288,8 @@ const styles = StyleSheet.create({
     tileUnit: { fontSize: 14, lineHeight: 18 },
     tileValue: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
     strength: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    strengthText: { flex: 1 },
+    info: { position: 'absolute', top: spacing.sm, right: spacing.sm },
     breakdown: { gap: spacing.sm },
     factor: { gap: spacing.xs, marginTop: spacing.xs },
     factorHead: { flexDirection: 'row', justifyContent: 'space-between' },

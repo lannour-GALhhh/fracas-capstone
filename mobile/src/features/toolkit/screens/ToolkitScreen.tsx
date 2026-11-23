@@ -20,7 +20,7 @@ export function ToolkitScreen({ edges }: { edges?: ComponentProps<typeof Screen>
         <Screen edges={edges}>
             <View style={styles.body}>
                 <View style={styles.intro}>
-                    <Text variant="title">Disaster toolkit</Text>
+                    <Text variant="title">Help</Text>
                 </View>
 
                 <Collapsible

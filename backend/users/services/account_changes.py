@@ -14,6 +14,7 @@ TRACKED_FIELDS = [
     "is_operator",
     "is_staff",
     "is_active",
+    "barangays",
 ]
 
 # Order used to render an address dict into a readable one-liner.
@@ -37,6 +38,9 @@ def _field_kv(user, field) -> tuple:
         address = user.address or {}
         # Stable key so re-ordered/equal dicts don't register as a change.
         return (json.dumps(address, sort_keys=True), format_address(address))
+    if field == "barangays":
+        names = sorted(user.barangays.values_list("name", flat=True)) if user.pk else []
+        return (tuple(names), ", ".join(names) or "All barangays")
     value = getattr(user, field)
     return (value, _display(value))
 

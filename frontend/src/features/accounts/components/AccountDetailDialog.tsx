@@ -13,7 +13,9 @@ import ErrorState from '@/common/components/ErrorState'
 import RoleBadge from '@/features/user/components/RoleBadge'
 import UserActiveBadge from '@/features/user/components/UserActiveBadge'
 import { useAdminUser } from '@/features/admin/hooks/useAdminUsers'
+import { useUpdateAdminUser } from '@/features/admin/hooks/useAdminUserMutations'
 import AccountAvatar from './AccountAvatar'
+import BarangayAccessField from './BarangayAccessField'
 import StatusControl from './StatusControl'
 import UserChangeLog from './UserChangeLog'
 
@@ -36,6 +38,9 @@ interface Props {
 const AccountDetailDialog = ({ userId, onClose }: Props) => {
     const [historyOpen, setHistoryOpen] = useState(false)
     const { data: user, isLoading, isError, refetch } = useAdminUser(userId ?? 0)
+    const update = useUpdateAdminUser(userId ?? 0)
+    // Local draft while "Specific barangays" is chosen but nothing is picked yet.
+    const [draftRestricted, setDraftRestricted] = useState<boolean | null>(null)
 
     const name = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : ''
 
@@ -83,6 +88,25 @@ const AccountDetailDialog = ({ userId, onClose }: Props) => {
                                 value={user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
                             />
                         </Card>
+
+                        {user.role === 'operator' && (
+                            <Card size='sm' className='flex flex-col gap-2'>
+                                <BarangayAccessField
+                                    restricted={draftRestricted ?? user.barangays.length > 0}
+                                    ids={user.barangays}
+                                    onChange={(restricted, ids) => {
+                                        setDraftRestricted(restricted)
+                                        // Saving an empty list means "all", so wait for a pick.
+                                        if (!restricted || ids.length > 0) {
+                                            update.mutate(
+                                                { barangays: ids },
+                                                { onSuccess: () => setDraftRestricted(null) },
+                                            )
+                                        }
+                                    }}
+                                />
+                            </Card>
+                        )}
 
                         <div className='flex items-center justify-between gap-2'>
                         <Button

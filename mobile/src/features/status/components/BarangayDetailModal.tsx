@@ -51,7 +51,7 @@ export function BarangayDetailModal({ barangayId, onClose }: Props) {
                 {data ? (
                     <ScrollView contentContainerStyle={styles.body}>
                         <HazardHero data={data} />
-                        <BarangayDetailSections data={data} barangayId={barangayId} />
+                        <BarangayDetailSections data={data} barangayId={barangayId} onBeforeNavigate={onClose} />
                     </ScrollView>
                 ) : null}
             </View>

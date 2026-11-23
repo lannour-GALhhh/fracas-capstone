@@ -95,6 +95,7 @@ class RiskEngine:
             category=self.config.categorize(score),
             breakdown={
                 FACTOR_RAINFALL: _rain_breakdown(rain, available=True),
+                "fuzzy": self.config.memberships(score),
                 FACTOR_SUSCEPTIBILITY: {
                     "dominant_level": zones[0]["level"],
                     "zone_count": len(zones),
